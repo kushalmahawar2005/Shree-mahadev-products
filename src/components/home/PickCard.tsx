@@ -9,19 +9,33 @@ import { cn } from "@/lib/utils/cn";
 import { DISCOUNT_BADGE_MIN, discountPercent, formatMoney } from "@/lib/utils/money";
 import { unitPrice } from "@/lib/utils/unitPrice";
 import type { PickProduct } from "./pickProduct";
+import { SizeChips } from "./SizeChips";
 
 export type { PickProduct };
 
 const BADGES: Record<string, string> = { bestseller: "Bestseller", new: "New" };
 
-function Stars() {
+const STAR = "M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9z";
+
+/** 5 stars with partial fill for decimals (e.g. 4.6 → last star 60% filled). */
+function Stars({ value }: { value: number }) {
   return (
-    <span className="flex text-mustard" aria-hidden>
-      {Array.from({ length: 5 }, (_, i) => (
-        <svg key={i} viewBox="0 0 20 20" className="size-3.5" fill="currentColor">
-          <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L10 14.9l-5.2 2.7 1-5.8L1.5 7.7l5.9-.9z" />
-        </svg>
-      ))}
+    <span className="flex" aria-hidden>
+      {Array.from({ length: 5 }, (_, i) => {
+        const fill = Math.max(0, Math.min(1, value - i));
+        return (
+          <span key={i} className="relative size-3.5">
+            <svg viewBox="0 0 20 20" className="absolute inset-0 size-3.5 text-mustard/25" fill="currentColor">
+              <path d={STAR} />
+            </svg>
+            <span className="absolute inset-y-0 left-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+              <svg viewBox="0 0 20 20" className="size-3.5 text-mustard" fill="currentColor">
+                <path d={STAR} />
+              </svg>
+            </span>
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -37,7 +51,8 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
   const href = `/products/${product.handle}`;
   const [img, img2] = product.images;
   const badgeTag = (["bestseller", "new"] as const).find((t) => product.tags.includes(t));
-  const per = selected ? unitPrice(selected) : null;
+  // Unit price repeats the price for 100 ml / 100 g packs, so skip it there.
+  const per = selected && selected.sizeValue !== 100 ? unitPrice(selected) : null;
 
   useEffect(() => {
     if (!added) return;
@@ -49,7 +64,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
     <article className="group flex h-full flex-col rounded-2xl border border-[#EFE6D2] bg-white p-3 md:p-4">
       {/* 1. Image */}
       <Link href={href} data-card-media className="relative block aspect-square overflow-hidden rounded-xl bg-khaki-soft" tabIndex={-1} aria-hidden>
-        <span className="absolute bottom-[9%] left-1/2 h-[6%] w-[46%] -translate-x-1/2 rounded-[50%] bg-forest-deep/10 blur-[6px]" />
+        <span className="absolute bottom-[7%] left-1/2 h-[5%] w-[44%] -translate-x-1/2 rounded-[50%] bg-forest-deep/12 blur-[6px]" />
         {img && (
           <SmartImage
             src={img.url}
@@ -59,7 +74,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             priority={priority}
             sizes="(min-width: 1024px) 280px, 45vw"
             className={cn(
-              "absolute inset-[10%] size-[80%] object-contain transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04]",
+              "absolute top-[10%] left-[10%] h-[80%] w-[80%] origin-bottom object-contain object-bottom transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04]",
               img2 && "md:group-hover:opacity-0",
             )}
           />
@@ -71,7 +86,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             width={img2.width}
             height={img2.height}
             sizes="(min-width: 1024px) 280px, 45vw"
-            className="absolute inset-[10%] size-[80%] object-contain opacity-0 transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04] md:group-hover:opacity-100"
+            className="absolute top-[10%] left-[10%] h-[80%] w-[80%] origin-bottom object-contain object-bottom opacity-0 transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04] md:group-hover:opacity-100"
           />
         )}
         {badgeTag && (
@@ -93,8 +108,8 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
       </p>
       {/* Only real ratings (Judge.me). No placeholder stars. */}
       {product.rating && product.reviewCount ? (
-        <p className="mt-1 flex items-center gap-1 text-sm">
-          <Stars />
+        <p className="mt-1 flex items-center gap-1 text-sm" aria-label={`Rated ${product.rating.toFixed(1)} out of 5 from ${product.reviewCount} reviews`}>
+          <Stars value={product.rating} />
           <span className="font-semibold text-ink">{product.rating.toFixed(1)}</span>
           <span className="text-ink-muted">({product.reviewCount})</span>
         </p>
@@ -103,34 +118,16 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
       <div className="mt-auto pt-3">
         {available.length > 0 ? (
           <>
-            {/* 5. Sizes: one row, never wraps; scrolls if more than fit */}
-            <div
-              role="radiogroup"
-              aria-label={`Size for ${product.title}`}
-              className="no-scrollbar -mx-1 flex snap-x gap-2 overflow-x-auto px-1"
-            >
-              {available.map((v) => {
-                const on = v.id === selected?.id;
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={on}
-                    onClick={() => setSelectedId(v.id)}
-                    className={cn(
-                      "h-8 shrink-0 snap-start rounded-full border px-3 text-[13px] whitespace-nowrap transition-colors duration-200 md:h-9 md:text-sm",
-                      on ? "border-forest bg-forest font-semibold text-white" : "border-khaki bg-white text-forest-text hover:border-forest",
-                    )}
-                  >
-                    {v.title}
-                  </button>
-                );
-              })}
-            </div>
+            {/* 5. Sizes: whole chips only, "+N" for the rest */}
+            <SizeChips
+              sizes={available.map((v) => ({ id: v.id, title: v.title }))}
+              selectedId={selected?.id}
+              onSelect={setSelectedId}
+              label={`Size for ${product.title}`}
+            />
 
             {/* 6. Price row */}
-            <div className="mt-3 min-h-[46px]" aria-live="polite">
+            <div className="mt-3 min-h-[48px]" aria-live="polite">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={selected?.id}

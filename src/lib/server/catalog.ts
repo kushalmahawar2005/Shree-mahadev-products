@@ -70,7 +70,7 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
   if (!ps.length) return [];
   const ids = ps.map((p) => p.id);
   const handles = ps.map((p) => p.handle);
-  const [[vs], [imgs], [cols]] = await Promise.all([
+  const [[vs], [imgs], [cols], [revs]] = await Promise.all([
     db().query<Rows>("SELECT * FROM product_variants WHERE product_id IN (?) ORDER BY sort_order, size_value", [ids]),
     db().query<Rows>(
       "SELECT product_handle, url, alt, width, height FROM product_images WHERE product_handle IN (?) ORDER BY sort_order, id",
@@ -80,9 +80,14 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
       "SELECT cp.product_id, c.handle FROM collection_products cp JOIN collections c ON c.id = cp.collection_id WHERE cp.product_id IN (?)",
       [ids],
     ),
+    db().query<Rows>(
+      "SELECT product_handle, AVG(rating) AS avg_rating, COUNT(*) AS n FROM reviews WHERE status = 'approved' AND product_handle IN (?) GROUP BY product_handle",
+      [handles],
+    ),
   ]);
 
   return ps.map((p) => {
+    const rev = revs.find((r) => r.product_handle === p.handle);
     const variants = vs.filter((v) => v.product_id === p.id).map(toVariant);
     const priced = variants.filter((v) => v.availableForSale).map((v) => v.price.amount);
     const images = imgs
@@ -111,6 +116,9 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
         min: inr(priced.length ? Math.min(...priced) : 0),
         max: inr(priced.length ? Math.max(...priced) : 0),
       },
+      // Only real, approved reviews. No review = no stars.
+      rating: rev ? Math.round(Number(rev.avg_rating) * 10) / 10 : undefined,
+      reviewCount: rev ? Number(rev.n) : undefined,
       tags: json<string[]>(p.tags, []),
       faqs: json<{ q: string; a: string }[]>(p.faqs, []),
       seo: { title: p.seo_title || p.title, description: p.seo_description || p.short_description },

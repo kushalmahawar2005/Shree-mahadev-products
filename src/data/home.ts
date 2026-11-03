@@ -4,7 +4,7 @@
  */
 
 export const topPicks = {
-  title: "Top Picks For You",
+  title: "Top picks for you",
   tabs: [
     {
       label: "Most loved",

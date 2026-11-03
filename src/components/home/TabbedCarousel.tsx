@@ -43,30 +43,42 @@ export function TabbedCarousel({
     });
   }, []);
 
-  useEffect(() => {
-    const el = track.current;
-    if (!el) return;
-    el.scrollLeft = 0;
-    update();
-    el.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      el.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, [active, update]);
+  // The track remounts on every tab switch (AnimatePresence), so wire it up via a callback ref.
+  const ro = useRef<ResizeObserver | null>(null);
+  const setTrack = useCallback(
+    (el: HTMLDivElement | null) => {
+      ro.current?.disconnect();
+      track.current = el;
+      if (!el) return;
+      requestAnimationFrame(update);
+      // Images loading change card height: keep arrows centred on the photo.
+      ro.current = new ResizeObserver(update);
+      ro.current.observe(el);
+    },
+    [update],
+  );
 
+  useEffect(() => {
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [update]);
+
+  // Move by exactly one card (its width + the flex gap).
   const go = (dir: 1 | -1) => {
     const el = track.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth, behavior: reduce ? "auto" : "smooth" });
+    const first = el?.firstElementChild as HTMLElement | null;
+    if (!el || !first) return;
+    const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
+    el.scrollBy({ left: dir * (first.offsetWidth + gap), behavior: reduce ? "auto" : "smooth" });
   };
+  const canScroll = edge.prev || edge.next;
 
   const uid = useId();
   const tabId = (i: number) => `${uid}-tab-${i}`;
 
   return (
     <div>
-      <div className={cn("flex", variant === "center" ? "justify-center" : "justify-start")}>
+      <div className={cn("relative flex items-center", variant === "center" ? "justify-center" : "justify-start")}>
         <div
           role="tablist"
           aria-label="Product groups"
@@ -92,6 +104,13 @@ export function TabbedCarousel({
             );
           })}
         </div>
+        {/* 1024–1279px: arrows sit as a pair at the end of the tabs row */}
+        {canScroll && (
+          <div className="absolute right-0 hidden gap-2 lg:flex xl:hidden">
+            <Arrow dir="prev" disabled={!edge.prev} onClick={() => go(-1)} />
+            <Arrow dir="next" disabled={!edge.next} onClick={() => go(1)} />
+          </div>
+        )}
       </div>
 
       <div className="relative mt-6 md:mt-8">
@@ -106,7 +125,8 @@ export function TabbedCarousel({
             transition={{ duration: 0.25 }}
           >
             <div
-              ref={track}
+              ref={setTrack}
+              onScroll={update}
               className={cn(
                 "no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 md:mx-0 md:gap-4 md:scroll-px-0 md:px-0",
                 // Fewer cards than a row: centre them instead of leaving a gap on the right.
@@ -126,10 +146,11 @@ export function TabbedCarousel({
           </motion.div>
         </AnimatePresence>
 
-        {edge.pages > 1 && (
+        {/* ≥1280px: arrows outside the track, 24px from the first/last card, centred on the photo */}
+        {canScroll && (
           <>
-            <Arrow dir="prev" top={arrowTop} disabled={!edge.prev} onClick={() => go(-1)} />
-            <Arrow dir="next" top={arrowTop} disabled={!edge.next} onClick={() => go(1)} />
+            <Arrow dir="prev" side top={arrowTop} disabled={!edge.prev} onClick={() => go(-1)} />
+            <Arrow dir="next" side top={arrowTop} disabled={!edge.next} onClick={() => go(1)} />
           </>
         )}
       </div>
@@ -164,17 +185,31 @@ export function TabbedCarousel({
   );
 }
 
-function Arrow({ dir, top, disabled, onClick }: { dir: "prev" | "next"; top: number | null; disabled: boolean; onClick: () => void }) {
+function Arrow({
+  dir,
+  side = false,
+  top = null,
+  disabled,
+  onClick,
+}: {
+  dir: "prev" | "next";
+  side?: boolean;
+  top?: number | null;
+  disabled: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-disabled={disabled}
       aria-label={dir === "prev" ? "Previous products" : "Next products"}
-      style={{ top: top ?? "35%" }}
+      style={side ? { top: top ?? "35%" } : undefined}
       className={cn(
-        "absolute z-10 hidden size-11 -translate-y-1/2 place-items-center rounded-full border border-khaki bg-white text-forest transition-opacity duration-200 hover:border-forest disabled:opacity-40 md:grid",
-        dir === "prev" ? "-left-[22px]" : "-right-[22px]",
+        "size-11 place-items-center rounded-full border border-khaki bg-white text-forest transition-opacity duration-200 hover:border-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mustard disabled:pointer-events-none disabled:opacity-35",
+        side ? "absolute z-10 hidden -translate-y-1/2 xl:grid" : "grid",
+        side && (dir === "prev" ? "-left-[68px]" : "-right-[68px]"),
       )}
     >
       <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

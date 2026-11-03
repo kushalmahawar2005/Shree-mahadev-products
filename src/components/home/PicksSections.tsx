@@ -40,8 +40,7 @@ function Wrap({
 
 export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   return (
-    <section className="relative overflow-hidden bg-[#FBF8F2] pt-16 pb-12 md:py-16">
-      <Sky />
+    <section className="relative overflow-hidden bg-[#FBF8F2] pt-16 pb-12 md:pt-20 md:pb-16">
       <Wrap className="relative">
         <Reveal>
           <h2 className="text-center text-3xl text-forest md:text-[44px]">
@@ -56,38 +55,6 @@ export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   );
 }
 
-/** Hand-painted sky: sun + birds from the top-left, clouds + neem branch from the top-right. Decorative only. */
-function Sky() {
-  return (
-    <>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-2 -left-4 w-40 opacity-90 sm:w-56 md:top-4 md:left-0 lg:w-[340px] xl:w-[400px]"
-      >
-        <Image
-          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735964/swadeshi-mahadev/static/images/deco/sky-sun-birds.webp"
-          alt=""
-          width={900}
-          height={299}
-          sizes="(min-width: 1280px) 400px, (min-width: 1024px) 340px, 224px"
-        />
-      </div>
-      {/* Neem branch enters from the right edge, flush to the top. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute top-0 right-0 w-44 opacity-95 sm:w-60 lg:w-[360px] xl:w-[420px]"
-      >
-        <Image
-          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735962/swadeshi-mahadev/static/images/deco/sky-clouds-neem.webp"
-          alt=""
-          width={900}
-          height={243}
-          sizes="(min-width: 1280px) 420px, (min-width: 1024px) 360px, 240px"
-        />
-      </div>
-    </>
-  );
-}
 
 /* ───────────── 2. Promo strip ───────────── */
 
