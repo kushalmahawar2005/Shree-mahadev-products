@@ -5,6 +5,8 @@ export type ContentEntry = {
   title: string;
   description: string;
   date?: string;
+  /** "Last updated" for policies (YYYY-MM-DD) */
+  updated?: string;
   color?: string;
   /** product handles used in this recipe / post */
   products?: string[];
@@ -47,10 +49,10 @@ export const content: Record<ContentKind, ContentEntry[]> = {
     },
   ],
   policies: [
-    { slug: "privacy", title: "Privacy policy", description: "How we handle your personal information." },
-    { slug: "refund-return", title: "Refund & return policy", description: "Returns, replacements and refunds." },
-    { slug: "shipping", title: "Shipping policy", description: "Where we ship, how long it takes, and charges." },
-    { slug: "terms", title: "Terms of service", description: "Terms for using this website and buying from us." },
+    { slug: "privacy", updated: "2026-11-04", title: "Privacy policy", description: "How we handle your personal information." },
+    { slug: "refund-return", updated: "2026-11-04", title: "Refund & return policy", description: "Returns, replacements and refunds." },
+    { slug: "shipping", updated: "2026-11-04", title: "Shipping policy", description: "Where we ship, how long it takes, and charges." },
+    { slug: "terms", updated: "2026-11-04", title: "Terms of service", description: "Terms for using this website and buying from us." },
   ],
 };
 

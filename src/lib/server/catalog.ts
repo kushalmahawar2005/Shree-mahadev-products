@@ -47,6 +47,7 @@ export type CatalogProduct = Omit<Product, "variants"> & {
   collections: string[];
   sortOrder: number;
   createdAt: string;
+  updatedAt: string;
   variants: CatalogVariant[];
 };
 
@@ -126,6 +127,7 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
       collections: cols.filter((c) => c.product_id === p.id).map((c) => c.handle as string),
       sortOrder: p.sort_order,
       createdAt: p.created_at,
+      updatedAt: p.updated_at,
     };
   });
 }

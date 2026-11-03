@@ -253,3 +253,15 @@ html.lenis body {
 @media (prefers-reduced-motion: reduce) {
   .btn-shine::after { animation: none; display: none; }
 }
+
+/* Glass reflection sweep: three slanted white strips glide left → right over a band. */
+@keyframes reflectionMove {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+.reflection-animation {
+  animation: reflectionMove 4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reflection-animation { animation: none; display: none; }
+}

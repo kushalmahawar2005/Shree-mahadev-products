@@ -1,3 +1,4 @@
+import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
 import { Ticker } from "@/components/motion/Ticker";
 import { getHeroSlides } from "@/lib/hero";
 import { HeroCarousel } from "./HeroCarousel";
@@ -21,9 +22,10 @@ export async function Hero() {
       </section>
 
       <div
-        className="bg-forest py-4"
+        className="relative overflow-hidden bg-forest py-4"
         aria-label="What makes our oil different"
       >
+        <ReflectionSweep />
         <Ticker
           items={trustPoints}
           duration={30}

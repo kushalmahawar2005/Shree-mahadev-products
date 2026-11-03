@@ -123,3 +123,35 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
 export function jsonLdString(data: unknown) {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
+
+const publisher = () => ({ "@type": "Organization", name: site.name, logo: absoluteUrl("/logo.png") });
+
+export function articleJsonLd(a: { title: string; description: string; path: string; date?: string }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: a.title,
+    description: a.description,
+    datePublished: a.date,
+    dateModified: a.date,
+    mainEntityOfPage: absoluteUrl(a.path),
+    author: { "@type": "Organization", name: site.name },
+    publisher: publisher(),
+    image: absoluteUrl("/logo.png"),
+  };
+}
+
+export function recipeJsonLd(r: { title: string; description: string; path: string; date?: string; ingredients?: string[] }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Recipe",
+    name: r.title,
+    description: r.description,
+    datePublished: r.date,
+    author: { "@type": "Organization", name: site.name },
+    image: absoluteUrl("/logo.png"),
+    recipeCuisine: "Indian",
+    ...(r.ingredients?.length ? { recipeIngredient: r.ingredients } : {}),
+    mainEntityOfPage: absoluteUrl(r.path),
+  };
+}

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { DecoBg } from "@/components/ui/DecoBg";
 import Link from "next/link";
 import { footerNav, fullAddress, site, whatsappLink } from "@/data/site";
 
@@ -138,12 +139,9 @@ export function Footer() {
           className="relative aspect-[2172/430] w-full lg:-mt-[12vw] lg:aspect-[2172/724]"
           aria-hidden
         >
-          <Image
+          <DecoBg
             src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735967/swadeshi-mahadev/static/images/footer-harvest.webp"
-            alt=""
-            fill
-            sizes="100vw"
-            className="object-cover object-bottom"
+            position="center bottom"
           />
         </div>
       </div>

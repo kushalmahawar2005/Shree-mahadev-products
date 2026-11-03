@@ -4,6 +4,8 @@ import { legacyRedirects } from "./src/data/redirects";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Two root layouts (store + admin): unmatched URLs use app/global-not-found.tsx.
+  experimental: { globalNotFound: true },
   partialPrefetching: true,
   pageExtensions: ["ts", "tsx", "md", "mdx"],
   turbopack: {

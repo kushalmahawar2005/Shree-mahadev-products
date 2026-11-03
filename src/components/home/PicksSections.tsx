@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/Reveal";
+import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
+import { DecoBg } from "@/components/ui/DecoBg";
 import { SmartImage } from "@/components/ui/SmartImage";
 import {
   beyondSlides,
@@ -65,6 +67,7 @@ export function PromoStrip() {
         href={promoStrip.cta.href}
         className="group relative flex h-[190px] items-center justify-center overflow-hidden border-y-[3px] border-[#E8B032] bg-[#03331C] md:h-[150px]"
       >
+        <ReflectionSweep />
         {/* Hand-painted art cropped from one banner: ghani on the left, kadhai tadka on the right. */}
         <Image
           src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735938/swadeshi-mahadev/static/images/deco/promo-left.webp"
@@ -114,12 +117,9 @@ export function BrandFilmSection({ youtube }: { youtube: string }) {
         aria-hidden
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[260px] [mask-image:linear-gradient(to_bottom,black_88%,transparent)] sm:h-auto sm:aspect-[3/1]"
       >
-        <Image
+        <DecoBg
           src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735936/swadeshi-mahadev/static/images/deco/landscape-fields.webp"
-          alt=""
-          fill
-          sizes="100vw"
-          className="object-cover object-[85%_100%]"
+          position="85% 100%"
         />
       </div>
       <Wrap className="relative">
@@ -246,13 +246,9 @@ export function Spotlight({
   return (
     <section className="relative overflow-hidden bg-[#FEF1DC] pt-12 md:pt-16">
       {/* Soft watercolor dunes + sun rays (hand-painted). Purely decorative. */}
-      <Image
+      <DecoBg
         src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735965/swadeshi-mahadev/static/images/deco/spotlight-bg.webp"
-        alt=""
-        aria-hidden
-        fill
-        sizes="100vw"
-        className="pointer-events-none object-cover object-center [mask-image:linear-gradient(to_bottom,transparent,black_160px)]"
+        className="[mask-image:linear-gradient(to_bottom,transparent,black_160px)]"
       />
       {/* Fade into the next section's colour so there is no seam. */}
       <div
