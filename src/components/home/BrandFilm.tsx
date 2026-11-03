@@ -1,18 +1,28 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
+
+/** Accepts a bare ID or any YouTube URL (watch?v=, youtu.be/, shorts/, embed/). */
+export function youtubeIdFrom(input: string): string {
+  const v = input.trim();
+  if (/^[\w-]{11}$/.test(v)) return v;
+  const m = v.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/);
+  return m ? m[1] : "";
+}
 
 /** Click-to-load YouTube embed (no iframe cost until the user asks). Without an ID it shows a poster only. */
 export function BrandFilm({
-  youtubeId,
+  youtube,
   posterTitle,
   posterSub,
 }: {
-  youtubeId: string;
+  youtube: string;
   posterTitle: string;
   posterSub: string;
 }) {
   const [playing, setPlaying] = useState(false);
+  const youtubeId = youtubeIdFrom(youtube);
 
   if (playing && youtubeId) {
     return (
@@ -52,6 +62,19 @@ export function BrandFilm({
         </g>
       </svg>
 
+      {youtubeId && (
+        <>
+          <Image
+            src={`https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg`}
+            alt=""
+            fill
+            unoptimized
+            sizes="(min-width: 1024px) 1200px, 100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/70 via-transparent to-forest-deep/50" />
+        </>
+      )}
       <div className="relative flex size-full flex-col justify-between p-5 md:p-8">
         <div>
           <p className="text-2xl font-bold text-khaki md:text-4xl">{posterTitle}</p>

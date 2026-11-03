@@ -164,7 +164,7 @@ export function BrandFilmSection() {
         </Reveal>
         <Reveal className="mx-auto mt-6 max-w-[860px] md:mt-8">
           <BrandFilm
-            youtubeId={brandFilm.youtubeId}
+            youtube={brandFilm.youtube}
             posterTitle={brandFilm.posterTitle}
             posterSub={brandFilm.posterSub}
           />

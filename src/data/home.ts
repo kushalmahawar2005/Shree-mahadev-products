@@ -30,8 +30,8 @@ export const promoStrip = {
 export const brandFilm = {
   titleLead: "We Are Pressers,",
   titleRest: "Making Honest Oil the Slow Way",
-  // TODO(client): YouTube video ID of the ghani film. Until then a poster is shown.
-  youtubeId: "",
+  // TODO(client): paste the YouTube link (watch, youtu.be or shorts) of the ghani film. Empty = poster only.
+  youtube: "",
   posterTitle: "From seed to bottle",
   posterSub: "A wooden ghani in Bijainagar, Rajasthan",
 };
