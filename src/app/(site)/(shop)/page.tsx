@@ -1,3 +1,5 @@
+import { Reels, type ReelItem } from "@/components/home/Reels";
+import { getHomeVideos } from "@/lib/home-videos";
 import { Hero } from "@/components/home/Hero";
 import { toPickProduct } from "@/components/home/pickProduct";
 import {
@@ -76,12 +78,25 @@ export default async function HomePage() {
     };
   });
 
+  const videos = await getHomeVideos();
+  const reelItems: ReelItem[] = videos.reels.map((r) => {
+    const p = r.productHandle ? all.find((x) => x.handle === r.productHandle) : undefined;
+    return {
+      id: r.id,
+      videoUrl: r.videoUrl,
+      caption: r.caption,
+      instagramUrl: r.instagramUrl,
+      product: p ? { handle: p.handle, title: p.title } : null,
+    };
+  });
+
   return (
     <>
       <Hero />
       <TopPicks tabs={pickTabs} />
       <PromoStrip />
-      <BrandFilmSection />
+      {reelItems.length > 0 && <Reels title="Straight from the ghani" reels={reelItems} />}
+      <BrandFilmSection youtube={videos.youtube} />
       <ProofCards />
       <ShopByUseCarousel tabs={useTabs} />
       <Spotlight products={all} />

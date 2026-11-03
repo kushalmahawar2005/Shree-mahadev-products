@@ -139,7 +139,7 @@ export function PromoStrip() {
 
 /* ───────────── 3. Brand film ───────────── */
 
-export function BrandFilmSection() {
+export function BrandFilmSection({ youtube }: { youtube: string }) {
   return (
     <section className="relative overflow-hidden bg-[#FEF1DC] pt-12 pb-[22vw] sm:pb-[12vw] md:pt-16">
       {/* Hand-painted landscape (dunes, hills, khejri tree, mustard field) anchored to the bottom; its empty sky blends into the section colour. */}
@@ -164,7 +164,7 @@ export function BrandFilmSection() {
         </Reveal>
         <Reveal className="mx-auto mt-6 max-w-[860px] md:mt-8">
           <BrandFilm
-            youtube={brandFilm.youtube}
+            youtube={youtube}
             posterTitle={brandFilm.posterTitle}
             posterSub={brandFilm.posterSub}
           />

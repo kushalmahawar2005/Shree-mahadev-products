@@ -16,7 +16,7 @@ export function DropZone({
   compact,
   onUploaded,
 }: {
-  folder: "products" | "banners";
+  folder: "products" | "banners" | "reels";
   multiple?: boolean;
   label?: string;
   hint?: string;
@@ -29,9 +29,11 @@ export function DropZone({
   const busy = jobs.some((j) => j.pct < 100 && !j.error);
 
   async function handle(list: FileList | File[] | null) {
-    const files = Array.from(list ?? []).filter((f) => f.type.startsWith("image/") || /\.heic$/i.test(f.name));
+    const files = Array.from(list ?? []).filter((f) =>
+      folder === "reels" ? f.type.startsWith("video/") : f.type.startsWith("image/") || /\.heic$/i.test(f.name),
+    );
     if (!files.length) return;
-    const picked = multiple ? files.slice(0, 20) : files.slice(0, 1);
+    const picked = multiple ? files.slice(0, folder === "reels" ? 10 : 20) : files.slice(0, 1);
     setJobs(picked.map((f) => ({ name: f.name, pct: 0 })));
     const results = await Promise.all(
       picked.map((f, i) =>
@@ -84,7 +86,7 @@ export function DropZone({
       <input
         ref={input}
         type="file"
-        accept="image/*,.heic"
+        accept={folder === "reels" ? "video/mp4,video/quicktime,video/webm" : "image/*,.heic"}
         multiple={multiple}
         hidden
         onChange={(e) => {

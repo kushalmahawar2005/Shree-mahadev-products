@@ -27,8 +27,9 @@ export async function uploadImage(source: string, opts: { folder: string; public
 
 export { cloudinary };
 
-const ALLOWED_FORMATS = "jpg,jpeg,png,webp,avif,heic";
-export type UploadFolder = "products" | "banners";
+const IMAGE_FORMATS = "jpg,jpeg,png,webp,avif,heic";
+const VIDEO_FORMATS = "mp4,mov,webm,m4v";
+export type UploadFolder = "products" | "banners" | "reels";
 
 /**
  * Signature for a direct browser → Cloudinary upload (files never pass through our server,
@@ -38,7 +39,7 @@ export function signUpload(folder: UploadFolder) {
   const params = {
     folder: `swadeshi-mahadev/${folder}`,
     timestamp: Math.round(Date.now() / 1000),
-    allowed_formats: ALLOWED_FORMATS,
+    allowed_formats: folder === "reels" ? VIDEO_FORMATS : IMAGE_FORMATS,
   };
   const signature = cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET!);
   return {
@@ -46,12 +47,13 @@ export function signUpload(folder: UploadFolder) {
     signature,
     apiKey: process.env.CLOUDINARY_API_KEY!,
     cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+    resourceType: folder === "reels" ? ("video" as const) : ("image" as const),
   };
 }
 
-export async function destroyImage(publicId: string) {
+export async function destroyImage(publicId: string, resourceType: "image" | "video" = "image") {
   try {
-    await cloudinary.uploader.destroy(publicId, { invalidate: true });
+    await cloudinary.uploader.destroy(publicId, { invalidate: true, resource_type: resourceType });
   } catch (e) {
     console.error("Cloudinary destroy failed", publicId, e);
   }
@@ -61,7 +63,8 @@ export async function destroyImage(publicId: string) {
 export function isOwnCloudinaryUrl(url: string, publicId: string) {
   const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   return (
-    url.startsWith(`https://res.cloudinary.com/${cloud}/image/upload/`) &&
+    (url.startsWith(`https://res.cloudinary.com/${cloud}/image/upload/`) ||
+      url.startsWith(`https://res.cloudinary.com/${cloud}/video/upload/`)) &&
     publicId.startsWith("swadeshi-mahadev/") &&
     url.includes(publicId)
   );

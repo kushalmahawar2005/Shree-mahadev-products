@@ -54,6 +54,7 @@ export function SearchBox({
 }) {
   const [open, setOpen] = useState<null | "both" | "cats">(null);
   const [q, setQ] = useState("");
+  const [hoverCat, setHoverCat] = useState<string | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,11 +72,15 @@ export function SearchBox({
 
   const byHandle = useMemo(() => new Map(all.map((p) => [p.handle, p])), [all]);
   const term = q.trim().toLowerCase();
+  const cat = categories.find((c) => c.href === hoverCat);
+  const catHandle = cat?.href.split("/").pop();
   const matches = term
     ? all
         .filter((p) => `${p.title} ${p.titleHi}`.toLowerCase().includes(term))
         .slice(0, 4)
-    : recommended.slice(0, 4);
+    : cat
+      ? all.filter((p) => p.collections?.includes(catHandle!)).slice(0, 4)
+      : recommended.slice(0, 4);
 
   return (
     <div ref={wrap} className={cn("relative hidden lg:block", open && "z-30")}>
@@ -83,7 +88,7 @@ export function SearchBox({
         action="/search"
         role="search"
         className={cn(
-          "flex h-11 w-full items-center rounded-lg border bg-white pr-1 pl-4 transition-colors",
+          "flex h-11 w-full items-center rounded-lg border bg-white pr-1 pl-4 transition-[border-color,box-shadow] focus-within:border-forest focus-within:shadow-[0_0_0_3px_rgba(180,144,36,0.25)]",
           open ? "border-forest" : "border-forest-text/30",
         )}
       >
@@ -102,7 +107,7 @@ export function SearchBox({
           }}
           onFocus={() => setOpen("both")}
           placeholder="Search for groundnut oil"
-          className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink placeholder:text-ink-muted focus:outline-none"
+          className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-ink placeholder:text-ink-muted focus:outline-none focus-visible:outline-none"
         />
         <button
           type="submit"
@@ -124,9 +129,16 @@ export function SearchBox({
           >
             {open === "both" && (
               <div className="flex-1 rounded-[20px] bg-white p-6 shadow-[0_20px_40px_-20px_rgba(7,47,27,0.4)]">
-                <p className="mb-4 text-xl font-bold text-forest-text">
-                  {term ? "Matching Products" : "Recommended Products"}
-                </p>
+                <div className="mb-4 flex items-baseline justify-between gap-3">
+                  <p className="text-xl font-bold text-forest-text">
+                    {term ? "Matching Products" : cat ? cat.label : "Recommended Products"}
+                  </p>
+                  {cat && !term && (
+                    <Link href={cat.href} onClick={() => setOpen(null)} className="text-sm font-semibold text-forest underline">
+                      View all
+                    </Link>
+                  )}
+                </div>
                 {matches.length === 0 ? (
                   <p className="text-ink-muted">
                     No products found. Try another word.
@@ -182,7 +194,7 @@ export function SearchBox({
                 open === "cats" && "ml-auto",
               )}
             >
-              <ul className="p-2">
+              <ul className="p-2" onMouseLeave={() => setHoverCat(null)}>
                 {categories.map((c) => {
                   const p = byHandle.get(c.handle);
                   return (
@@ -190,7 +202,12 @@ export function SearchBox({
                       <Link
                         href={c.href}
                         onClick={() => setOpen(null)}
-                        className="flex min-h-12 items-center gap-3 rounded-xl px-3 font-medium text-forest-text transition-colors hover:bg-khaki-soft"
+                        onMouseEnter={() => setHoverCat(c.href)}
+                        onFocus={() => setHoverCat(c.href)}
+                        className={cn(
+                          "flex min-h-12 items-center gap-3 rounded-xl px-3 font-medium text-forest-text transition-colors hover:bg-khaki-soft",
+                          hoverCat === c.href && "bg-khaki-soft",
+                        )}
                       >
                         <span
                           className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full"

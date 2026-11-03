@@ -12,6 +12,8 @@ export type MenuProduct = {
   swatch?: string;
   image?: string;
   from?: number;
+  /** Collection handles this product belongs to (search dropdown hover preview). */
+  collections?: string[];
 };
 export type MenuData = Record<MenuGroup, MenuProduct[]>;
 

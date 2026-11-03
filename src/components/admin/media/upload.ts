@@ -31,13 +31,21 @@ async function prepare(file: File): Promise<Blob> {
   return file;
 }
 
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // Cloudinary free plan: 100 MB per video
+
 export async function uploadToCloudinary(
   file: File,
-  folder: "products" | "banners",
+  folder: "products" | "banners" | "reels",
   onProgress?: (pct: number) => void,
 ): Promise<UploadedImage> {
-  if (!file.type.startsWith("image/") && !/\.heic$/i.test(file.name)) throw new Error(`${file.name} is not an image`);
-  const [blob, sig] = await Promise.all([prepare(file), signUploadAction(folder)]);
+  const isVideo = folder === "reels";
+  if (isVideo) {
+    if (!file.type.startsWith("video/")) throw new Error(`${file.name} is not a video`);
+    if (file.size > MAX_VIDEO_BYTES) throw new Error(`${file.name} is over 100 MB. Export it at 1080p or lower.`);
+  } else if (!file.type.startsWith("image/") && !/\.heic$/i.test(file.name)) {
+    throw new Error(`${file.name} is not an image`);
+  }
+  const [blob, sig] = await Promise.all([isVideo ? file : prepare(file), signUploadAction(folder)]);
   const fd = new FormData();
   fd.append("file", blob, file.name);
   fd.append("api_key", sig.apiKey);
@@ -48,13 +56,13 @@ export async function uploadToCloudinary(
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`);
+    xhr.open("POST", `https://api.cloudinary.com/v1_1/${sig.cloudName}/${sig.resourceType}/upload`);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress?.(Math.round((e.loaded / e.total) * 100));
     xhr.onload = () => {
       try {
         const r = JSON.parse(xhr.responseText);
         if (xhr.status >= 300) return reject(new Error(r.error?.message ?? "Upload failed"));
-        resolve({ publicId: r.public_id, url: r.secure_url, width: r.width, height: r.height });
+        resolve({ publicId: r.public_id, url: r.secure_url, width: r.width, height: r.height, duration: r.duration });
       } catch {
         reject(new Error("Upload failed"));
       }

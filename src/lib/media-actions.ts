@@ -4,6 +4,7 @@ import { updateTag } from "next/cache";
 import { TAGS } from "@/lib/commerce";
 import { requireAdmin } from "@/lib/server/admin-auth";
 import { cloudinaryConfigured, destroyImage, isOwnCloudinaryUrl, signUpload, type UploadFolder } from "@/lib/server/cloudinary";
+import { addReels, deleteReel, listReels, reorderReels, setSetting, updateReel, type Reel } from "@/lib/server/videos";
 import {
   addProductImages,
   createBanner,
@@ -19,7 +20,7 @@ import {
   type ProductImage,
 } from "@/lib/server/media";
 
-export type UploadedImage = { publicId: string; url: string; width: number; height: number };
+export type UploadedImage = { publicId: string; url: string; width: number; height: number; duration?: number };
 
 const HANDLE = /^[a-z0-9-]{2,80}$/;
 const okId = (n: unknown) => Number.isInteger(n) && (n as number) > 0;
@@ -32,7 +33,7 @@ function checkUpload(u: UploadedImage) {
 export async function signUploadAction(folder: UploadFolder) {
   await requireAdmin();
   if (!cloudinaryConfigured()) throw new Error("Cloudinary is not configured");
-  if (folder !== "products" && folder !== "banners") throw new Error("Invalid folder");
+  if (folder !== "products" && folder !== "banners" && folder !== "reels") throw new Error("Invalid folder");
   return signUpload(folder);
 }
 
@@ -103,7 +104,7 @@ export async function updateBannerAction(
     desktop: patch.desktop && { url: patch.desktop.url, publicId: patch.desktop.publicId },
     mobile: patch.mobile === undefined ? undefined : patch.mobile && { url: patch.mobile.url, publicId: patch.mobile.publicId },
   });
-  await Promise.all(orphaned.map(destroyImage));
+  await Promise.all(orphaned.map((id) => destroyImage(id)));
   updateTag(TAGS.banners);
   return listBanners();
 }
@@ -118,7 +119,68 @@ export async function reorderBannersAction(ids: number[]) {
 export async function deleteBannerAction(id: number): Promise<Banner[]> {
   await requireAdmin();
   if (!okId(id)) throw new Error("Invalid request");
-  await Promise.all((await deleteBanner(id)).map(destroyImage));
+  await Promise.all((await deleteBanner(id)).map((id) => destroyImage(id)));
   updateTag(TAGS.banners);
   return listBanners();
+}
+
+// ───────────── Homepage videos ─────────────
+
+function bustVideos() {
+  updateTag("videos");
+}
+
+export async function addReelsAction(uploads: UploadedImage[]): Promise<Reel[]> {
+  await requireAdmin();
+  if (!Array.isArray(uploads) || uploads.length > 10) throw new Error("Invalid request");
+  uploads.forEach(checkUpload);
+  if (!uploads.every((u) => u.url.includes("/video/upload/"))) throw new Error("Only videos can be added here");
+  await addReels(uploads.map((u) => ({ ...u, duration: Number.isFinite(u.duration) ? u.duration : undefined })));
+  bustVideos();
+  return listReels();
+}
+
+export async function updateReelAction(
+  id: number,
+  patch: { caption?: string; productHandle?: string | null; instagramUrl?: string | null; active?: boolean },
+): Promise<Reel[]> {
+  await requireAdmin();
+  if (!okId(id)) throw new Error("Invalid request");
+  if (patch.productHandle && !HANDLE.test(patch.productHandle)) throw new Error("Pick a product from the list");
+  if (patch.instagramUrl && !/^https:\/\/(www\.)?instagram\.com\//.test(patch.instagramUrl)) {
+    throw new Error("Instagram link must start with https://www.instagram.com/");
+  }
+  await updateReel(id, {
+    ...patch,
+    productHandle: patch.productHandle === undefined ? undefined : patch.productHandle || null,
+    instagramUrl: patch.instagramUrl === undefined ? undefined : patch.instagramUrl || null,
+  });
+  bustVideos();
+  return listReels();
+}
+
+export async function reorderReelsAction(ids: number[]) {
+  await requireAdmin();
+  if (!Array.isArray(ids) || !ids.every(okId)) throw new Error("Invalid request");
+  await reorderReels(ids);
+  bustVideos();
+}
+
+export async function deleteReelAction(id: number): Promise<Reel[]> {
+  await requireAdmin();
+  if (!okId(id)) throw new Error("Invalid request");
+  const publicId = await deleteReel(id);
+  if (publicId) await destroyImage(publicId, "video");
+  bustVideos();
+  return listReels();
+}
+
+export async function setBrandFilmAction(youtube: string) {
+  await requireAdmin();
+  const v = String(youtube ?? "").trim().slice(0, 300);
+  if (v && !/^(https:\/\/(www\.|m\.)?(youtube\.com|youtu\.be)\/|[\w-]{11}$)/.test(v)) {
+    throw new Error("Paste a YouTube link");
+  }
+  await setSetting("brand_film_youtube", v);
+  bustVideos();
 }

@@ -18,3 +18,15 @@ export default function cloudinaryLoader({ src, width, quality }: { src: string;
   if (src.startsWith("https://res.cloudinary.com/")) return cldUrl(src, width, quality);
   return src;
 }
+
+/** Cloudinary video: auto codec/quality, capped width (shrinks big phone recordings a lot). */
+export function cldVideo(url: string, width = 720) {
+  return url.replace("/video/upload/", `/video/upload/f_auto:video,q_auto,c_limit,w_${width}/`);
+}
+
+/** Still frame from a Cloudinary video, for the poster. */
+export function cldVideoPoster(url: string, width = 480) {
+  return url
+    .replace("/video/upload/", `/video/upload/so_1,f_auto,q_auto,c_limit,w_${width}/`)
+    .replace(/\.(mp4|mov|webm|m4v)$/i, ".jpg");
+}

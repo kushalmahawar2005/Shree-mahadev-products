@@ -1,16 +1,18 @@
 import { CartDrawer } from "@/components/cart/CartDrawer";
 import { getProducts, type Product } from "@/lib/commerce";
+import { collectionDefs } from "@/data/collections";
 import { oilShelfOrder } from "@/data/products";
 import { Header } from "./Header";
 import type { MenuProduct } from "./MegaMenu";
 
-const toMenu = ({ handle, title, titleHi, swatch, images, priceRange }: Product): MenuProduct => ({
-  handle,
-  title,
-  titleHi,
-  swatch,
-  image: images[0]?.url,
-  from: priceRange.min.amount || undefined,
+const toMenu = (p: Product): MenuProduct => ({
+  handle: p.handle,
+  title: p.title,
+  titleHi: p.titleHi,
+  swatch: p.swatch,
+  image: p.images[0]?.url,
+  from: p.priceRange.min.amount || undefined,
+  collections: collectionDefs.filter((c) => c.match(p)).map((c) => c.handle),
 });
 
 /** Server wrapper: loads cached catalog bits the client header + cart need. */

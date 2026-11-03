@@ -18,6 +18,7 @@ const nav = [
   { label: "Reviews", href: "/admin/reviews" },
   { label: "Bulk inquiries", href: "/admin/inquiries" },
   { label: "Hero banners", href: "/admin/banners" },
+  { label: "Videos", href: "/admin/videos" },
   { label: "Settings", href: "/admin/settings" },
 ];
 
