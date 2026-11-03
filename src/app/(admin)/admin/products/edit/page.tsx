@@ -85,7 +85,7 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
     <>
       <PageHeader
         title={p ? p.title : "Add product"}
-        intro={p ? p.titleHi : "Fill the details, add sizes, then save. Photos can be added after the first save."}
+        intro={p ? p.titleHi : "Add photos, fill the details and sizes, then create."}
         action={
           <div className="flex gap-3">
             <Link href="/admin/products" className="text-forest underline">

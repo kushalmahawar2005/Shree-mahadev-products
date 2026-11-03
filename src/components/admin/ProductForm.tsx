@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { saveProductAction } from "@/lib/catalog-actions";
+import { addProductImagesAction, type UploadedImage } from "@/lib/media-actions";
+import { DropZone } from "./media/DropZone";
 import type { ProductInput } from "@/lib/server/catalog";
 import { cn } from "@/lib/utils/cn";
 
@@ -57,6 +60,8 @@ export function ProductForm({
   const [handleTouched, setHandleTouched] = useState(!isNew);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
+  // New products: photos are uploaded to Cloudinary right away and attached on "Create product".
+  const [photos, setPhotos] = useState<UploadedImage[]>([]);
   const set = <K extends keyof ProductInput>(k: K, v: ProductInput[K]) => setP((x) => ({ ...x, [k]: v }));
   const setV = (i: number, patch: Partial<V>) => set("variants", p.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)));
   const listText = (a: string[]) => a.join("\n");
@@ -67,6 +72,7 @@ export function ProductForm({
       setMsg(null);
       try {
         const { handle } = await saveProductAction(p, isNew ? undefined : initial.handle);
+        if (isNew && photos.length) await addProductImagesAction(handle, photos, p.title);
         setMsg({ ok: true, text: "Saved. Changes are live on the store." });
         if (isNew || handle !== initial.handle) router.replace(`/admin/products/edit?handle=${handle}`);
         else router.refresh();
@@ -80,6 +86,29 @@ export function ProductForm({
     <div className="space-y-4">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-4">
+          {isNew && (
+            <Section title="Photos" hint="First photo is the main one. Square (1:1) photos look best. You can reorder them after saving.">
+              <DropZone folder="products" onUploaded={(ups) => setPhotos((xs) => [...xs, ...ups])} />
+              {photos.length > 0 && (
+                <ul className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
+                  {photos.map((ph, i) => (
+                    <li key={ph.publicId} className="relative overflow-hidden rounded-xl border border-line bg-khaki-soft">
+                      <Image src={ph.url} alt="" width={200} height={200} sizes="160px" className="aspect-square w-full object-cover" />
+                      {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-full bg-forest px-2 text-xs text-white">Main</span>}
+                      <button
+                        type="button"
+                        onClick={() => setPhotos((xs) => xs.filter((x) => x.publicId !== ph.publicId))}
+                        className="absolute right-1.5 top-1.5 grid size-7 place-items-center rounded-full bg-white/90 text-sm text-red-700"
+                        aria-label="Remove photo"
+                      >
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Section>
+          )}
           <Section title="Details">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Title" className="sm:col-span-2">

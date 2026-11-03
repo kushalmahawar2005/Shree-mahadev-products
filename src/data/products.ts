@@ -156,7 +156,7 @@ export const products: Product[] = [
     ],
     rating: 4.7,
     reviewCount: 38,
-    tags: ["bestseller", "cooking", "daily-cooking", "pickles-tadka", "hair-skin", "bulk"],
+    tags: ["cooking", "daily-cooking", "pickles-tadka", "hair-skin", "bulk"],
     faqs: oilFaqs("Yellow mustard oil"),
   }),
   product({
@@ -396,7 +396,7 @@ export const products: Product[] = [
     ],
     rating: 4.7,
     reviewCount: 19,
-    tags: ["bestseller", "honey"],
+    tags: ["honey"],
     faqs: [
       {
         q: "Why has my honey turned solid?",

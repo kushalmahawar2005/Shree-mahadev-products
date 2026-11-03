@@ -12,6 +12,11 @@ export const topPicks = {
       viewAll: "/collections/bestsellers",
     },
     {
+      label: "Cooking oils",
+      source: { collection: "cooking-oils" },
+      viewAll: "/collections/cooking-oils",
+    },
+    {
       label: "Raw honey",
       source: { collection: "raw-honey" },
       viewAll: "/collections/raw-honey",

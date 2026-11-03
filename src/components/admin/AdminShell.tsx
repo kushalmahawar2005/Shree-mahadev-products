@@ -81,7 +81,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {open ? <CloseIcon /> : <MenuIcon />}
           </button>
           <p className="font-semibold text-forest-text">Swadeshi Mahadev Products</p>
-          <span className="ml-auto rounded-full bg-khaki-soft px-3 py-1 text-xs font-semibold text-sale">Mock data</span>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>

@@ -16,6 +16,7 @@ const cookingOils = new Set([
   "coconut-oil",
   "sunflower-oil",
 ]);
+const mostLoved = new Set(["groundnut-oil", "yellow-mustard-oil", "jamun-raw-honey", "black-mustard-oil", "flaxseed-oil"]);
 const wellnessOils = new Set(["almond-oil", "walnut-oil", "flaxseed-oil", "castor-oil", "black-sesame-oil"]);
 
 export const collectionDefs: CollectionDef[] = [
@@ -67,7 +68,8 @@ export const collectionDefs: CollectionDef[] = [
     handle: "bestsellers",
     title: "Bestsellers",
     description: "What our customers reorder most.",
-    match: (p) => p.tags.includes("bestseller"),
+    // Curated "Most loved" list. The "bestseller" tag only drives the card badge.
+    match: (p) => mostLoved.has(p.handle),
   },
 ];
 
