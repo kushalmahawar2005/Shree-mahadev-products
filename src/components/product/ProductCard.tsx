@@ -110,7 +110,7 @@ export function ProductCard({ product, priority = false }: { product: CardProduc
               type="button"
               disabled={pending}
               onClick={() => add(selected.id)}
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
+              className="btn-shine inline-flex min-h-11 w-full items-center justify-center rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
               aria-label={`Add ${product.title} ${selected.title} to cart`}
             >
               Add to cart

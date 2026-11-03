@@ -70,7 +70,7 @@ export function ProductPurchase({ handle, title, variants }: Props) {
           type="button"
           disabled={!canBuy || pending}
           onClick={() => add(variant.id, qty)}
-          className={buttonClass("primary", "lg", "flex-1")}
+          className={buttonClass("primary", "lg", "btn-shine flex-1")}
         >
           {canBuy ? "Add to cart" : "Price coming soon"}
         </button>
@@ -109,7 +109,7 @@ export function ProductPurchase({ handle, title, variants }: Props) {
               type="button"
               disabled={pending}
               onClick={() => add(variant.id, qty)}
-              className={buttonClass("primary", "md")}
+              className={buttonClass("primary", "md", "btn-shine")}
             >
               Add to cart
             </button>

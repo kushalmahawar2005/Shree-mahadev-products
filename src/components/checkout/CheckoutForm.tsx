@@ -200,7 +200,7 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
         <button
           type="submit"
           disabled={pending || (quote?.ok === true && !quote.serviceable)}
-          className="mt-5 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-forest px-6 text-lg font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
+          className="btn-shine mt-5 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-forest px-6 text-lg font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
         >
           {pending ? "Placing order…" : method === "cod" ? "Place order" : `Pay ${formatMoney(total)}`}
         </button>

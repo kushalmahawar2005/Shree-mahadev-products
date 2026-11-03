@@ -162,7 +162,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 await add(selected.id);
                 setAdded(true);
               }}
-              className="mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60 md:h-11"
+              className="btn-shine mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60 md:h-11"
               aria-label={`Add ${product.title} ${selected?.title ?? ""} to cart`}
             >
               {added ? (

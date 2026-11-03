@@ -128,7 +128,7 @@ export function PromoStrip() {
               {promoStrip.line2}
             </p>
           </div>
-          <span className="inline-flex min-h-11 shrink-0 items-center rounded-md bg-[#E8B032] px-5 text-sm font-bold text-forest-deep transition-colors duration-200 group-hover:bg-khaki">
+          <span className="btn-shine inline-flex min-h-11 shrink-0 items-center rounded-md bg-[#E8B032] px-5 text-sm font-bold text-forest-deep transition-colors duration-200 group-hover:bg-khaki">
             {promoStrip.cta.label}
           </span>
         </div>
