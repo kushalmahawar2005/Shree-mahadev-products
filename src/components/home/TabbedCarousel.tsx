@@ -109,7 +109,12 @@ export function TabbedCarousel({
           >
             <div
               ref={track}
-              className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 md:mx-0 md:gap-4 md:scroll-px-0 md:px-0"
+              className={cn(
+                "no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-1 md:mx-0 md:gap-4 md:scroll-px-0 md:px-0",
+                // Fewer cards than a row: centre them instead of leaving a gap on the right.
+                tab.products.length < 4 && "lg:justify-center",
+                tab.products.length < 3 && "md:justify-center",
+              )}
             >
               {tab.products.map((p) => (
                 <div

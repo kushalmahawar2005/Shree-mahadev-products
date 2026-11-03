@@ -111,31 +111,32 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         <div className="mt-auto space-y-2.5 pt-3">
           {available.length > 0 ? (
             <>
-              <label className="relative block">
-                <span className="sr-only">Size for {product.title}</span>
-                <select
-                  value={selected?.id}
-                  onChange={(e) => setSelectedId(e.target.value)}
-                  disabled={available.length < 2}
-                  className="min-h-11 w-full appearance-none rounded-lg border border-forest-text/70 bg-white pr-9 pl-3 text-sm text-ink focus:border-forest focus:outline-none disabled:opacity-100"
-                >
-                  {available.map((v) => (
-                    <option key={v.id} value={v.id}>
+              {/* Size pills: no native <select> (OS dropdowns look out of place). */}
+              <div role="radiogroup" aria-label={`Size for ${product.title}`} className="flex min-h-11 flex-wrap gap-1.5">
+                {available.slice(0, 4).map((v) => {
+                  const on = v.id === selected?.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setSelectedId(v.id)}
+                      className={cn(
+                        "min-h-9 rounded-full border px-3 text-[13px] font-semibold transition-colors duration-200",
+                        on ? "border-forest bg-forest text-white" : "border-forest-text/25 bg-white text-forest-text hover:border-forest",
+                      )}
+                    >
                       {v.title}
-                    </option>
-                  ))}
-                </select>
-                <svg
-                  viewBox="0 0 24 24"
-                  className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-forest-text"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  aria-hidden
-                >
-                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </label>
+                    </button>
+                  );
+                })}
+                {available.length > 4 && (
+                  <Link href={`/products/${product.handle}`} className="grid min-h-9 place-items-center px-1 text-[13px] font-semibold text-forest underline">
+                    +{available.length - 4} more
+                  </Link>
+                )}
+              </div>
               <button
                 type="button"
                 disabled={pending || !selected}
