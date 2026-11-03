@@ -50,10 +50,13 @@ export function ProductForm({
   initial,
   collections,
   isNew,
+  photos: photos_,
 }: {
   initial: ProductInput;
   collections: { handle: string; title: string }[];
   isNew: boolean;
+  /** Photo manager for existing products; new products get an uploader here. */
+  photos?: React.ReactNode;
 }) {
   const router = useRouter();
   const [p, setP] = useState(initial);
@@ -82,15 +85,11 @@ export function ProductForm({
     });
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="space-y-4">
-          {isNew && (
-            <Section title="Photos" hint="First photo is the main one. Square (1:1) photos look best. You can reorder them after saving.">
-              <DropZone folder="products" onUploaded={(ups) => setPhotos((xs) => [...xs, ...ups])} />
+  const photosSlot = photos_ ?? (
+    <>
+      <DropZone folder="products" compact label="Drop photos or click" onUploaded={(ups) => setPhotos((xs) => [...xs, ...ups])} />
               {photos.length > 0 && (
-                <ul className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-5">
+                <ul className="mt-3 grid grid-cols-3 gap-2">
                   {photos.map((ph, i) => (
                     <li key={ph.publicId} className="relative overflow-hidden rounded-xl border border-line bg-khaki-soft">
                       <Image src={ph.url} alt="" width={200} height={200} sizes="160px" className="aspect-square w-full object-cover" />
@@ -107,8 +106,13 @@ export function ProductForm({
                   ))}
                 </ul>
               )}
-            </Section>
-          )}
+    </>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-4">
           <Section title="Details">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Title" className="sm:col-span-2">
@@ -248,9 +252,6 @@ export function ProductForm({
               </button>
             </div>
           </Section>
-        </div>
-
-        <div className="space-y-4">
           <Section title="Status">
             <select className={input} value={p.status} onChange={(e) => set("status", e.target.value as ProductInput["status"])}>
               <option value="active">Active (visible on store)</option>
@@ -318,7 +319,12 @@ export function ProductForm({
             </div>
           </Section>
         </div>
+
+        <aside className="lg:sticky lg:top-4 lg:self-start">
+          <Section title="Photos">{photosSlot}</Section>
+        </aside>
       </div>
+
 
       <div className="sticky bottom-0 z-10 -mx-4 flex items-center gap-3 border-t border-line bg-white/95 px-4 py-3 backdrop-blur md:mx-0 md:rounded-2xl md:border">
         <button type="button" disabled={pending} onClick={save} className="min-h-11 rounded-full bg-forest px-6 font-semibold text-white hover:bg-forest-mid disabled:opacity-50">

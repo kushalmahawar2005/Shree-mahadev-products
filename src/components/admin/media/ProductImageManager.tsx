@@ -12,7 +12,18 @@ import type { ProductImage } from "@/lib/server/media";
 import { DropZone } from "./DropZone";
 import { Sortable } from "./Sortable";
 
-export function ProductImageManager({ handle, title, initial }: { handle: string; title: string; initial: ProductImage[] }) {
+export function ProductImageManager({
+  handle,
+  title,
+  initial,
+  compact = false,
+}: {
+  handle: string;
+  title: string;
+  initial: ProductImage[];
+  /** Narrow side panel: small drop zone, 3-up thumbnails, no alt fields. */
+  compact?: boolean;
+}) {
   const [images, setImages] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -31,7 +42,9 @@ export function ProductImageManager({ handle, title, initial }: { handle: string
     <div className="space-y-4">
       <DropZone
         folder="products"
-        hint="JPG, PNG, WebP or HEIC. First photo is the main one. Square (1:1) photos look best."
+        compact={compact}
+        label={compact ? "Drop photos or click" : undefined}
+        hint={compact ? "First photo = main. Square looks best." : "JPG, PNG, WebP or HEIC. First photo is the main one. Square (1:1) photos look best."}
         onUploaded={async (ups) => {
           try {
             setImages(await addProductImagesAction(handle, ups, title));
@@ -48,7 +61,7 @@ export function ProductImageManager({ handle, title, initial }: { handle: string
           <p className="text-sm text-ink-muted">Drag to reorder{pending ? " · saving…" : ""}</p>
           <Sortable
             items={images}
-            className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
+            className={compact ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"}
             onReorder={(next) => {
               setImages(next);
               run(() => reorderProductImagesAction(handle, next.map((i) => i.id)));
@@ -61,20 +74,20 @@ export function ProductImageManager({ handle, title, initial }: { handle: string
                     <span className="absolute left-2 top-2 rounded-full bg-forest px-2 py-0.5 text-xs font-semibold text-white">Main</span>
                   )}
                 </div>
-                <div className="space-y-2 p-2">
-                  <input
+                <div className={compact ? "flex items-center justify-between p-1" : "space-y-2 p-2"}>
+                  {!compact && <input
                     defaultValue={img.alt}
                     placeholder="Alt text"
                     aria-label="Alt text"
                     onBlur={(e) => e.target.value !== img.alt && run(() => updateProductImageAltAction(handle, img.id, e.target.value))}
                     className="min-h-9 w-full rounded-lg border border-line px-2 text-sm"
-                  />
+                  />}
                   <div className="flex items-center justify-between gap-1">
                     <div className="flex gap-1">
-                      <button type="button" onClick={() => move(-1)} disabled={i === 0} className="size-9 rounded-lg border border-line disabled:opacity-30" aria-label="Move left">
+                      <button type="button" onClick={() => move(-1)} disabled={i === 0} className={compact ? "size-7 rounded-md text-sm disabled:opacity-30" : "size-9 rounded-lg border border-line disabled:opacity-30"} aria-label="Move left">
                         ←
                       </button>
-                      <button type="button" onClick={() => move(1)} disabled={i === images.length - 1} className="size-9 rounded-lg border border-line disabled:opacity-30" aria-label="Move right">
+                      <button type="button" onClick={() => move(1)} disabled={i === images.length - 1} className={compact ? "size-7 rounded-md text-sm disabled:opacity-30" : "size-9 rounded-lg border border-line disabled:opacity-30"} aria-label="Move right">
                         →
                       </button>
                     </div>
@@ -85,9 +98,9 @@ export function ProductImageManager({ handle, title, initial }: { handle: string
                         setImages((xs) => xs.filter((x) => x.id !== img.id));
                         run(() => deleteProductImageAction(img.id));
                       }}
-                      className="min-h-9 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                      className={compact ? "size-7 rounded-md text-sm text-red-700 hover:bg-red-50" : "min-h-9 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"}
                     >
-                      Delete
+                      {compact ? "✕" : "Delete"}
                     </button>
                   </div>
                 </div>

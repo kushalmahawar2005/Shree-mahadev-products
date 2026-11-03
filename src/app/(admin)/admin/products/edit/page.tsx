@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { ProductImageManager } from "@/components/admin/media/ProductImageManager";
 import { ProductForm } from "@/components/admin/ProductForm";
-import { Card, PageHeader } from "@/components/admin/ui";
+import { PageHeader } from "@/components/admin/ui";
 import { loadCollections, loadProducts, type ProductInput } from "@/lib/server/catalog";
 import { getProductImages } from "@/lib/server/media";
 
@@ -99,14 +99,13 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
           </div>
         }
       />
-      {p && (
-        <div className="mb-4">
-          <Card title="Photos">
-            <ProductImageManager handle={p.handle} title={p.title} initial={images} />
-          </Card>
-        </div>
-      )}
-      <ProductForm key={p?.handle ?? "new"} initial={initial} isNew={!p} collections={collections.map((c) => ({ handle: c.handle, title: c.title }))} />
+      <ProductForm
+        key={p?.handle ?? "new"}
+        initial={initial}
+        isNew={!p}
+        collections={collections.map((c) => ({ handle: c.handle, title: c.title }))}
+        photos={p ? <ProductImageManager handle={p.handle} title={p.title} initial={images} compact /> : undefined}
+      />
     </>
   );
 }
