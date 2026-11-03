@@ -1,7 +1,15 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
-import { cancelShipment as npCancel, createShipment as npCreate, getCourierQuotes, trackShipment, type CourierQuote } from "./nimbuspost";
+import {
+  cancelShipment as npCancel,
+  createShipment as npCreate,
+  getCourierQuotes,
+  getLabelUrl,
+  schedulePickup,
+  trackShipment,
+  type CourierQuote,
+} from "./nimbuspost";
 import { getOrderById, setOrderStatus, type Order } from "./orders";
 
 export type Shipment = {
@@ -10,6 +18,9 @@ export type Shipment = {
   courier: string | null;
   status: string;
   labelUrl: string | null;
+  trackingUrl: string | null;
+  pickupRequested: boolean;
+  charged: number | null;
   weightGrams: number | null;
   createdAt: string;
   events: { status: string; location: string | null; message: string | null; at: string }[];
@@ -28,6 +39,9 @@ export async function listShipments(orderId: number): Promise<Shipment[]> {
     courier: r.courier,
     status: r.status,
     labelUrl: r.label_url,
+    trackingUrl: r.tracking_url,
+    pickupRequested: !!r.pickup_requested,
+    charged: r.charged,
     weightGrams: r.weight_grams,
     createdAt: r.created_at,
     events: ev
@@ -71,14 +85,22 @@ export async function bookShipment(
     weightGrams: opts.weightGrams,
     dims: opts.dims,
     courierId: opts.courierId,
-    consignee: { name: a.name, address: a.line1, address_2: a.line2, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone },
+    consignee: { name: a.name, email: a.email, address: a.line1, address_2: a.line2, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone },
     items: order.items.map((i) => ({ name: `${i.productTitle} (${i.variantTitle})`, qty: i.quantity, price: i.unitPrice, sku: i.sku })),
   });
 
+  let pickup = booked.pickupGenerated;
+  if (!pickup && booked.providerOrderId) {
+    pickup = await schedulePickup(booked.providerOrderId).then(
+      () => true,
+      (e) => (console.error("schedulePickup failed", e), false),
+    );
+  }
   await db().execute<ResultSetHeader>(
-    `INSERT INTO shipments (order_id, provider_shipment_id, awb, courier, status, weight_grams, label_url)
-     VALUES (?, ?, ?, ?, 'booked', ?, ?)`,
-    [orderId, booked.shipmentId || null, booked.awb, booked.courierName || null, opts.weightGrams, booked.labelUrl],
+    `INSERT INTO shipments (order_id, provider_shipment_id, awb, courier, status, weight_grams, label_url, tracking_url, pickup_requested, charged)
+     VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?)`,
+    [orderId, booked.providerOrderId || null, booked.awb, booked.courierName || null, opts.weightGrams, booked.labelUrl,
+     booked.trackingUrl, pickup ? 1 : 0, booked.charged],
   );
   await setOrderStatus(orderId, "packed", "admin", `Shipment booked: ${booked.courierName} AWB ${booked.awb}`);
   return listShipments(orderId);
@@ -90,7 +112,7 @@ export async function cancelOrderShipment(orderId: number): Promise<Shipment[]> 
   const s = activeShipment(await listShipments(orderId));
   if (!s?.awb) throw new Error("No active shipment to cancel");
   if (["delivered", "rto"].includes(s.status)) throw new Error("Delivered/returned shipments can't be cancelled");
-  await npCancel(s.awb);
+  await npCancel(s.awb, "Cancelled by seller from admin");
   await db().execute("UPDATE shipments SET status = 'cancelled' WHERE id = ?", [s.id]);
   // Back to the pre-shipping state so it can be re-booked.
   await setOrderStatus(orderId, order.paymentMethod === "cod" ? "cod_pending" : "paid", "admin", `Shipment ${s.awb} cancelled`);
@@ -99,11 +121,13 @@ export async function cancelOrderShipment(orderId: number): Promise<Shipment[]> 
 
 /** Map courier wording to our shipment + order statuses. */
 export function normaliseStatus(raw: string): { shipment: string; order?: Order["status"] } {
-  const s = raw.toLowerCase();
+  const s = raw.toLowerCase().replace(/_/g, " ");
   if (/rto|return/.test(s)) return { shipment: "rto", order: "rto" };
   if (/deliver(ed)?$|^delivered/.test(s) && !/out for/.test(s)) return { shipment: "delivered", order: "delivered" };
   if (/out for delivery|ofd/.test(s)) return { shipment: "out_for_delivery", order: "shipped" };
-  if (/transit|picked|shipped|dispatch/.test(s)) return { shipment: "in_transit", order: "shipped" };
+  if (/transit|picked|pickup completed|reached at destination|shipped|dispatch|ndr|exception/.test(s)) {
+    return { shipment: "in_transit", order: "shipped" };
+  }
   if (/cancel/.test(s)) return { shipment: "cancelled" };
   return { shipment: s.replace(/\s+/g, "_").slice(0, 30) || "booked" };
 }
@@ -141,8 +165,31 @@ export async function refreshTracking(orderId: number): Promise<Shipment[]> {
   const s = activeShipment(await listShipments(orderId));
   if (!s?.awb) throw new Error("No active shipment");
   const t = await trackShipment(s.awb);
-  if (!t) throw new Error("NimbusPost has no tracking for this AWB yet");
   await applyTrackingUpdate(s.awb, t.status, t.events, "admin");
+  if (t.trackingUrl) await db().execute("UPDATE shipments SET tracking_url = ? WHERE id = ?", [t.trackingUrl, s.id]);
+  return listShipments(orderId);
+}
+
+async function active(orderId: number) {
+  const s = activeShipment(await listShipments(orderId));
+  if (!s) throw new Error("No active shipment");
+  const [r] = await db().execute<RowDataPacket[]>("SELECT provider_shipment_id FROM shipments WHERE id = ?", [s.id]);
+  return { ...s, providerOrderId: (r[0]?.provider_shipment_id as string) ?? "" };
+}
+
+/** Fresh label PDF link (NimbusPost label links expire). */
+export async function labelForOrder(orderId: number): Promise<string> {
+  const s = await active(orderId);
+  const url = (s.providerOrderId && (await getLabelUrl(s.providerOrderId))) || s.labelUrl;
+  if (!url) throw new Error("Label not available yet");
+  return url;
+}
+
+export async function requestPickup(orderId: number): Promise<Shipment[]> {
+  const s = await active(orderId);
+  if (!s.providerOrderId) throw new Error("Missing NimbusPost order id");
+  await schedulePickup(s.providerOrderId);
+  await db().execute("UPDATE shipments SET pickup_requested = 1 WHERE id = ?", [s.id]);
   return listShipments(orderId);
 }
 

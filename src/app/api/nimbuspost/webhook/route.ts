@@ -1,45 +1,69 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { logWebhook } from "@/lib/server/orders";
+import { db } from "@/lib/server/db";
 import { applyTrackingUpdate } from "@/lib/server/shipments";
 
 /**
- * NimbusPost status webhook. Configure in NimbusPost → Settings → Webhooks as:
- *   https://<site>/api/nimbuspost/webhook?secret=<NIMBUSPOST_WEBHOOK_SECRET>
- * Every payload is logged (webhook_logs) so field names can be checked against real events.
+ * NimbusPost v2 webhooks (events: tracking.updated, order.updated, order.created).
+ * Register in NimbusPost → Settings → Webhooks with URL https://<site>/api/nimbuspost/webhook
+ * and put the subscription's signing secret in NIMBUSPOST_WEBHOOK_SECRET.
+ * Signature: x-nimbus-signature = "sha256=" + HMAC-SHA256(raw body, secret).
+ * Deliveries can repeat: x-nimbus-delivery is stored and duplicates are skipped.
  */
-function authorised(req: NextRequest) {
-  const expected = process.env.NIMBUSPOST_WEBHOOK_SECRET ?? "";
-  const got = req.nextUrl.searchParams.get("secret") ?? req.headers.get("x-webhook-secret") ?? "";
-  if (!expected || got.length !== expected.length) return false;
-  return timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+function validSignature(raw: string, header: string | null) {
+  const secret = process.env.NIMBUSPOST_WEBHOOK_SECRET;
+  if (!secret || !header) return false;
+  const expected = "sha256=" + createHmac("sha256", secret).update(raw).digest("hex");
+  return header.length === expected.length && timingSafeEqual(Buffer.from(header), Buffer.from(expected));
 }
 
-const pick = (o: Record<string, unknown>, ...keys: string[]) => {
-  for (const k of keys) if (o[k] !== undefined && o[k] !== null && o[k] !== "") return String(o[k]);
+const str = (o: Record<string, unknown> | undefined, ...keys: string[]) => {
+  for (const k of keys) {
+    const v = o?.[k];
+    if (v !== undefined && v !== null && v !== "") return String(v);
+  }
   return "";
 };
 
 export async function POST(req: NextRequest) {
-  if (!authorised(req)) return NextResponse.json({ ok: false }, { status: 401 });
-  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!body) return NextResponse.json({ ok: false, error: "bad json" }, { status: 400 });
+  const raw = await req.text();
+  if (!validSignature(raw, req.headers.get("x-nimbus-signature"))) {
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ ok: false, error: "bad json" }, { status: 400 });
+  }
 
+  const event = req.headers.get("x-nimbus-event") ?? str(body, "event", "type");
+  const deliveryId = req.headers.get("x-nimbus-delivery");
   const data = (typeof body.data === "object" && body.data ? body.data : body) as Record<string, unknown>;
-  const awb = pick(data, "awb_number", "awb", "awbno");
-  const status = pick(data, "status", "current_status", "shipment_status", "status_code");
-  await logWebhook("nimbuspost", awb || null, body, status || undefined).catch((e) => console.error("logWebhook", e));
+  const latest = (data.latest ?? {}) as Record<string, unknown>;
+  const awb = str(data, "awb", "awb_number", "awbNumber");
+
+  // Log first; a duplicate delivery id means we already processed this event.
+  try {
+    await db().execute(
+      "INSERT INTO webhook_logs (source, event, ref, delivery_id, payload) VALUES ('nimbuspost', ?, ?, ?, ?)",
+      [event || null, awb || null, deliveryId, raw],
+    );
+  } catch (e) {
+    if ((e as { code?: string }).code === "ER_DUP_ENTRY") return NextResponse.json({ ok: true, duplicate: true });
+    console.error("webhook log failed", e);
+  }
+
+  const status = str(data, "orderStatus", "order_status", "status", "shipStatus") || str(latest, "shipStatus", "status");
   if (!awb || !status) return NextResponse.json({ ok: true, ignored: true });
 
-  const history = (data.history ?? data.scans ?? []) as Record<string, unknown>[];
-  const events = Array.isArray(history)
-    ? history.map((h) => ({
-        status: pick(h, "status_code", "status"),
-        location: pick(h, "location") || null,
-        message: pick(h, "message", "status") || null,
-        at: pick(h, "event_time", "date", "time"),
-      }))
-    : [];
-  const found = await applyTrackingUpdate(awb, status, events, "nimbuspost").catch((e) => (console.error(e), false));
-  return NextResponse.json({ ok: true, matched: found });
+  const scans = Array.isArray(data.scans) ? (data.scans as Record<string, unknown>[]) : [];
+  const events = scans.map((s) => ({
+    status: str(s, "status", "status_code"),
+    location: str(s, "location") || null,
+    message: str(s, "remark", "message", "status") || null,
+    at: str(s, "timestamp", "eventTime", "event_time"),
+  }));
+  const matched = await applyTrackingUpdate(awb, status, events, "nimbuspost").catch((e) => (console.error(e), false));
+  return NextResponse.json({ ok: true, matched });
 }

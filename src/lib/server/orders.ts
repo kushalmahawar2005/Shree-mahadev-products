@@ -221,7 +221,7 @@ export async function getPayment(txnid: string) {
   return { id: p.id as number, orderId: p.order_id as number, amount: p.amount as number, status: p.status as string, orderToken: o[0]?.token as string };
 }
 
-export async function logWebhook(source: "payu" | "nimbuspost", ref: string | null, payload: unknown, event?: string) {
+export async function logWebhook(source: "payu", ref: string | null, payload: unknown, event?: string) {
   await db().execute("INSERT INTO webhook_logs (source, event, ref, payload) VALUES (?,?,?,?)", [
     source, event ?? null, ref, JSON.stringify(payload),
   ]);

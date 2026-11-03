@@ -6,6 +6,8 @@ import { markReminderSent } from "@/lib/server/carts";
 import {
   bookShipment,
   cancelOrderShipment,
+  labelForOrder,
+  requestPickup,
   quoteForOrder,
   refreshTracking,
   type CourierQuote,
@@ -37,7 +39,7 @@ export async function quoteCouriersAction(orderId: number, weightGrams: number, 
 
 export async function bookShipmentAction(orderId: number, courierId: string, weightGrams: number, dims: Dims): Promise<Shipment[]> {
   await requireAdmin();
-  if (!Number.isInteger(orderId) || !okWeight(weightGrams) || !okDims(dims) || !/^\d{1,10}$/.test(courierId)) {
+  if (!Number.isInteger(orderId) || !okWeight(weightGrams) || !okDims(dims) || !/^[A-Za-z0-9_-]{1,40}$/.test(courierId)) {
     throw new Error("Check courier, weight and box size");
   }
   const out = await bookShipment(orderId, { courierId, weightGrams, dims });
@@ -64,4 +66,14 @@ export async function setOrderStatusAction(orderId: number, status: OrderStatus,
   if (!Number.isInteger(orderId) || !MANUAL.includes(status)) throw new Error("Invalid status");
   await setOrderStatus(orderId, status, "admin", String(note ?? "").slice(0, 300) || undefined);
   revalidatePath("/admin/orders");
+}
+
+export async function labelUrlAction(orderId: number): Promise<string> {
+  await requireAdmin();
+  return labelForOrder(orderId);
+}
+
+export async function requestPickupAction(orderId: number): Promise<Shipment[]> {
+  await requireAdmin();
+  return requestPickup(orderId);
 }

@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import {
   bookShipmentAction,
   cancelShipmentAction,
+  labelUrlAction,
   quoteCouriersAction,
+  requestPickupAction,
   refreshTrackingAction,
   setOrderStatusAction,
 } from "@/lib/admin-actions";
@@ -70,12 +72,40 @@ export function ShipmentPanel({
               </p>
               <p className="text-sm text-ink-muted">
                 Status: <strong>{active.status.replace(/_/g, " ")}</strong> · booked {active.createdAt.slice(0, 16)}
+                {active.charged != null && ` · wallet charged ${formatMoney(active.charged)}`}
+                {active.pickupRequested ? " · pickup requested" : ""}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {active.labelUrl && (
-                <a href={active.labelUrl} target="_blank" rel="noreferrer" className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}>
-                  Print label
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  // Open the tab synchronously (popup blockers), then point it at the fresh label link.
+                  const tab = window.open("", "_blank");
+                  run(async () => {
+                    const url = await labelUrlAction(orderId);
+                    if (tab) tab.location.href = url;
+                    else window.location.href = url;
+                  });
+                }}
+                className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}
+              >
+                Print label
+              </button>
+              {!active.pickupRequested && active.status === "booked" && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => run(async () => setShipments(await requestPickupAction(orderId)))}
+                  className={cn(btn, "border border-line hover:border-forest/50")}
+                >
+                  Request pickup
+                </button>
+              )}
+              {active.trackingUrl && (
+                <a href={active.trackingUrl} target="_blank" rel="noreferrer" className={cn(btn, "border border-line hover:border-forest/50")}>
+                  Tracking page
                 </a>
               )}
               <button
@@ -179,6 +209,7 @@ export function ShipmentPanel({
                       <span className="text-right">
                         <span className="block font-semibold">{formatMoney(Math.ceil(q.total))}</span>
                         {q.codCharge > 0 && <span className="block text-xs text-ink-muted">incl. COD {formatMoney(Math.ceil(q.codCharge))}</span>}
+                        {q.tatDays && <span className="block text-xs text-ink-muted">{q.tatDays} days</span>}
                       </span>
                     </label>
                   </li>
