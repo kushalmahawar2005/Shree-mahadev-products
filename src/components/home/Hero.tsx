@@ -21,13 +21,13 @@ export async function Hero() {
       </section>
 
       <div
-        className="border-b border-line bg-white py-4"
+        className="bg-forest py-4"
         aria-label="What makes our oil different"
       >
         <Ticker
           items={trustPoints}
           duration={30}
-          className="text-lg font-semibold text-forest-text"
+          className="text-lg font-semibold text-white"
           separator={
             <span className="inline-block size-2 rounded-full bg-mustard" />
           }
