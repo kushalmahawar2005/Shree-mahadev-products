@@ -53,6 +53,7 @@ export type Order = {
   shipping: number;
   codFee: number;
   total: number;
+  courierId: string | null;
   courierName: string | null;
   awb: string | null;
   trackingUrl: string | null;
@@ -78,6 +79,7 @@ function toOrder(r: RowDataPacket, items: RowDataPacket[]): Order {
     shipping: r.shipping,
     codFee: r.cod_fee,
     total: r.total,
+    courierId: r.courier_id ?? null,
     courierName: r.ship_courier ?? r.courier_name ?? null,
     awb: r.awb ?? null,
     trackingUrl: r.tracking_url ?? null,
@@ -191,6 +193,8 @@ async function loadOne(where: string, value: string | number): Promise<Order | n
   return toOrder(rows[0], items);
 }
 
+export const getOrderById = (id: number) => loadOne("o.id", id);
+
 export const getOrderByToken = (token: string) =>
   /^[a-f0-9]{32}$/.test(token) ? loadOne("o.token", token) : Promise.resolve(null);
 
@@ -254,14 +258,44 @@ export async function markPaymentFailed(paymentId: number, orderId: number, erro
 
 // ───────────── Admin ─────────────
 
-export async function listOrders(limit = 200): Promise<Order[]> {
-  const [rows] = await db().query<Row[]>(
-    `${ORDER_SELECT} WHERE o.status <> 'pending_payment' OR o.created_at > NOW() - INTERVAL 1 DAY ORDER BY o.id DESC LIMIT ?`,
-    [limit],
-  );
-  if (!rows.length) return [];
+export type OrderFilter = "all" | "to_ship" | "awaiting_payment" | "shipped" | "delivered" | "cancelled";
+
+const FILTER_SQL: Record<OrderFilter, string> = {
+  all: "o.status <> 'pending_payment' OR o.created_at > NOW() - INTERVAL 1 DAY",
+  to_ship: "o.status IN ('paid','cod_pending','confirmed','packed')",
+  awaiting_payment: "o.status IN ('pending_payment','payment_failed')",
+  shipped: "o.status = 'shipped'",
+  delivered: "o.status = 'delivered'",
+  cancelled: "o.status IN ('cancelled','rto','refunded')",
+};
+
+/** Paginated admin list. Two queries per page (orders + their items), never one per order. */
+export async function listOrders(opts: { page?: number; perPage?: number; filter?: OrderFilter; q?: string } = {}) {
+  const perPage = Math.min(Math.max(opts.perPage ?? 25, 5), 100);
+  const page = Math.max(opts.page ?? 1, 1);
+  const where: string[] = [`(${FILTER_SQL[opts.filter ?? "all"]})`];
+  const params: (string | number)[] = [];
+  const q = opts.q?.trim();
+  if (q) {
+    where.push("(o.order_no = ? OR o.phone = ? OR o.customer_name LIKE ?)");
+    params.push(q.toUpperCase(), q.replace(/\D/g, "").slice(-10), `%${q}%`);
+  }
+  const w = where.join(" AND ");
+  const [[{ total }]] = await db().query<Row[]>(`SELECT COUNT(*) AS total FROM orders o WHERE ${w}`, params);
+  const [rows] = await db().query<Row[]>(`${ORDER_SELECT} WHERE ${w} ORDER BY o.id DESC LIMIT ? OFFSET ?`, [
+    ...params, perPage, (page - 1) * perPage,
+  ]);
+  if (!rows.length) return { orders: [] as Order[], total: Number(total), page, perPage };
   const [items] = await db().query<Row[]>("SELECT * FROM order_items WHERE order_id IN (?)", [rows.map((r) => r.id)]);
-  return rows.map((r) => toOrder(r, items));
+  return { orders: rows.map((r) => toOrder(r, items)), total: Number(total), page, perPage };
+}
+
+export async function getOrderEvents(orderId: number) {
+  const [rows] = await db().execute<Row[]>(
+    "SELECT from_status, to_status, actor, note, created_at FROM order_events WHERE order_id = ? ORDER BY id DESC",
+    [orderId],
+  );
+  return rows.map((r) => ({ from: r.from_status as string | null, to: r.to_status as string, actor: r.actor as string, note: r.note as string | null, at: r.created_at as string }));
 }
 
 export async function setOrderStatus(orderId: number, to: OrderStatus, actor: Actor, note?: string) {
