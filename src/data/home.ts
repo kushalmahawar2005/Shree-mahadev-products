@@ -53,10 +53,9 @@ export const proofCards = [
   {
     seal: "FSSAI",
     sealSub: "Licensed",
-    image: undefined as string | undefined, // TODO(client): official FSSAI logo + licence number
-    text: "We are licensed by the Food Safety and Standards Authority of India. Our licence number is printed on every label.",
+    image: "https://res.cloudinary.com/bmqxsylj/image/upload/v1793739333/swadeshi-mahadev/static/images/deco/seal-fssai.webp" as string | undefined, // FSSAI Lic. No. 12226047000007
+    text: "We are licensed by the Food Safety and Standards Authority of India. Licence No. 12226047000007, printed on every label.",
     href: "/about",
-    // TODO(client): FSSAI licence number
   },
   {
     seal: "Kachi ghani",
