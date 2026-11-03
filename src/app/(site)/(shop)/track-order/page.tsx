@@ -18,7 +18,7 @@ export default function TrackOrderPage() {
         Open the link on your order confirmation page, or message us on WhatsApp with your order number (it starts with SMP).
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        {/* TODO(client): Shopify customer account URL / Shiprocket tracking page */}
+        {/* TODO: order lookup by order no. + phone (ADMIN_PROMPTS Prompt 16) */}
         <a href="#" aria-disabled className={buttonClass("primary", "lg", "pointer-events-none opacity-60")}>
           My orders (coming soon)
         </a>

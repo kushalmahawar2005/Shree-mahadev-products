@@ -2,19 +2,18 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { dbProvider } from "./providers/db";
 import { mockProvider } from "./providers/mock";
-import { shopifyProvider } from "./providers/shopify";
 import { withDbImages } from "@/lib/server/media";
 import type { CommerceProvider, GetProductsOptions, Product } from "./types";
 
 export * from "./types";
 
 /**
- * Single entry point for commerce data. UI never talks to Shopify directly.
- * COMMERCE_PROVIDER=mock|shopify picks the backend.
+ * Single entry point for commerce data. UI never talks to the database directly.
+ * COMMERCE_PROVIDER=db uses MySQL; without DATABASE_NAME (previews) it falls back to the mock catalog.
  */
 const useDb = process.env.COMMERCE_PROVIDER === "db" && !!process.env.DATABASE_NAME;
 const provider: CommerceProvider =
-  process.env.COMMERCE_PROVIDER === "shopify" ? shopifyProvider : useDb ? dbProvider : mockProvider;
+  useDb ? dbProvider : mockProvider;
 
 /** DB catalog already includes uploaded photos; the overlay is only for the mock catalog. */
 const withImages = <T extends Pick<Product, "handle" | "images" | "title">>(list: T[]) =>
@@ -28,7 +27,7 @@ export const TAGS = {
   banners: "banners",
 } as const;
 
-// ── Catalog reads: cached, revalidated by Shopify webhooks (/api/revalidate) ──
+// ── Catalog reads: cached; admin saves call updateTag() to refresh ──
 
 export async function getProducts(opts: GetProductsOptions = {}) {
   "use cache";

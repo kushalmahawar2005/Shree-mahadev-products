@@ -1,6 +1,6 @@
 /**
- * MOCK admin data. Replace with Shopify Admin API / real store data step by step.
- * TODO(client): real orders come from Shopify; inquiries from the bulk form; customers from Shopify.
+ * MOCK admin data for pages not yet wired to MySQL (dashboard, customers, discounts, reviews, inquiries).
+ * Replace page by page with real queries; keep only as a no-DB fallback.
  */
 export type OrderStatus = "Paid" | "COD" | "Shipped" | "Delivered" | "Cancelled";
 

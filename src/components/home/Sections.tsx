@@ -154,7 +154,7 @@ export function Reviews() {
         </Reveal>
         {/*
           Real, verified reviews only (Judge.me / Google). Never keyword-stuffed ones.
-          TODO: render the Judge.me reviews carousel widget here once the Shopify store is live.
+          TODO: render real approved reviews here (reviews table).
         */}
         <div className="rounded-[var(--radius-card)] border border-dashed border-khaki bg-white p-8 text-center text-ink-muted">
           Verified reviews from Judge.me will appear here. TODO(client): connect Judge.me / Google reviews.

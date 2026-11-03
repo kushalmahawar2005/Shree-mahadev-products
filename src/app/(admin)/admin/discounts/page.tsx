@@ -6,7 +6,7 @@ export const metadata = { title: "Discounts" };
 export default function DiscountsPage() {
   return (
     <>
-      <PageHeader title="Discounts" intro="Codes customers enter at Shopify checkout. Keep offers sober (AGENTS.md)." />
+      <PageHeader title="Discounts" intro="Codes customers enter at checkout. Keep offers sober (AGENTS.md)." />
       <Table head={["Code", "Type", "Value", "Used", "Status"]}>
         {discounts.map((d) => (
           <tr key={d.code}>

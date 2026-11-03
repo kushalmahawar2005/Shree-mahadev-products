@@ -71,7 +71,7 @@ export type GetProductsOptions = {
   first?: number;
 };
 
-/** Contract every commerce provider (mock, shopify) implements. */
+/** Contract every commerce provider (db, mock) implements. */
 export interface CommerceProvider {
   getProducts(opts?: GetProductsOptions): Promise<Product[]>;
   getProduct(handle: string): Promise<Product | undefined>;

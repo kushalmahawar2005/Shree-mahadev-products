@@ -7,7 +7,7 @@ export const metadata = { title: "Customers" };
 export default function CustomersPage() {
   return (
     <>
-      <PageHeader title="Customers" intro="Sample customers. Real list comes from Shopify." />
+      <PageHeader title="Customers" intro="Sample customers for now. The real list comes from the customers table (coming next)." />
       <Table head={["Name", "City", "Phone", "Orders", "Total spent"]}>
         {customers.map((c) => (
           <tr key={c.phone}>

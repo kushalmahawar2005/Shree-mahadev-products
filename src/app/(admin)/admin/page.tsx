@@ -17,7 +17,7 @@ export default async function Dashboard() {
 
   return (
     <>
-      <PageHeader title="Dashboard" intro="Sample numbers for now. Real data comes from Shopify." />
+      <PageHeader title="Dashboard" intro="Sample numbers for now. Real figures come from the orders database (coming next)." />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <StatCard label="Revenue (sample)" value={formatMoney(revenue)} note="Last 7 days" />
         <StatCard label="Orders" value={String(orders.length)} note={`${pending} to ship`} />

@@ -73,7 +73,7 @@ export const collectionDefs: CollectionDef[] = [
   },
 ];
 
-/** Planned combos shown on the home page until real bundles exist in Shopify. TODO(client) */
+/** Planned combos shown on the home page until real bundles exist in the catalog. TODO(client) */
 export const plannedCombos = [
   {
     title: "Rasoi Starter Kit",

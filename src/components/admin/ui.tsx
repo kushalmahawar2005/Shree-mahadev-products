@@ -84,7 +84,7 @@ export function MockSave({ label = "Save changes" }: { label?: string }) {
       <button type="button" disabled className="min-h-11 rounded-full bg-forest px-6 font-semibold text-white disabled:opacity-50">
         {label}
       </button>
-      <span className="text-sm text-ink-muted">Not connected yet. Saving will work after the Shopify Admin integration.</span>
+      <span className="text-sm text-ink-muted">Not connected yet. This page still uses sample data.</span>
     </div>
   );
 }
