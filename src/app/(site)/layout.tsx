@@ -1,0 +1,73 @@
+import type { Metadata, Viewport } from "next";
+import { Mukta } from "next/font/google";
+import { CartProvider } from "@/components/cart/CartProvider";
+import { Footer } from "@/components/layout/Footer";
+import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
+import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
+import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { site } from "@/data/site";
+import { jsonLdString, localBusinessJsonLd, organizationJsonLd } from "@/lib/utils/seo";
+import "../globals.css";
+
+const mukta = Mukta({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "devanagari"],
+  variable: "--font-mukta",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(site.url),
+  title: {
+    default: `${site.name} | Wood-pressed kachi ghani oils from Rajasthan`,
+    template: `%s | ${site.name}`,
+  },
+  description: site.description,
+  applicationName: site.name,
+  alternates: { canonical: "/" },
+  
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    siteName: site.name,
+    title: `${site.name} | Wood-pressed kachi ghani oils`,
+    description: site.description,
+    url: "/",
+  },
+  twitter: { card: "summary_large_image" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#D0B17A",
+  colorScheme: "only light",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en-IN" className={`${mukta.variable}`}>
+      <body className="flex min-h-dvh flex-col">
+        <a
+          href="#main"
+          className="sr-only z-[60] rounded-full bg-forest px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
+        >
+          Skip to content
+        </a>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdString([organizationJsonLd(), localBusinessJsonLd()]) }}
+        />
+        <CartProvider>
+          <SmoothScroll>
+            <SiteHeader />
+            <main id="main" className="flex-1">
+              {children}
+            </main>
+            <Footer />
+            <MobileBottomBar />
+            <SiteCartDrawer />
+          </SmoothScroll>
+        </CartProvider>
+      </body>
+    </html>
+  );
+}

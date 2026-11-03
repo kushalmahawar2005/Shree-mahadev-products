@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Original brand colors (logo + live site, exact). Do not change. ── */
+  --color-forest: #0c3c24;
+  --color-forest-text: #083928;
+  --color-forest-deep: #072f1b;
+  --color-forest-mid: #093b22;
+  --color-mustard: #b49024;
+  --color-khaki: #d0b17a;
+  --color-white: #ffffff;
+
+  /* ── Supporting shades (derived from brand colors) ── */
+  --color-khaki-soft: #f6efe2;
+  --color-ink: #1a1a17;
+  --color-ink-muted: #5c5a52;
+  --color-sale: #8a5a0b;
+  --color-line: #e7dfcf;
+
+  /* ── Fonts (set by next/font in layout.tsx) ── */
+  --font-display: var(--font-body);
+  --font-body: var(--font-mukta), "Mukta", system-ui, sans-serif;
+  --font-sans: var(--font-body);
+
+  /* ── Type scale: 14 / 16 / 18 / 22 / 28 / 36 / 48 / 64 ── */
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+  --text-5xl: 4rem;
+
+  /* ── Shape ── */
+  --radius-card: 16px;
+  --radius-img: 12px;
+
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: only light;
+  --header-h: 72px;
+  --header-h-lg: 96px;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-white font-body text-base text-ink antialiased;
+  line-height: 1.6;
+}
+
+/* In @layer base so utilities like text-white can override the default heading colour. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--color-forest-text);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-mustard);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-khaki);
+  color: var(--color-forest-deep);
+}
+
+.prose-sm-custom {
+  max-width: 70ch;
+}
+.prose-sm-custom p {
+  margin-block: 0.9em;
+}
+.prose-sm-custom h2 {
+  font-size: var(--text-2xl);
+  margin-top: 1.6em;
+  margin-bottom: 0.5em;
+}
+.prose-sm-custom h3 {
+  font-size: var(--text-xl);
+  margin-top: 1.4em;
+}
+.prose-sm-custom ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.prose-sm-custom ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+}
+.prose-sm-custom li {
+  margin-block: 0.3em;
+}
+.prose-sm-custom a {
+  color: var(--color-forest);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Hide scrollbars on horizontal shelves */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Lenis base styles ── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+  overflow: clip;
+}
+.lenis [data-lenis-prevent],
+.lenis [data-lenis-prevent-wheel],
+.lenis [data-lenis-prevent-touch] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* Native smooth scroll when Lenis is not running */
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.lenis) {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ── Reduced motion: everything off, content visible ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Hero entrance (CSS, so it runs without JS and never hides content) ── */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hero-in {
+  animation: rise-in 0.8s var(--ease-premium) both;
+}
+.hero-in-1 {
+  animation-delay: 0.05s;
+}
+.hero-in-2 {
+  animation-delay: 0.18s;
+}
+.hero-in-3 {
+  animation-delay: 0.3s;
+}
+.hero-in-4 {
+  animation-delay: 0.42s;
+}
+
+@keyframes cart-bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.22);
+  }
+  65% {
+    transform: scale(0.94);
+  }
+}
+.cart-bounce {
+  animation: cart-bounce 0.5s var(--ease-premium);
+}
+
+/* ── Ticker (announcement bar + trust strip). transform only; static for reduced motion ── */
+@keyframes ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker var(--ticker-duration, 40s) linear infinite;
+}
+.ticker:hover .ticker-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+  .ticker-track [aria-hidden="true"] {
+    display: none;
+  }
+}
+
