@@ -1,6 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 
-/** TODO(client): protect /admin (Shopify staff login or simple password gate) before going live. */
+/** Protected by src/proxy.ts (signed session cookie); login at /admin/login. */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return <AdminShell>{children}</AdminShell>;
 }

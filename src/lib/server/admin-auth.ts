@@ -1,13 +1,10 @@
 import "server-only";
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
+import { ADMIN_COOKIE, verifySessionToken } from "@/lib/admin-session";
 
-/** Server actions can be POSTed to any route, so admin actions re-check the basic-auth header themselves. */
+/** Server actions can be POSTed to any route, so admin actions re-check the session themselves. */
 export async function requireAdmin() {
-  const pass = process.env.ADMIN_PASSWORD;
-  const h = (await headers()).get("authorization") ?? "";
-  if (pass && h.startsWith("Basic ")) {
-    const [u, ...rest] = Buffer.from(h.slice(6), "base64").toString("utf8").split(":");
-    if (u === (process.env.ADMIN_USER ?? "admin") && rest.join(":") === pass) return;
-  }
-  throw new Error("Unauthorized");
+  const session = await verifySessionToken((await cookies()).get(ADMIN_COOKIE)?.value);
+  if (!session) throw new Error("Unauthorized. Please log in again.");
+  return session;
 }

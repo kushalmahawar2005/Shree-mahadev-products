@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { logoutAction } from "@/lib/admin-login-actions";
 import { useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { CloseIcon, MenuIcon } from "@/components/layout/icons";
@@ -30,6 +31,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     setLastPath(pathname);
     setOpen(false);
   }
+  // The login page has no admin chrome.
+  if (pathname === "/admin/login") return <>{children}</>;
   const active = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
 
   const sidebar = (
@@ -81,6 +84,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {open ? <CloseIcon /> : <MenuIcon />}
           </button>
           <p className="font-semibold text-forest-text">Swadeshi Mahadev Products</p>
+          <form action={logoutAction} className="ml-auto">
+            <button type="submit" className="min-h-10 rounded-full border border-line px-4 text-sm font-semibold text-forest-text hover:border-forest">
+              Log out
+            </button>
+          </form>
         </header>
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>

@@ -1,21 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { ADMIN_COOKIE, verifySessionToken } from "@/lib/admin-session";
 
-/**
- * Admin panel lock: HTTP Basic auth with ADMIN_USER / ADMIN_PASSWORD.
- * Fails closed: if ADMIN_PASSWORD isn't set, /admin is unreachable.
- */
-export function proxy(req: NextRequest) {
-  const user = process.env.ADMIN_USER ?? "admin";
-  const pass = process.env.ADMIN_PASSWORD;
-  const header = req.headers.get("authorization") ?? "";
-  if (pass && header.startsWith("Basic ")) {
-    const [u, ...rest] = atob(header.slice(6)).split(":");
-    if (u === user && rest.join(":") === pass) return NextResponse.next();
-  }
-  return new NextResponse("Authentication required", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Admin", charset="UTF-8"' },
-  });
+/** Admin gate: every /admin page needs a valid signed session cookie, except the login page. */
+export async function proxy(req: NextRequest) {
+  const { pathname, search } = req.nextUrl;
+  if (pathname === "/admin/login") return NextResponse.next();
+  const session = await verifySessionToken(req.cookies.get(ADMIN_COOKIE)?.value);
+  if (session) return NextResponse.next();
+  const url = req.nextUrl.clone();
+  url.pathname = "/admin/login";
+  url.search = pathname === "/admin" ? "" : `?next=${encodeURIComponent(pathname + search)}`;
+  return NextResponse.redirect(url);
 }
 
 export const config = { matcher: ["/admin", "/admin/:path*"] };
