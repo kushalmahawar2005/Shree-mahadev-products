@@ -34,7 +34,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const sidebar = (
     <nav aria-label="Admin" className="flex h-full flex-col gap-1 p-4">
       <Link href="/admin" className="mb-4 flex items-center gap-3 px-2">
-        <Image src="/logo.png" alt="" width={44} height={44} unoptimized className="size-11" />
+        <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={44} height={44} unoptimized className="size-11" />
         <span className="leading-tight font-semibold text-white">
           Mahadev
           <span className="block text-sm font-normal text-white/60">Admin panel</span>

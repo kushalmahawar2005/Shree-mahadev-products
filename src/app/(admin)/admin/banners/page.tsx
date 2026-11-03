@@ -1,39 +1,25 @@
-import Image from "next/image";
-import { Card, Field, MockSave, PageHeader, inputCls } from "@/components/admin/ui";
-import { heroSlides } from "@/data/hero";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { PageHeader } from "@/components/admin/ui";
+import { BannerManager } from "@/components/admin/media/BannerManager";
+import { listBanners } from "@/lib/server/media";
 
 export const metadata = { title: "Hero banners" };
 
 export default function BannersPage() {
   return (
     <>
-      <PageHeader title="Hero banners" intro="Homepage slider. Desktop image 1600 × 650. Optional mobile image 800 × 800." />
-      <div className="space-y-4">
-        {heroSlides.map((s, i) => (
-          <Card key={s.src} title={`Slide ${i + 1}`}>
-            <div className="grid gap-4 md:grid-cols-[320px_minmax(0,1fr)]">
-              <Image src={s.src} alt={s.alt} width={1600} height={650} unoptimized className="w-full rounded-xl" />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Image path">
-                  <input className={inputCls} defaultValue={s.src} />
-                </Field>
-                <Field label="Mobile image (optional)">
-                  <input className={inputCls} defaultValue={s.mobileSrc ?? ""} placeholder="Same as desktop" />
-                </Field>
-                <Field label="Link">
-                  <input className={inputCls} defaultValue={s.href} />
-                </Field>
-                <Field label="Alt text">
-                  <input className={inputCls} defaultValue={s.alt} />
-                </Field>
-              </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-      <div className="mt-6">
-        <MockSave />
-      </div>
+      <PageHeader title="Hero banners" intro="Homepage slider. Changes go live on the storefront immediately." />
+      <Suspense fallback={<p className="text-ink-muted">Loading slides…</p>}>
+        <Banners />
+      </Suspense>
     </>
   );
+}
+
+async function Banners() {
+  await connection();
+  const banners = await listBanners().catch((e) => (console.error(e), null));
+  if (!banners) return <p className="text-sale">Could not connect to the database. Check DATABASE_* env vars.</p>;
+  return <BannerManager initial={banners} />;
 }

@@ -40,7 +40,7 @@ export const proofCards = [
   {
     seal: "Lab tested",
     sealSub: "Every batch",
-    image: "/images/deco/seal-lab-tested.webp",
+    image: "https://res.cloudinary.com/bmqxsylj/image/upload/v1793735960/swadeshi-mahadev/static/images/deco/seal-lab-tested.webp",
     text: "Each oil is sent to an independent lab. You can read the reports for every product on our lab reports page.",
     href: "/lab-reports",
     // TODO(client): lab report PDFs per product
@@ -56,7 +56,7 @@ export const proofCards = [
   {
     seal: "Kachi ghani",
     sealSub: "No heat",
-    image: "/images/deco/seal-kachi-ghani.webp",
+    image: "https://res.cloudinary.com/bmqxsylj/image/upload/v1793735946/swadeshi-mahadev/static/images/deco/seal-kachi-ghani.webp",
     text: "Pressed slowly in a wooden ghani. No heat, no chemicals, no refining. The oil settles naturally before bottling.",
     href: "/our-ghani",
   },

@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  getProductImagesMap,
   addToCart,
   createCart,
   getCart,
@@ -18,11 +19,23 @@ async function ensureCartId() {
   return cart.id;
 }
 
+async function withImages(cart: Cart): Promise<Cart> {
+  if (!cart.lines.length) return cart;
+  const map = await getProductImagesMap([...new Set(cart.lines.map((l) => l.product.handle))].sort());
+  return {
+    ...cart,
+    lines: cart.lines.map((l) =>
+      map[l.product.handle]?.length ? { ...l, product: { ...l.product, images: map[l.product.handle] } } : l,
+    ),
+  };
+}
+
 export async function getCartAction(): Promise<Cart | null> {
   const id = await readCartId();
   if (!id) return null;
   try {
-    return (await getCart(id)) ?? null;
+    const cart = await getCart(id);
+    return cart ? await withImages(cart) : null;
   } catch {
     return null;
   }
@@ -37,7 +50,7 @@ function validQty(qty: unknown, min: number) {
 async function save(cart: Cart) {
   await writeCartId(cart.id);
   await persistCart(cart);
-  return cart;
+  return withImages(cart);
 }
 
 export async function addToCartAction(variantId: string, quantity = 1): Promise<Cart> {

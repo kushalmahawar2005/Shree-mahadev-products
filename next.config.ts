@@ -15,7 +15,9 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    formats: ["image/avif", "image/webp"],
+    // All photos are served from Cloudinary (resized + compressed on their CDN).
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
     dangerouslyAllowSVG: true,
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",

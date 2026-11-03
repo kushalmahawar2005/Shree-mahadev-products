@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { connection } from "next/server";
+import { Suspense } from "react";
+import { ProductImageManager } from "@/components/admin/media/ProductImageManager";
+import { getProductImages } from "@/lib/server/media";
 import { notFound } from "next/navigation";
 import { Card, Field, MockSave, PageHeader, Table, inputCls } from "@/components/admin/ui";
 import { mockStock } from "@/data/admin";
@@ -26,6 +30,11 @@ export default async function EditProduct({ params }: { params: Promise<{ handle
       />
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr] [&>*]:min-w-0">
         <div className="space-y-4">
+          <Card title="Photos">
+            <Suspense fallback={<p className="text-ink-muted">Loading photos…</p>}>
+              <Photos handle={p.handle} title={p.title} />
+            </Suspense>
+          </Card>
           <Card title="Details">
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Title">
@@ -99,4 +108,11 @@ export default async function EditProduct({ params }: { params: Promise<{ handle
       </div>
     </>
   );
+}
+
+async function Photos({ handle, title }: { handle: string; title: string }) {
+  await connection();
+  const images = await getProductImages(handle).catch((e) => (console.error(e), null));
+  if (!images) return <p className="text-sale">Could not connect to the database. Check DATABASE_* env vars.</p>;
+  return <ProductImageManager handle={handle} title={title} initial={images} />;
 }

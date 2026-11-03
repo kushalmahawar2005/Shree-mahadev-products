@@ -26,3 +26,43 @@ export async function uploadImage(source: string, opts: { folder: string; public
 }
 
 export { cloudinary };
+
+const ALLOWED_FORMATS = "jpg,jpeg,png,webp,avif,heic";
+export type UploadFolder = "products" | "banners";
+
+/**
+ * Signature for a direct browser → Cloudinary upload (files never pass through our server,
+ * so there is no request-size limit and no server CPU spent). Originals are stored untouched.
+ */
+export function signUpload(folder: UploadFolder) {
+  const params = {
+    folder: `swadeshi-mahadev/${folder}`,
+    timestamp: Math.round(Date.now() / 1000),
+    allowed_formats: ALLOWED_FORMATS,
+  };
+  const signature = cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET!);
+  return {
+    ...params,
+    signature,
+    apiKey: process.env.CLOUDINARY_API_KEY!,
+    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+  };
+}
+
+export async function destroyImage(publicId: string) {
+  try {
+    await cloudinary.uploader.destroy(publicId, { invalidate: true });
+  } catch (e) {
+    console.error("Cloudinary destroy failed", publicId, e);
+  }
+}
+
+/** Only accept URLs that point at our own Cloudinary account and folder. */
+export function isOwnCloudinaryUrl(url: string, publicId: string) {
+  const cloud = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  return (
+    url.startsWith(`https://res.cloudinary.com/${cloud}/image/upload/`) &&
+    publicId.startsWith("swadeshi-mahadev/") &&
+    url.includes(publicId)
+  );
+}

@@ -100,7 +100,7 @@ export function Header({
             >
               {/* TODO(client): vector (SVG) logo for sharper rendering */}
               <Image
-                src="/logo.png"
+                src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
                 alt=""
                 width={80}
                 height={80}

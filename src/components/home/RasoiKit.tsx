@@ -65,7 +65,7 @@ export function RasoiKit({
         <div className="relative aspect-[4/3] overflow-hidden bg-[#03331C] md:aspect-auto md:min-h-[440px]">
           {/* Hand-painted ghani fills the left; the three bottles sit in front of it on the right. */}
           <Image
-            src="/images/deco/promo-left.webp"
+            src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735938/swadeshi-mahadev/static/images/deco/promo-left.webp"
             alt=""
             aria-hidden
             width={416}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { SmartImage } from "@/components/ui/SmartImage";
+import { cldUrl } from "@/lib/image-loader";
 import { HERO_HEIGHT, HERO_WIDTH, type HeroSlide } from "@/data/hero";
 import { cn } from "@/lib/utils/cn";
 
@@ -59,7 +60,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             style={{ aspectRatio: `${HERO_WIDTH} / ${HERO_HEIGHT}` }}
           >
             <picture>
-              {s.mobileSrc && <source media="(max-width: 639px)" srcSet={s.mobileSrc} />}
+              {s.mobileSrc && <source media="(max-width: 639px)" srcSet={cldUrl(s.mobileSrc, 900)} />}
               <SmartImage
                 src={s.src}
                 alt={s.alt}

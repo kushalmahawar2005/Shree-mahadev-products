@@ -65,7 +65,7 @@ function Sky() {
         className="pointer-events-none absolute top-2 -left-4 w-40 opacity-90 sm:w-56 md:top-4 md:left-0 lg:w-[340px] xl:w-[400px]"
       >
         <Image
-          src="/images/deco/sky-sun-birds.webp"
+          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735964/swadeshi-mahadev/static/images/deco/sky-sun-birds.webp"
           alt=""
           width={900}
           height={299}
@@ -78,7 +78,7 @@ function Sky() {
         className="pointer-events-none absolute top-0 right-0 w-44 opacity-95 sm:w-60 lg:w-[360px] xl:w-[420px]"
       >
         <Image
-          src="/images/deco/sky-clouds-neem.webp"
+          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735962/swadeshi-mahadev/static/images/deco/sky-clouds-neem.webp"
           alt=""
           width={900}
           height={243}
@@ -100,7 +100,7 @@ export function PromoStrip() {
       >
         {/* Hand-painted art cropped from one banner: ghani on the left, kadhai tadka on the right. */}
         <Image
-          src="/images/deco/promo-left.webp"
+          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735938/swadeshi-mahadev/static/images/deco/promo-left.webp"
           alt=""
           width={416}
           height={497}
@@ -108,7 +108,7 @@ export function PromoStrip() {
           className="pointer-events-none absolute top-0 left-0 h-full w-auto opacity-40 sm:opacity-100"
         />
         <Image
-          src="/images/deco/promo-right.webp"
+          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735940/swadeshi-mahadev/static/images/deco/promo-right.webp"
           alt=""
           width={472}
           height={497}
@@ -148,7 +148,7 @@ export function BrandFilmSection() {
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[260px] [mask-image:linear-gradient(to_bottom,black_88%,transparent)] sm:h-auto sm:aspect-[3/1]"
       >
         <Image
-          src="/images/deco/landscape-fields.webp"
+          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735936/swadeshi-mahadev/static/images/deco/landscape-fields.webp"
           alt=""
           fill
           sizes="100vw"
@@ -277,7 +277,7 @@ export function Spotlight({
     <section className="relative overflow-hidden bg-[#FDF6EB] pt-12 md:pt-16">
       {/* Soft watercolor dunes + sun rays (hand-painted). Purely decorative. */}
       <Image
-        src="/images/deco/spotlight-bg.webp"
+        src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735965/swadeshi-mahadev/static/images/deco/spotlight-bg.webp"
         alt=""
         aria-hidden
         fill
@@ -470,7 +470,7 @@ export function BeyondOils() {
       <div className="relative flex items-center justify-center overflow-hidden px-6 pt-10 pb-28 md:py-0 md:pb-16">
         {/* Hand-painted mustard plants, dry grass and a low sun along the bottom edge. */}
         <Image
-          src="/images/deco/beyond-grass-sun.webp"
+          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735934/swadeshi-mahadev/static/images/deco/beyond-grass-sun.webp"
           alt=""
           aria-hidden
           width={900}

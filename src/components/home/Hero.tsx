@@ -1,5 +1,5 @@
 import { Ticker } from "@/components/motion/Ticker";
-import { heroSlides } from "@/data/hero";
+import { getHeroSlides } from "@/lib/hero";
 import { HeroCarousel } from "./HeroCarousel";
 
 const trustPoints = [
@@ -12,11 +12,12 @@ const trustPoints = [
 ];
 
 /** Full-width banner carousel (1600 x 650), then a trust ticker. */
-export function Hero() {
+export async function Hero() {
+  const slides = await getHeroSlides();
   return (
     <>
       <section>
-        <HeroCarousel slides={heroSlides} />
+        <HeroCarousel slides={slides} />
       </section>
 
       <div

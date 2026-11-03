@@ -23,7 +23,7 @@ export function Footer() {
               className="inline-flex flex-col items-center gap-2 lg:items-start"
             >
               <Image
-                src="/logo.png"
+                src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
                 alt=""
                 width={88}
                 height={88}
@@ -139,7 +139,7 @@ export function Footer() {
           aria-hidden
         >
           <Image
-            src="/images/footer-harvest.webp"
+            src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735967/swadeshi-mahadev/static/images/footer-harvest.webp"
             alt=""
             fill
             sizes="100vw"
