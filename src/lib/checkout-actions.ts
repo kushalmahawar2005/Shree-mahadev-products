@@ -42,7 +42,8 @@ async function pricedCart() {
       compareAtPrice: v.compareAtPrice?.amount,
       quantity: l.quantity,
     });
-    weight += estimateWeightGrams(v.sizeValue, v.sizeUnit, l.quantity);
+    const packed = (v as { weightGrams?: number | null }).weightGrams;
+    weight += packed ? packed * l.quantity : estimateWeightGrams(v.sizeValue, v.sizeUnit, l.quantity);
   }
   return { items, weight, subtotal: items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0) } as const;
 }

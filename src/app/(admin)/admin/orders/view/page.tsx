@@ -30,7 +30,8 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
   let weight = 0;
   for (const i of order.items) {
     const v = (await getProduct(i.productHandle))?.variants.find((x) => x.id === i.variantKey);
-    weight += v ? estimateWeightGrams(v.sizeValue, v.sizeUnit, i.quantity) : 500 * i.quantity;
+    const packed = (v as { weightGrams?: number | null } | undefined)?.weightGrams;
+    weight += packed ? packed * i.quantity : v ? estimateWeightGrams(v.sizeValue, v.sizeUnit, i.quantity) : 500 * i.quantity;
   }
   const a = order.address;
   const label = ORDER_LABEL[order.status];

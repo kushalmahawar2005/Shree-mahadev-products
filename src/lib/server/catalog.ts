@@ -41,12 +41,13 @@ function toVariant(v: RowDataPacket): ProductVariant & { stock: number | null; w
   };
 }
 
-export type CatalogProduct = Product & {
+export type CatalogVariant = ProductVariant & { stock: number | null; weightGrams: number | null; enabled: boolean };
+export type CatalogProduct = Omit<Product, "variants"> & {
   status: ProductStatus;
   collections: string[];
   sortOrder: number;
   createdAt: string;
-  variants: (ProductVariant & { stock: number | null; weightGrams: number | null; enabled: boolean })[];
+  variants: CatalogVariant[];
 };
 
 /** Load products (optionally filtered) with variants, images and collection handles in 4 queries. */

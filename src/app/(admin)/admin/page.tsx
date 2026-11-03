@@ -43,7 +43,7 @@ export default async function Dashboard() {
             <ul className="space-y-2">
               {low.slice(0, 6).map(({ p, v, n }) => (
                 <li key={v.id} className="flex items-center justify-between gap-2">
-                  <Link href={`/admin/products/${p.handle}`} className="hover:underline">
+                  <Link href={`/admin/products/edit?handle=${p.handle}`} className="hover:underline">
                     {p.title.replace(/^(Wood|Cold)-Pressed\s+/, "")} · {v.title}
                   </Link>
                   <StatusBadge tone={n === 0 ? "red" : "amber"}>{n === 0 ? "Out" : `${n} left`}</StatusBadge>
