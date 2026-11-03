@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Mukta } from "next/font/google";
+import { Figtree, Mukta } from "next/font/google";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
@@ -8,6 +8,14 @@ import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { site } from "@/data/site";
 import { jsonLdString, localBusinessJsonLd, organizationJsonLd } from "@/lib/utils/seo";
 import "../globals.css";
+
+/** Clean geometric sans (close to Cowberry's look). Mukta covers Devanagari. */
+const figtree = Figtree({
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-figtree",
+  display: "swap",
+});
 
 const mukta = Mukta({
   weight: ["400", "500", "600", "700"],
@@ -44,7 +52,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={`${mukta.variable}`}>
+    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"

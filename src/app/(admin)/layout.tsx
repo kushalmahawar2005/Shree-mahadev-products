@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
-import { Mukta } from "next/font/google";
+import { Figtree, Mukta } from "next/font/google";
 import "../globals.css";
+
+/** Clean geometric sans (close to Cowberry's look). Mukta covers Devanagari. */
+const figtree = Figtree({
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-figtree",
+  display: "swap",
+});
 
 const mukta = Mukta({
   weight: ["400", "500", "600", "700"],
@@ -17,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={mukta.variable}>
+    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`}>
       <body className="min-h-dvh bg-khaki-soft/50">{children}</body>
     </html>
   );

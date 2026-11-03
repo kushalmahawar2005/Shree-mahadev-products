@@ -99,7 +99,7 @@ export default async function HomePage() {
       <BrandFilmSection youtube={videos.youtube} />
       <ProofCards />
       <ShopByUseCarousel tabs={useTabs} />
-      <Spotlight products={all} />
+      <Spotlight products={all} fadeTo={SHOW_BEYOND_OILS ? "#FCF2E5" : "#FFFFFF"} />
       {SHOW_BEYOND_OILS && <BeyondOils />}
       {/* Rasoi Kit card, last section before the footer. TODO(client): kit contents + price.
           Hidden for now: see HIDDEN.md. */}

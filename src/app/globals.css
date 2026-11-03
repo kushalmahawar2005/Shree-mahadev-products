@@ -19,7 +19,7 @@
 
   /* ── Fonts (set by next/font in layout.tsx) ── */
   --font-display: var(--font-body);
-  --font-body: var(--font-mukta), "Mukta", system-ui, sans-serif;
+  --font-body: var(--font-figtree), var(--font-mukta), "Mukta", system-ui, sans-serif;
   --font-sans: var(--font-body);
 
   /* ── Type scale: 14 / 16 / 18 / 22 / 28 / 36 / 48 / 64 ── */

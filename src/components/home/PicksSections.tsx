@@ -269,12 +269,15 @@ export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
 
 export function Spotlight({
   products,
+  fadeTo = "#FCF2E5",
 }: {
   products: Pick<Product, "handle" | "images">[];
+  /** Colour of the section below, so the watercolour melts into it. */
+  fadeTo?: string;
 }) {
   const byHandle = new Map(products.map((p) => [p.handle, p]));
   return (
-    <section className="relative overflow-hidden bg-[#FDF6EB] pt-12 md:pt-16">
+    <section className="relative overflow-hidden bg-[#FEF1DC] pt-12 md:pt-16">
       {/* Soft watercolor dunes + sun rays (hand-painted). Purely decorative. */}
       <Image
         src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735965/swadeshi-mahadev/static/images/deco/spotlight-bg.webp"
@@ -282,12 +285,13 @@ export function Spotlight({
         aria-hidden
         fill
         sizes="100vw"
-        className="pointer-events-none object-cover object-center"
+        className="pointer-events-none object-cover object-center [mask-image:linear-gradient(to_bottom,transparent,black_160px)]"
       />
       {/* Fade into the next section's colour so there is no seam. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-b from-transparent to-[#FCF2E5]"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-40"
+        style={{ background: `linear-gradient(to bottom, transparent, ${fadeTo})` }}
       />
       <Wrap className="relative">
         <Reveal>
