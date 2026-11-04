@@ -7,6 +7,7 @@ import type {
 } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
+import { ensureInvoiceForOrder } from "./invoices";
 import { calculateCoupon } from "./coupons";
 import {
   commitStock,
@@ -199,7 +200,7 @@ export async function createOrder(input: {
   await releaseExpiredHolds().catch((e) =>
     console.error("releaseExpiredHolds", e),
   );
-  return inTx(async (conn) => {
+  const created = await inTx(async (conn) => {
     const a = input.address;
     let discount = 0;
     let couponCode: string | null = null;
@@ -364,6 +365,10 @@ export async function createOrder(input: {
     }
     return { id, orderNo, token };
   });
+  if (input.method === "cod" || input.method === "offline") {
+    await ensureInvoiceForOrder(created.id).catch((error) => console.error("Invoice could not be created", created.orderNo, error));
+  }
+  return created;
 }
 
 async function loadOne(
@@ -518,6 +523,7 @@ export async function markPaid(
       }
     }
   });
+  await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
 }
 
 export async function markPaymentFailed(
@@ -650,6 +656,8 @@ export async function setOrderStatus(
       await returnStock(conn, orderId, "any", "restock", actor);
   });
   // Customer emails go out after the change is committed.
+  if (changed && to === "delivered")
+    await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
   if (changed && (to === "delivered" || to === "cancelled"))
     await notifyOrder(orderId, to);
 }

@@ -5,6 +5,7 @@ import { ORDER_LABEL } from "@/components/admin/orderLabels";
 import { listOrders, type OrderFilter } from "@/lib/server/orders";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
+import { InvoiceBulkButton } from "@/components/admin/InvoiceBulkButton";
 
 export const metadata = { title: "Orders" };
 
@@ -95,6 +96,7 @@ async function OrdersTable({
             Search
           </button>
         </form>
+        <InvoiceBulkButton />
       </div>
 
       {!res.orders.length ? (
@@ -102,6 +104,7 @@ async function OrdersTable({
       ) : (
         <Table
           head={[
+            "Invoice",
             "Order",
             "Date",
             "Customer",
@@ -113,6 +116,11 @@ async function OrdersTable({
         >
           {res.orders.map((o) => (
             <tr key={o.id}>
+              <td>
+                <label className="grid min-h-11 min-w-11 place-items-center" aria-label={`Select invoice for ${o.orderNo}`}>
+                  <input className="invoice-order-checkbox size-5 accent-[var(--color-forest)]" type="checkbox" value={o.id} aria-label={`Select invoice for ${o.orderNo}`} />
+                </label>
+              </td>
               <td className="font-semibold">
                 <Link
                   href={`/admin/orders/view?id=${o.id}`}

@@ -40,6 +40,7 @@ export type EmailOrder = {
   total: number;
   orderUrl: string;
   reviewUrl: string;
+  invoiceUrl: string;
   courier?: string | null;
   awb?: string | null;
   trackingUrl?: string | null;
@@ -296,6 +297,13 @@ export function OrderEmail({
               {copy.cta ?? "View order"}
             </Button>
           </Section>
+          {kind === "delivered" && (
+            <Section style={{ padding: "0 28px 16px" }}>
+              <Link href={o.invoiceUrl} style={{ color: C.forest, fontSize: 14, fontWeight: 700 }}>
+                Download your invoice
+              </Link>
+            </Section>
+          )}
 
           <Section style={{ padding: "0 28px" }}>
             <Hr style={{ borderColor: C.line }} />

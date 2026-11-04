@@ -29,6 +29,8 @@ const EMPTY: ProductInput = {
   tags: [],
   faqs: [],
   status: "draft",
+  hsn: undefined,
+  gstRate: undefined,
   collections: [],
   variants: [{ title: "1 L", sizeValue: 1000, sizeUnit: "ml", price: 0, stock: null, available: true }],
 };
@@ -63,6 +65,8 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
         faqs: p.faqs ?? [],
         seoTitle: p.seo.title === p.title ? undefined : p.seo.title,
         seoDescription: p.seo.description === p.shortDescription ? undefined : p.seo.description,
+        hsn: p.hsn ?? undefined,
+        gstRate: p.gstRate ?? undefined,
         status: p.status,
         collections: p.collections,
         variants: p.variants.map((v) => ({

@@ -56,6 +56,14 @@ export function SettingsForm({ initial }: { initial: StoreSettings }) {
         <F label="Pincode"><input className={input} inputMode="numeric" value={s.business.postalCode} onChange={(e) => b("postalCode", e.target.value)} /></F>
       </Card>
 
+      <Card title="Invoice tax" hint="Confirm this with your accountant before issuing GST invoices. TODO(client): verify product tax rates and price treatment before go-live.">
+        <F label="Catalog prices include GST">
+          <span className="flex min-h-11 items-center gap-2">
+            <input type="checkbox" checked={s.pricesIncludeGst} onChange={(e) => setS((x) => ({ ...x, pricesIncludeGst: e.target.checked }))} className="size-5 accent-[var(--color-forest)]" /> Prices already include GST
+          </span>
+        </F>
+      </Card>
+
       <Card title="Shipping & COD" hint="Courier rates come from NimbusPost. The flat fees are used only if rates can't be fetched.">
         <F label="Free shipping above (₹)" hint="Used in the announcement bar, cart progress bar and checkout."><input className={input} inputMode="numeric" value={s.shipping.freeShippingThreshold} onChange={(e) => sh("freeShippingThreshold", num(e.target.value))} /></F>
         <F label="Cash on delivery">

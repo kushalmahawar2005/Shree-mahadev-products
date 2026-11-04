@@ -89,6 +89,7 @@ async function loadEmailOrder(
     total: o.total,
     orderUrl: `${siteUrl()}/order?t=${o.token}`,
     reviewUrl: `${siteUrl()}/review?t=${o.token}`,
+    invoiceUrl: `${siteUrl()}/order/invoice?t=${o.token}`,
     courier: o.courier,
     awb: o.awb,
     trackingUrl: o.tracking_url,

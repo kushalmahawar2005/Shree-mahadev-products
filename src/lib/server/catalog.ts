@@ -44,6 +44,8 @@ function toVariant(v: RowDataPacket): ProductVariant & { stock: number | null; w
 
 export type CatalogVariant = ProductVariant & { stock: number | null; weightGrams: number | null; enabled: boolean };
 export type CatalogProduct = Omit<Product, "variants"> & {
+  hsn: string | null;
+  gstRate: number | null;
   status: ProductStatus;
   collections: string[];
   sortOrder: number;
@@ -125,6 +127,8 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
       tags: json<string[]>(p.tags, []),
       faqs: json<{ q: string; a: string }[]>(p.faqs, []),
       seo: { title: p.seo_title || p.title, description: p.seo_description || p.short_description },
+      hsn: p.hsn === null ? null : String(p.hsn),
+      gstRate: p.gst_rate === null ? null : Number(p.gst_rate),
       status: p.status,
       collections: cols.filter((c) => c.product_id === p.id).map((c) => c.handle as string),
       sortOrder: p.sort_order,
@@ -176,6 +180,8 @@ export type ProductInput = {
   faqs: { q: string; a: string }[];
   seoTitle?: string;
   seoDescription?: string;
+  hsn?: string;
+  gstRate?: number;
   status: ProductStatus;
   collections: string[];
   variants: {
@@ -218,14 +224,14 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
       input.handle, input.title, input.titleHi || null, input.category, input.swatch || null, input.shortDescription,
       input.descriptionHtml || null, JSON.stringify(input.benefits), JSON.stringify(input.bestFor), input.howToUse || null,
       input.processNote || null, input.labReportUrl || null, input.shelfLife || null, JSON.stringify(input.tags),
-      JSON.stringify(input.faqs), input.seoTitle || null, input.seoDescription || null, input.status,
+      JSON.stringify(input.faqs), input.seoTitle || null, input.seoDescription || null, input.hsn || null, input.gstRate ?? null, input.status,
     ];
     let id: number;
     if (existing[0]) {
       id = existing[0].id;
       await c.execute(
         `UPDATE products SET handle=?, title=?, title_hi=?, category=?, swatch=?, short_description=?, description_html=?, benefits=?,
-           best_for=?, how_to_use=?, process_note=?, lab_report_url=?, shelf_life=?, tags=?, faqs=?, seo_title=?, seo_description=?, status=?
+           best_for=?, how_to_use=?, process_note=?, lab_report_url=?, shelf_life=?, tags=?, faqs=?, seo_title=?, seo_description=?, hsn=?, gst_rate=?, status=?
          WHERE id = ?`,
         [...cols, id],
       );
@@ -236,8 +242,8 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
       const [[{ next }]] = await c.query<Rows>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM products");
       const [res] = await c.execute<ResultSetHeader>(
         `INSERT INTO products (handle, title, title_hi, category, swatch, short_description, description_html, benefits, best_for,
-           how_to_use, process_note, lab_report_url, shelf_life, tags, faqs, seo_title, seo_description, status, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           how_to_use, process_note, lab_report_url, shelf_life, tags, faqs, seo_title, seo_description, hsn, gst_rate, status, sort_order)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [...cols, Number(next)],
       );
       id = res.insertId;

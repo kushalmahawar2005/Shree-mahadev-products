@@ -143,6 +143,12 @@ export function ProductForm({
               <Field label="Short description (product card)" className="sm:col-span-2">
                 <input className={input} value={p.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} />
               </Field>
+              <Field label="HSN code">
+                <input className={input} inputMode="numeric" maxLength={10} value={p.hsn ?? ""} onChange={(e) => set("hsn", e.target.value.replace(/\D/g, "").slice(0, 10) || undefined)} placeholder="Add the product HSN" />
+              </Field>
+              <Field label="GST rate (%)">
+                <input className={input} type="number" min={0} max={100} step="0.01" value={p.gstRate ?? ""} onChange={(e) => set("gstRate", e.target.value === "" ? undefined : Number(e.target.value))} placeholder="Set the confirmed rate" />
+              </Field>
               <Field label="Description" className="sm:col-span-2">
                 <textarea
                   className={area}

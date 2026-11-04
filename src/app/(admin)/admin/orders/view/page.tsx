@@ -74,9 +74,12 @@ async function OrderDetail({
         title={`Order ${order.orderNo}`}
         intro={`${order.createdAt.slice(0, 16)} · ${order.paymentMethod === "cod" ? "Cash on delivery" : order.paymentMethod === "offline" ? "Paid offline" : "Paid online (PayU)"}`}
         action={
-          <Link href="/admin/orders" className="text-forest underline">
-            ← All orders
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            {!["pending_payment", "payment_failed", "cancelled", "rto", "refunded", "partially_refunded"].includes(order.status) && (
+              <Link href={`/admin/orders/invoice?id=${order.id}`} className="inline-flex min-h-11 items-center rounded-full border border-forest px-4 font-semibold text-forest hover:bg-khaki-soft">Download invoice</Link>
+            )}
+            <Link href="/admin/orders" className="text-forest underline">← All orders</Link>
+          </div>
         }
       />
       <div className="mb-4">

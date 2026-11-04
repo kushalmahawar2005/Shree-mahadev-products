@@ -18,7 +18,8 @@
     "test:inquiries": "node scripts/test-inquiries.mjs",
     "test:coupons": "node scripts/test-coupons.mjs",
     "test:reviews": "node scripts/test-reviews.mjs",
-    "test:collections": "node scripts/test-collections.mjs"
+    "test:collections": "node scripts/test-collections.mjs",
+    "test:invoices": "node scripts/test-invoices.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -26,6 +27,7 @@
     "@next/mdx": "^16.4.4",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.2.0",
+    "@react-pdf/renderer": "^4.9.0",
     "@types/mdx": "^2.0.14",
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",

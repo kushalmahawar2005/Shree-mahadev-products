@@ -5,7 +5,7 @@ import { DEFAULT_SETTINGS, liveAnnouncements, StoreSettingsSchema, type StoreSet
 import { db } from "./db";
 
 export const SETTINGS_TAG = "settings";
-const KEYS = { business: "business", shipping: "shipping", announcement: "announcement", socials: "socials", lowStockThreshold: "low_stock_threshold" } as const;
+const KEYS = { business: "business", pricesIncludeGst: "prices_include_gst", shipping: "shipping", announcement: "announcement", socials: "socials", lowStockThreshold: "low_stock_threshold" } as const;
 
 async function readRaw(): Promise<Partial<Record<keyof typeof KEYS, unknown>>> {
   const [rows] = await db().query<RowDataPacket[]>("SELECT `key`, value FROM settings WHERE `key` IN (?)", [Object.values(KEYS)]);
@@ -23,6 +23,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
     const raw = await readRaw();
     const merged = {
       business: { ...DEFAULT_SETTINGS.business, ...(raw.business as object) },
+      pricesIncludeGst: raw.pricesIncludeGst === undefined ? true : raw.pricesIncludeGst === true,
       shipping: { ...DEFAULT_SETTINGS.shipping, ...(raw.shipping as object) },
       announcement: (raw.announcement as StoreSettings["announcement"]) ?? DEFAULT_SETTINGS.announcement,
       socials: (raw.socials as StoreSettings["socials"]) ?? DEFAULT_SETTINGS.socials,
@@ -39,6 +40,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 export async function saveStoreSettings(s: StoreSettings) {
   const pairs: [string, unknown][] = [
     [KEYS.business, s.business],
+    [KEYS.pricesIncludeGst, s.pricesIncludeGst],
     [KEYS.shipping, s.shipping],
     [KEYS.announcement, s.announcement],
     [KEYS.socials, s.socials],

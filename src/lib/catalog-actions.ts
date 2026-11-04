@@ -37,6 +37,10 @@ function validate(raw: ProductInput): ProductInput {
   if (!CATS.includes(raw.category)) throw new Error("Pick a category");
   if (!STATUSES.includes(raw.status)) throw new Error("Pick a status");
   if (raw.swatch && !/^#[0-9a-fA-F]{6}$/.test(raw.swatch)) throw new Error("Colour must look like #D9B45A");
+  const hsn = clean(raw.hsn, 10);
+  if (hsn && !/^\d{1,10}$/.test(hsn)) throw new Error("HSN must contain up to 10 digits");
+  const gstRate = raw.gstRate === undefined || raw.gstRate === null || String(raw.gstRate).trim() === "" ? undefined : Number(raw.gstRate);
+  if (gstRate !== undefined && (!Number.isFinite(gstRate) || gstRate < 0 || gstRate > 100)) throw new Error("GST rate must be between 0 and 100");
   const variants = (Array.isArray(raw.variants) ? raw.variants : []).slice(0, 20).map((v, i) => {
     const t = clean(v.title, 40);
     if (!t) throw new Error(`Variant ${i + 1}: size name is required (e.g. "1 L")`);
@@ -86,6 +90,8 @@ function validate(raw: ProductInput): ProductInput {
       .slice(0, 20),
     seoTitle: clean(raw.seoTitle, 160) || undefined,
     seoDescription: clean(raw.seoDescription, 320) || undefined,
+    hsn: hsn || undefined,
+    gstRate,
     status: raw.status,
     collections: lines(raw.collections, 30).filter((c) => HANDLE.test(c)),
     variants,

@@ -48,6 +48,7 @@ export const SocialsSchema = z.array(z.object({ label: z.string().trim().min(2).
 
 export const StoreSettingsSchema = z.object({
   business: BusinessSchema,
+  pricesIncludeGst: z.boolean().default(true),
   shipping: ShippingSchema,
   announcement: AnnouncementSchema,
   socials: SocialsSchema,
@@ -57,6 +58,7 @@ export const StoreSettingsSchema = z.object({
 export type StoreSettings = z.infer<typeof StoreSettingsSchema>;
 
 export const DEFAULT_SETTINGS: StoreSettings = {
+  pricesIncludeGst: true, // TODO(client): confirm catalog prices include GST before go-live.
   business: {
     legalName: site.name,
     gstin: "",
