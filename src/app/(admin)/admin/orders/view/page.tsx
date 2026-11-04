@@ -121,6 +121,16 @@ async function OrderDetail({
                 <dt>Subtotal</dt>
                 <dd>{formatMoney(order.subtotal)}</dd>
               </div>
+              {order.discount > 0 && (
+                <div className="flex justify-between text-forest">
+                  <dt>
+                    {order.couponCode
+                      ? `Coupon (${order.couponCode})`
+                      : "Discount"}
+                  </dt>
+                  <dd>−{formatMoney(order.discount)}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt>Shipping charged</dt>
                 <dd>{formatMoney(order.shipping)}</dd>

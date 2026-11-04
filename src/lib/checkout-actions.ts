@@ -14,14 +14,23 @@ import { OutOfStockError } from "@/lib/server/inventory";
 import { notifyOrder } from "@/lib/server/mail";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
 import { getStoreSettings } from "@/lib/server/store-settings";
+import { calculateCoupon, CouponError } from "@/lib/server/coupons";
 
-export type CheckoutState = { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
+export type CheckoutState =
+  { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
 
 export type ShippingQuoteResult =
-  | { ok: true; serviceable: boolean; payu: { shipping: number }; cod: { shipping: number; codFee: number }; edd: string | null }
+  | {
+      ok: true;
+      serviceable: boolean;
+      payu: { shipping: number };
+      cod: { shipping: number; codFee: number };
+      edd: string | null;
+    }
   | { ok: false };
 
-const cleanPhone = (p: string) => p.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+const cleanPhone = (p: string) =>
+  p.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
 const PIN = /^[1-9]\d{5}$/;
 
 /** Server-priced lines + packed weight. Prices never come from the browser. */
@@ -34,7 +43,9 @@ async function pricedCart() {
     const product = await getProduct(l.product.handle);
     const v = product?.variants.find((x) => x.id === l.variant.id);
     if (!product || !v?.availableForSale || v.price.amount <= 0) {
-      return { error: `${l.product.title} (${l.variant.title}) is not available right now. Please remove it.` } as const;
+      return {
+        error: `${l.product.title} (${l.variant.title}) is not available right now. Please remove it.`,
+      } as const;
     }
     items.push({
       variantKey: v.id,
@@ -47,47 +58,81 @@ async function pricedCart() {
       quantity: l.quantity,
     });
     const packed = (v as { weightGrams?: number | null }).weightGrams;
-    weight += packed ? packed * l.quantity : estimateWeightGrams(v.sizeValue, v.sizeUnit, l.quantity);
+    weight += packed
+      ? packed * l.quantity
+      : estimateWeightGrams(v.sizeValue, v.sizeUnit, l.quantity);
   }
-  return { items, weight, subtotal: items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0) } as const;
+  return {
+    items,
+    weight,
+    subtotal: items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
+  } as const;
 }
 
 /** Called when the shopper finishes typing a pincode: cheapest courier for prepaid and COD. */
-export async function quoteShippingAction(pincode: string): Promise<ShippingQuoteResult> {
+export async function quoteShippingAction(
+  pincode: string,
+): Promise<ShippingQuoteResult> {
   if (!z.string().regex(PIN).safeParse(pincode).success) return { ok: false };
   const c = await pricedCart();
   if ("error" in c) return { ok: false };
   const base = { pincode, subtotal: c.subtotal, weightGrams: c.weight };
   const [payu, cod] = await Promise.all([
     quoteShipping({ ...base, method: "payu" }),
-    (await getStoreSettings()).shipping.codEnabled ? quoteShipping({ ...base, method: "cod" }) : null,
+    (await getStoreSettings()).shipping.codEnabled
+      ? quoteShipping({ ...base, method: "cod" })
+      : null,
   ]);
   return {
     ok: true,
     serviceable: payu.serviceable,
     payu: { shipping: payu.shipping },
-    cod: cod?.serviceable ? { shipping: cod.shipping, codFee: cod.codFee } : { shipping: -1, codFee: 0 },
+    cod: cod?.serviceable
+      ? { shipping: cod.shipping, codFee: cod.codFee }
+      : { shipping: -1, codFee: 0 },
     edd: payu.edd,
   };
 }
 
 /** Saves contact details as they are typed, so abandoned checkouts can be followed up. */
-const Contact = z.object({ name: z.string().max(200), phone: z.string().max(20), email: z.string().max(200), pincode: z.string().max(10) }).partial().strict();
+const Contact = z
+  .object({
+    name: z.string().max(200),
+    phone: z.string().max(20),
+    email: z.string().max(200),
+    pincode: z.string().max(10),
+  })
+  .partial()
+  .strict();
 
-export async function saveCheckoutContactAction(raw: { name?: string; phone?: string; email?: string; pincode?: string }) {
+export async function saveCheckoutContactAction(raw: {
+  name?: string;
+  phone?: string;
+  email?: string;
+  pincode?: string;
+}) {
   const p = Contact.safeParse(raw);
   if (!p.success) return;
   const input = p.data;
   const token = await getCartDbToken();
   if (!token) return;
   const phone = cleanPhone(String(input.phone ?? ""));
-  const email = String(input.email ?? "").trim().toLowerCase();
+  const email = String(input.email ?? "")
+    .trim()
+    .toLowerCase();
   try {
     await captureCartContact(token, {
-      name: String(input.name ?? "").trim().slice(0, 120) || undefined,
+      name:
+        String(input.name ?? "")
+          .trim()
+          .slice(0, 120) || undefined,
       phone: /^[6-9]\d{9}$/.test(phone) ? phone : undefined,
-      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email.slice(0, 160) : undefined,
-      pincode: PIN.test(String(input.pincode ?? "")) ? String(input.pincode) : undefined,
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+        ? email.slice(0, 160)
+        : undefined,
+      pincode: PIN.test(String(input.pincode ?? ""))
+        ? String(input.pincode)
+        : undefined,
     });
   } catch (e) {
     console.error("captureCartContact failed", e);
@@ -107,39 +152,129 @@ const CheckoutForm = z.object({
     .trim()
     .toLowerCase()
     .max(160)
-    .refine((e) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e), "Enter a valid email or leave it empty."),
+    .refine(
+      (e) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e),
+      "Enter a valid email or leave it empty.",
+    ),
   line1: z.string().trim().min(5, "Enter house no. and street.").max(255),
-  line2: z.string().trim().max(255).transform((v) => v || undefined),
+  line2: z
+    .string()
+    .trim()
+    .max(255)
+    .transform((v) => v || undefined),
   city: z.string().trim().min(2, "Enter your city.").max(80),
-  state: z.string().refine((v) => (INDIAN_STATES as readonly string[]).includes(v), "Select your state."),
+  state: z
+    .string()
+    .refine(
+      (v) => (INDIAN_STATES as readonly string[]).includes(v),
+      "Select your state.",
+    ),
   pincode: z.string().trim().regex(PIN, "Enter a 6-digit pincode."),
+  couponCode: z.string().trim().max(30).catch(""),
 });
 
-export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Promise<CheckoutState> {
+export async function placeOrderAction(
+  _prev: CheckoutState,
+  fd: FormData,
+): Promise<CheckoutState> {
   const limit = await rateLimit("checkout", await clientIp(), 10, 10);
-  if (!limit.ok) return { error: `Too many attempts. Please try again in ${limit.retryInMin} min or order on WhatsApp.` };
+  if (!limit.ok)
+    return {
+      error: `Too many attempts. Please try again in ${limit.retryInMin} min or order on WhatsApp.`,
+    };
 
   const field = (k: string) => String(fd.get(k) ?? "");
-  const parsed = CheckoutForm.safeParse(Object.fromEntries(["method", "name", "phone", "email", "line1", "line2", "city", "state", "pincode"].map((k) => [k, field(k)])));
+  const parsed = CheckoutForm.safeParse(
+    Object.fromEntries(
+      [
+        "method",
+        "name",
+        "phone",
+        "email",
+        "line1",
+        "line2",
+        "city",
+        "state",
+        "pincode",
+        "couponCode",
+      ].map((k) => [k, field(k)]),
+    ),
+  );
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
-    for (const i of parsed.error.issues) fieldErrors[String(i.path[0])] ??= i.message;
+    for (const i of parsed.error.issues)
+      fieldErrors[String(i.path[0])] ??= i.message;
     return { fieldErrors };
   }
-  const { method, ...address } = parsed.data;
+  const { method, couponCode: rawCoupon, ...address } = parsed.data;
   const { shipping: ship } = await getStoreSettings();
-  if (method === "cod" && !ship.codEnabled) return { fieldErrors: { method: "Cash on delivery is not available right now." } };
+  if (method === "cod" && !ship.codEnabled)
+    return {
+      fieldErrors: { method: "Cash on delivery is not available right now." },
+    };
 
   const c = await pricedCart();
   if ("error" in c) return { error: c.error };
-  if (method === "cod" && ship.codMaxOrder && c.subtotal > ship.codMaxOrder) {
-    return { fieldErrors: { method: `Cash on delivery is available up to ₹${ship.codMaxOrder}. Please pay online.` } };
+  const couponCode = rawCoupon.trim().toUpperCase();
+  let discount = 0;
+  let freeShipping = false;
+  if (couponCode) {
+    const couponLimit = await rateLimit("coupon", await clientIp(), 15, 10);
+    if (!couponLimit.ok)
+      return {
+        error: `Too many coupon attempts. Try again in ${couponLimit.retryInMin} min.`,
+      };
+    try {
+      const quote = await calculateCoupon(
+        couponCode,
+        c.subtotal,
+        address.phone,
+        c.items.map((item) => ({
+          productHandle: item.productHandle,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+        })),
+      );
+      discount = quote.discount;
+      freeShipping = quote.freeShipping;
+    } catch (error) {
+      return {
+        error:
+          error instanceof CouponError
+            ? error.message
+            : "This coupon can't be applied.",
+      };
+    }
+  }
+  const discountedSubtotal = c.subtotal - discount;
+  if (
+    method === "cod" &&
+    ship.codMaxOrder &&
+    discountedSubtotal > ship.codMaxOrder
+  ) {
+    return {
+      fieldErrors: {
+        method: `Cash on delivery is available up to ₹${ship.codMaxOrder}. Please pay online.`,
+      },
+    };
   }
 
   // Re-quote on the server: the price shown in the browser is never trusted.
-  const q = await quoteShipping({ pincode: address.pincode, subtotal: c.subtotal, weightGrams: c.weight, method });
+  const q = await quoteShipping({
+    pincode: address.pincode,
+    subtotal: discountedSubtotal,
+    weightGrams: c.weight,
+    method,
+  });
   if (!q.serviceable) {
-    return { fieldErrors: { pincode: method === "cod" ? "COD isn't available for this pincode. Please pay online." : "We can't deliver to this pincode yet." } };
+    return {
+      fieldErrors: {
+        pincode:
+          method === "cod"
+            ? "COD isn't available for this pincode. Please pay online."
+            : "We can't deliver to this pincode yet.",
+      },
+    };
   }
 
   let token: string;
@@ -150,16 +285,21 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
       address,
       items: c.items,
       subtotal: c.subtotal,
-      shipping: q.shipping,
+      shipping: freeShipping ? 0 : q.shipping,
       codFee: q.codFee,
       courierId: q.courierId,
       courierName: q.courierName,
+      couponCode: couponCode || undefined,
       cartToken: await getCartDbToken(),
     }));
   } catch (e) {
     if (e instanceof OutOfStockError) return { error: e.message };
+    if (e instanceof CouponError) return { error: e.message };
     console.error("createOrder failed", e);
-    return { error: "We couldn't place your order. Please try again or order on WhatsApp." };
+    return {
+      error:
+        "We couldn't place your order. Please try again or order on WhatsApp.",
+    };
   }
 
   if (method === "cod") {

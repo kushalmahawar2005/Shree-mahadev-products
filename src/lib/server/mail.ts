@@ -82,6 +82,8 @@ async function loadEmailOrder(
       lineTotal: i.line_total,
     })),
     subtotal: o.subtotal,
+    discount: o.discount,
+    couponCode: o.coupon_code,
     shipping: o.shipping,
     codFee: o.cod_fee,
     total: o.total,

@@ -16,7 +16,7 @@ const nav = [
   { label: "Categories", href: "/admin/categories" },
   { label: "Abandoned carts", href: "/admin/abandoned-carts" },
   { label: "Customers", href: "/admin/customers" },
-  { label: "Discounts", href: "/admin/discounts" },
+  { label: "Coupons", href: "/admin/discounts" },
   { label: "Reviews", href: "/admin/reviews" },
   { label: "Bulk inquiries", href: "/admin/inquiries" },
   { label: "Hero banners", href: "/admin/banners" },

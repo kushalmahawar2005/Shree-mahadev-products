@@ -1,5 +1,5 @@
 /**
- * MOCK admin data for pages not yet wired to MySQL (dashboard, discounts, reviews).
+ * MOCK admin data for pages not yet wired to MySQL (dashboard, reviews).
  * Replace page by page with real queries; keep only as a no-DB fallback.
  */
 export type OrderStatus =
@@ -222,37 +222,6 @@ export const abandonedCarts: AbandonedCart[] = [
     value: 1252,
     ago: "2 days ago",
     status: "WhatsApp sent",
-  },
-];
-
-export type Discount = {
-  code: string;
-  type: string;
-  value: string;
-  used: number;
-  status: "Active" | "Paused";
-};
-export const discounts: Discount[] = [
-  {
-    code: "WELCOME10",
-    type: "Percentage, first order",
-    value: "10%",
-    used: 38,
-    status: "Active",
-  },
-  {
-    code: "FREESHIP",
-    type: "Free shipping",
-    value: `Above ₹999`,
-    used: 112,
-    status: "Active",
-  },
-  {
-    code: "DIWALI5",
-    type: "Percentage",
-    value: "5%",
-    used: 9,
-    status: "Paused",
   },
 ];
 

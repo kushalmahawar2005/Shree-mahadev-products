@@ -33,6 +33,8 @@ export type EmailOrder = {
   paymentMethod: "cod" | "payu" | "offline";
   items: { title: string; size: string; qty: number; lineTotal: number }[];
   subtotal: number;
+  discount: number;
+  couponCode: string | null;
   shipping: number;
   codFee: number;
   total: number;
@@ -314,6 +316,14 @@ export function OrderEmail({
             <Hr style={{ borderColor: C.line }} />
             {[
               ["Subtotal", inr(o.subtotal)],
+              ...(o.discount
+                ? [
+                    [
+                      o.couponCode ? `Coupon (${o.couponCode})` : "Discount",
+                      `−${inr(o.discount)}`,
+                    ],
+                  ]
+                : []),
               ["Shipping", o.shipping ? inr(o.shipping) : "Free"],
               ...(o.codFee ? [["COD charge", inr(o.codFee)]] : []),
             ].map(([k, v]) => (

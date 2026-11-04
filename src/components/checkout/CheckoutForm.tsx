@@ -11,6 +11,7 @@ import {
   type CheckoutState,
   type ShippingQuoteResult,
 } from "@/lib/checkout-actions";
+import { validateCheckoutCouponAction } from "@/lib/coupon-actions";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 
@@ -32,23 +33,51 @@ function Field({
   error,
   className,
   ...props
-}: { label: string; name: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: {
+  label: string;
+  name: string;
+  error?: string;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-sm font-semibold text-forest-text">{label}</span>
-      <input name={name} className={cn(field, error && "border-sale")} aria-invalid={!!error} {...props} />
+      <span className="mb-1.5 block text-sm font-semibold text-forest-text">
+        {label}
+      </span>
+      <input
+        name={name}
+        className={cn(field, error && "border-sale")}
+        aria-invalid={!!error}
+        {...props}
+      />
       {error && <span className="mt-1 block text-sm text-sale">{error}</span>}
     </label>
   );
 }
 
-export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: number }) {
+export function CheckoutForm({
+  lines,
+  subtotal,
+}: {
+  lines: Line[];
+  subtotal: number;
+}) {
   const { shipping: ship } = useStoreSettings();
-  const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrderAction, undefined);
+  const [state, action, pending] = useActionState<CheckoutState, FormData>(
+    placeOrderAction,
+    undefined,
+  );
   const [chosenMethod, setMethod] = useState<"payu" | "cod">("payu");
   const [pincode, setPincode] = useState("");
   const [quote, setQuote] = useState<ShippingQuoteResult | null>(null);
   const [quoting, startQuote] = useTransition();
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount: number;
+    freeShipping: boolean;
+  } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponPending, startCoupon] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
   const fe = state?.fieldErrors ?? {};
 
@@ -57,43 +86,133 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
     setPincode(pin);
     setQuote(null);
     // Cheapest courier for this pincode (the server re-quotes on submit).
-    if (/^[1-9]\d{5}$/.test(pin)) startQuote(async () => setQuote(await quoteShippingAction(pin)));
+    if (/^[1-9]\d{5}$/.test(pin))
+      startQuote(async () => setQuote(await quoteShippingAction(pin)));
   }
 
   const codBlocked = quote?.ok === true && quote.cod.shipping < 0;
   const method = codBlocked ? "payu" : chosenMethod;
 
   const known = quote?.ok && quote.serviceable;
-  const shipping = known ? (method === "cod" ? quote.cod.shipping : quote.payu.shipping) : null;
+  const shipping = known
+    ? method === "cod"
+      ? quote.cod.shipping
+      : quote.payu.shipping
+    : null;
   const codFee = known && method === "cod" ? quote.cod.codFee : 0;
-  const total = subtotal + (shipping ?? 0) + codFee;
+  const finalShipping = appliedCoupon?.freeShipping ? 0 : shipping;
+  const total =
+    subtotal - (appliedCoupon?.discount ?? 0) + (finalShipping ?? 0) + codFee;
+
+  function applyCoupon() {
+    setCouponError("");
+    startCoupon(async () => {
+      const phone =
+        (
+          formRef.current?.elements.namedItem(
+            "phone",
+          ) as HTMLInputElement | null
+        )?.value ?? "";
+      const result = await validateCheckoutCouponAction({
+        code: couponCode,
+        phone,
+      });
+      if (!result.ok) {
+        setAppliedCoupon(null);
+        setCouponError(result.error ?? "This code can't be applied.");
+        return;
+      }
+      setCouponCode(result.code ?? couponCode.trim().toUpperCase());
+      setAppliedCoupon({
+        code: result.code ?? couponCode.trim().toUpperCase(),
+        discount: result.discount ?? 0,
+        freeShipping: result.freeShipping ?? false,
+      });
+    });
+  }
 
   // Save contact details for abandoned-checkout follow-up.
   function saveContact() {
     const f = formRef.current;
     if (!f) return;
-    const v = (n: string) => (f.elements.namedItem(n) as HTMLInputElement | null)?.value ?? "";
-    void saveCheckoutContactAction({ name: v("name"), phone: v("phone"), email: v("email"), pincode: v("pincode") });
+    const v = (n: string) =>
+      (f.elements.namedItem(n) as HTMLInputElement | null)?.value ?? "";
+    void saveCheckoutContactAction({
+      name: v("name"),
+      phone: v("phone"),
+      email: v("email"),
+      pincode: v("pincode"),
+    });
   }
 
   return (
-    <form ref={formRef} action={action} onBlur={saveContact} className="mt-8 grid gap-10 lg:grid-cols-[1fr_400px]">
+    <form
+      ref={formRef}
+      action={action}
+      onBlur={saveContact}
+      className="mt-8 grid gap-10 lg:grid-cols-[1fr_400px]"
+    >
+      <input
+        type="hidden"
+        name="couponCode"
+        value={appliedCoupon?.code ?? ""}
+      />
       <div className="space-y-8">
         <section>
           <h2 className="text-2xl">Contact</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="Full name" name="name" autoComplete="name" required error={fe.name} />
-            <Field label="Mobile number" name="phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="10-digit mobile" required error={fe.phone} />
-            <Field label="Email (optional, for order updates)" name="email" type="email" autoComplete="email" error={fe.email} className="sm:col-span-2" />
+            <Field
+              label="Full name"
+              name="name"
+              autoComplete="name"
+              required
+              error={fe.name}
+            />
+            <Field
+              label="Mobile number"
+              name="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel"
+              placeholder="10-digit mobile"
+              required
+              error={fe.phone}
+            />
+            <Field
+              label="Email (optional, for order updates)"
+              name="email"
+              type="email"
+              autoComplete="email"
+              error={fe.email}
+              className="sm:col-span-2"
+            />
           </div>
         </section>
 
         <section>
           <h2 className="text-2xl">Delivery address</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Field label="House no., street" name="line1" autoComplete="address-line1" required error={fe.line1} className="sm:col-span-2" />
-            <Field label="Area, landmark (optional)" name="line2" autoComplete="address-line2" className="sm:col-span-2" />
-            <Field label="City" name="city" autoComplete="address-level2" required error={fe.city} />
+            <Field
+              label="House no., street"
+              name="line1"
+              autoComplete="address-line1"
+              required
+              error={fe.line1}
+              className="sm:col-span-2"
+            />
+            <Field
+              label="Area, landmark (optional)"
+              name="line2"
+              autoComplete="address-line2"
+              className="sm:col-span-2"
+            />
+            <Field
+              label="City"
+              name="city"
+              autoComplete="address-level2"
+              required
+              error={fe.city}
+            />
             <Field
               label="Pincode"
               name="pincode"
@@ -103,11 +222,24 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
               required
               value={pincode}
               onChange={(e) => onPincode(e.target.value)}
-              error={fe.pincode ?? (quote?.ok && !quote.serviceable ? "Sorry, we can't deliver to this pincode yet." : undefined)}
+              error={
+                fe.pincode ??
+                (quote?.ok && !quote.serviceable
+                  ? "Sorry, we can't deliver to this pincode yet."
+                  : undefined)
+              }
             />
             <label className="block sm:col-span-2">
-              <span className="mb-1.5 block text-sm font-semibold text-forest-text">State</span>
-              <select name="state" required defaultValue="" autoComplete="address-level1" className={cn(field, fe.state && "border-sale")}>
+              <span className="mb-1.5 block text-sm font-semibold text-forest-text">
+                State
+              </span>
+              <select
+                name="state"
+                required
+                defaultValue=""
+                autoComplete="address-level1"
+                className={cn(field, fe.state && "border-sale")}
+              >
                 <option value="" disabled>
                   Select state
                 </option>
@@ -115,7 +247,9 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
                   <option key={s}>{s}</option>
                 ))}
               </select>
-              {fe.state && <span className="mt-1 block text-sm text-sale">{fe.state}</span>}
+              {fe.state && (
+                <span className="mt-1 block text-sm text-sale">{fe.state}</span>
+              )}
             </label>
           </div>
         </section>
@@ -125,9 +259,23 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
           <div className="mt-4 grid gap-3">
             {(
               [
-                { id: "payu", title: "Pay online", note: "UPI, cards, net banking, wallets. Secured by PayU." },
-                ...(ship.codEnabled && !codBlocked && !(ship.codMaxOrder && subtotal > ship.codMaxOrder)
-                  ? [{ id: "cod", title: "Cash on delivery", note: codFee ? `${formatMoney(codFee)} COD charge applies.` : "Pay when your order arrives." }]
+                {
+                  id: "payu",
+                  title: "Pay online",
+                  note: "UPI, cards, net banking, wallets. Secured by PayU.",
+                },
+                ...(ship.codEnabled &&
+                !codBlocked &&
+                !(ship.codMaxOrder && subtotal > ship.codMaxOrder)
+                  ? [
+                      {
+                        id: "cod",
+                        title: "Cash on delivery",
+                        note: codFee
+                          ? `${formatMoney(codFee)} COD charge applies.`
+                          : "Pay when your order arrives.",
+                      },
+                    ]
                   : []),
               ] as const
             ).map((m) => (
@@ -135,7 +283,9 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
                 key={m.id}
                 className={cn(
                   "flex min-h-14 cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-colors",
-                  method === m.id ? "border-forest bg-khaki-soft" : "border-line hover:border-forest/40",
+                  method === m.id
+                    ? "border-forest bg-khaki-soft"
+                    : "border-line hover:border-forest/40",
                 )}
               >
                 <input
@@ -147,12 +297,16 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
                   className="mt-1 size-4 accent-forest"
                 />
                 <span>
-                  <span className="block font-semibold text-forest-text">{m.title}</span>
+                  <span className="block font-semibold text-forest-text">
+                    {m.title}
+                  </span>
                   <span className="block text-sm text-ink-muted">{m.note}</span>
                 </span>
               </label>
             ))}
-            {fe.method && <span className="text-sm text-sale">{fe.method}</span>}
+            {fe.method && (
+              <span className="text-sm text-sale">{fe.method}</span>
+            )}
           </div>
         </section>
       </div>
@@ -163,10 +317,18 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
           {lines.map((l) => (
             <li key={l.id} className="flex gap-3 py-3">
               {l.image && (
-                <Image src={l.image.url} alt={l.image.alt} width={64} height={64} className="size-16 shrink-0 rounded-xl bg-white object-cover" />
+                <Image
+                  src={l.image.url}
+                  alt={l.image.alt}
+                  width={64}
+                  height={64}
+                  className="size-16 shrink-0 rounded-xl bg-white object-cover"
+                />
               )}
               <div className="min-w-0 flex-1">
-                <p className="font-semibold leading-snug text-forest-text">{l.title}</p>
+                <p className="font-semibold leading-snug text-forest-text">
+                  {l.title}
+                </p>
                 <p className="text-sm text-ink-muted">
                   {l.variant} × {l.quantity}
                 </p>
@@ -175,11 +337,79 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
             </li>
           ))}
         </ul>
+        <div className="mt-4 border-t border-line pt-4">
+          <label
+            className="mb-1.5 block text-sm font-semibold text-forest-text"
+            htmlFor="coupon-code"
+          >
+            Coupon code
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="coupon-code"
+              value={couponCode}
+              disabled={!!appliedCoupon}
+              onChange={(event) => {
+                setCouponCode(event.target.value.toUpperCase());
+                setCouponError("");
+              }}
+              placeholder="Enter code"
+              autoComplete="off"
+              className={cn(field, "min-w-0 flex-1")}
+            />
+            {appliedCoupon ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setAppliedCoupon(null);
+                  setCouponCode("");
+                  setCouponError("");
+                }}
+                className="min-h-12 rounded-full border border-line px-4 font-semibold"
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={couponPending || !couponCode.trim()}
+                onClick={applyCoupon}
+                className="min-h-12 rounded-full border border-forest px-4 font-semibold text-forest disabled:opacity-50"
+              >
+                {couponPending ? "Checking…" : "Apply"}
+              </button>
+            )}
+          </div>
+          {couponError && (
+            <p role="alert" className="mt-2 text-sm text-sale">
+              {couponError}
+            </p>
+          )}
+          {appliedCoupon && (
+            <p className="mt-2 text-sm font-semibold text-forest">
+              {appliedCoupon.code} applied
+            </p>
+          )}
+        </div>
         <dl className="mt-4 space-y-2 border-t border-line pt-4">
           <Row label="Subtotal" value={formatMoney(subtotal)} />
+          {appliedCoupon && appliedCoupon.discount > 0 && (
+            <Row
+              label="Coupon discount"
+              value={`−${formatMoney(appliedCoupon.discount)}`}
+            />
+          )}
           <Row
             label="Shipping"
-            value={quoting ? "Checking…" : shipping === null ? "Enter pincode" : shipping ? formatMoney(shipping) : "Free"}
+            value={
+              quoting
+                ? "Checking…"
+                : finalShipping === null
+                  ? "Enter pincode"
+                  : finalShipping
+                    ? formatMoney(finalShipping)
+                    : "Free"
+            }
           />
           {codFee > 0 && <Row label="COD charge" value={formatMoney(codFee)} />}
           <div className="flex items-center justify-between border-t border-line pt-3 text-lg">
@@ -189,12 +419,20 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
         </dl>
         {subtotal < ship.freeShippingThreshold && (
           <p className="mt-2 text-sm text-ink-muted">
-            Add {formatMoney(ship.freeShippingThreshold - subtotal)} more for free shipping.
+            Add {formatMoney(ship.freeShippingThreshold - subtotal)} more for
+            free shipping.
           </p>
         )}
-        {known && quote.edd && <p className="mt-1 text-sm text-ink-muted">Estimated delivery: {quote.edd}</p>}
+        {known && quote.edd && (
+          <p className="mt-1 text-sm text-ink-muted">
+            Estimated delivery: {quote.edd}
+          </p>
+        )}
         {state?.error && (
-          <p role="alert" className="mt-4 rounded-xl bg-white p-3 text-sm text-sale">
+          <p
+            role="alert"
+            className="mt-4 rounded-xl bg-white p-3 text-sm text-sale"
+          >
             {state.error}
           </p>
         )}
@@ -203,7 +441,11 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
           disabled={pending || (quote?.ok === true && !quote.serviceable)}
           className="btn-shine mt-5 inline-flex min-h-13 w-full items-center justify-center rounded-full bg-forest px-6 text-lg font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
         >
-          {pending ? "Placing order…" : method === "cod" ? "Place order" : `Pay ${formatMoney(total)}`}
+          {pending
+            ? "Placing order…"
+            : method === "cod"
+              ? "Place order"
+              : `Pay ${formatMoney(total)}`}
         </button>
       </aside>
     </form>

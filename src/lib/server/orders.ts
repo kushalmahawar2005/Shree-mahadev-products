@@ -7,6 +7,7 @@ import type {
 } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
+import { calculateCoupon } from "./coupons";
 import {
   commitStock,
   releaseExpiredHolds,
@@ -63,6 +64,7 @@ export type Order = {
   address: OrderAddress;
   subtotal: number;
   discount: number;
+  couponCode: string | null;
   shipping: number;
   codFee: number;
   total: number;
@@ -95,6 +97,7 @@ function toOrder(r: RowDataPacket, items: RowDataPacket[]): Order {
     },
     subtotal: r.subtotal,
     discount: r.discount,
+    couponCode: r.coupon_code ?? null,
     shipping: r.shipping,
     codFee: r.cod_fee,
     total: r.total,
@@ -157,6 +160,7 @@ export async function createOrder(input: {
   address: OrderAddress;
   items: OrderItemInput[];
   priceOverrides?: Record<string, number>;
+  couponCode?: string;
   subtotal: number;
   shipping: number;
   codFee: number;
@@ -197,6 +201,26 @@ export async function createOrder(input: {
   );
   return inTx(async (conn) => {
     const a = input.address;
+    let discount = 0;
+    let couponCode: string | null = null;
+    let freeShipping = false;
+    if (input.couponCode) {
+      const quote = await calculateCoupon(
+        input.couponCode,
+        input.subtotal,
+        a.phone,
+        items.map((item) => ({
+          productHandle: item.productHandle,
+          unitPrice: item.unitPrice,
+          quantity: item.quantity,
+        })),
+        conn,
+      );
+      discount = quote.discount;
+      couponCode = quote.code;
+      freeShipping = quote.freeShipping;
+    }
+    const finalShipping = freeShipping ? 0 : input.shipping;
     // Guest customer keyed by phone; latest name/email win.
     await conn.execute(
       `INSERT INTO customers (phone, email, name) VALUES (?,?,?)
@@ -236,11 +260,11 @@ export async function createOrder(input: {
         : input.method === "offline"
           ? "paid"
           : "pending_payment";
-    const total = input.subtotal + input.shipping + input.codFee;
+    const total = input.subtotal - discount + finalShipping + input.codFee;
     const [res] = await conn.execute<ResultSetHeader>(
       `INSERT INTO orders (token, customer_id, cart_id, source, status, payment_method, customer_name, phone, email,
-         address_line1, address_line2, city, state, pincode, subtotal, shipping, cod_fee, courier_id, courier_name, total, paid_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL))`,
+         address_line1, address_line2, city, state, pincode, subtotal, discount, coupon_code, shipping, cod_fee, courier_id, courier_name, total, paid_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL))`,
       [
         token,
         cid,
@@ -257,7 +281,9 @@ export async function createOrder(input: {
         a.state,
         a.pincode,
         input.subtotal,
-        input.shipping,
+        discount,
+        couponCode,
+        finalShipping,
         input.codFee,
         input.courierId,
         input.courierName,
@@ -300,6 +326,20 @@ export async function createOrder(input: {
       })),
       input.method === "payu" ? "hold" : "commit",
     );
+    if (couponCode && input.method === "cod") {
+      const [[coupon]] = await conn.execute<RowDataPacket[]>(
+        "SELECT id FROM coupons WHERE code=?",
+        [couponCode],
+      );
+      await conn.execute(
+        "INSERT INTO coupon_redemptions (coupon_id, order_id, phone, amount) VALUES (?,?,?,?)",
+        [coupon.id, id, a.phone, discount],
+      );
+      await conn.execute(
+        "UPDATE coupons SET used_count=used_count+1 WHERE id=?",
+        [coupon.id],
+      );
+    }
     await logEvent(
       conn,
       id,
@@ -456,6 +496,26 @@ export async function markPaid(
         "UPDATE carts SET status = 'converted', converted_at = NOW() WHERE order_id = ?",
         [orderId],
       );
+      const [[order]] = await conn.execute<RowDataPacket[]>(
+        "SELECT coupon_code, discount, phone FROM orders WHERE id=? FOR UPDATE",
+        [orderId],
+      );
+      if (order?.coupon_code) {
+        const [[coupon]] = await conn.execute<RowDataPacket[]>(
+          "SELECT id FROM coupons WHERE code=? FOR UPDATE",
+          [order.coupon_code],
+        );
+        if (coupon) {
+          await conn.execute(
+            "INSERT IGNORE INTO coupon_redemptions (coupon_id, order_id, phone, amount) VALUES (?,?,?,?)",
+            [coupon.id, orderId, order.phone, order.discount],
+          );
+          await conn.execute(
+            "UPDATE coupons SET used_count=(SELECT COUNT(*) FROM coupon_redemptions WHERE coupon_id=?) WHERE id=?",
+            [coupon.id, coupon.id],
+          );
+        }
+      }
     }
   });
 }

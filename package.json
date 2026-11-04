@@ -15,7 +15,8 @@
     "test:payu": "node scripts/test-payu.mjs",
     "test:settings": "node scripts/test-settings.mjs",
     "test:customers": "node scripts/test-customers.mjs",
-    "test:inquiries": "node scripts/test-inquiries.mjs"
+    "test:inquiries": "node scripts/test-inquiries.mjs",
+    "test:coupons": "node scripts/test-coupons.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

@@ -1,25 +1,47 @@
-import { PageHeader, StatusBadge, Table } from "@/components/admin/ui";
-import { discounts } from "@/data/admin";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { PageHeader } from "@/components/admin/ui";
+import { CouponsWorkspace } from "@/components/admin/CouponsWorkspace";
+import { listCoupons } from "@/lib/server/coupons";
+import { loadProducts } from "@/lib/server/catalog";
+import { db } from "@/lib/server/db";
+import type { RowDataPacket } from "mysql2/promise";
 
-export const metadata = { title: "Discounts" };
+export const metadata = { title: "Coupons" };
 
 export default function DiscountsPage() {
   return (
     <>
-      <PageHeader title="Discounts" intro="Codes customers enter at checkout. Keep offers sober (AGENTS.md)." />
-      <Table head={["Code", "Type", "Value", "Used", "Status"]}>
-        {discounts.map((d) => (
-          <tr key={d.code}>
-            <td className="font-semibold">{d.code}</td>
-            <td>{d.type}</td>
-            <td>{d.value}</td>
-            <td>{d.used}</td>
-            <td>
-              <StatusBadge tone={d.status === "Active" ? "green" : "gray"}>{d.status}</StatusBadge>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <PageHeader
+        title="Coupons"
+        intro="Create clear offers and track their use at checkout."
+      />
+      <Suspense fallback={<p className="text-ink-muted">Loading coupons…</p>}>
+        <CouponData />
+      </Suspense>
     </>
+  );
+}
+
+async function CouponData() {
+  await connection();
+  const [coupons, products, collections] = await Promise.all([
+    listCoupons(),
+    loadProducts({ status: "active" }),
+    db()
+      .query<RowDataPacket[]>(
+        "SELECT handle, title FROM collections WHERE active=1 ORDER BY sort_order, title",
+      )
+      .then(([rows]) => rows),
+  ]);
+  return (
+    <CouponsWorkspace
+      coupons={coupons}
+      products={products.map((p) => ({ handle: p.handle, title: p.title }))}
+      collections={collections.map((c) => ({
+        handle: String(c.handle),
+        title: String(c.title),
+      }))}
+    />
   );
 }
