@@ -20,6 +20,7 @@ const nav = [
   { label: "Reviews", href: "/admin/reviews" },
   { label: "Bulk inquiries", href: "/admin/inquiries" },
   { label: "Marketing", href: "/admin/marketing" },
+  { label: "Messages", href: "/admin/messages" },
   { label: "Shipping ops", href: "/admin/shipping" },
   { label: "Reports", href: "/admin/reports" },
   { label: "Hero banners", href: "/admin/banners" },

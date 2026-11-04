@@ -2,6 +2,7 @@ import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
+import { queueOrderWhatsApp } from "./whatsapp";
 import {
   actOnNdr,
   cancelShipment as npCancel,
@@ -123,6 +124,7 @@ export async function bookShipment(
   );
   await setOrderStatus(orderId, "packed", "admin", `Shipment booked: ${booked.courierName} AWB ${booked.awb}`);
   await notifyOrder(orderId, "shipped");
+  await queueOrderWhatsApp(orderId, "shipped").catch((error) => console.error("WhatsApp shipment notification", error));
   return listShipments(orderId);
 }
 

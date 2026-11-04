@@ -12,6 +12,7 @@ import { clearCartCookies, getCartDbToken } from "@/lib/server/cart-cookies";
 import { createOrder, type OrderItemInput } from "@/lib/server/orders";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { notifyOrder } from "@/lib/server/mail";
+import { queueOrderWhatsApp } from "@/lib/server/whatsapp";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { calculateCoupon, CouponError } from "@/lib/server/coupons";
@@ -308,6 +309,7 @@ export async function placeOrderAction(
 
   if (method === "cod") {
     await notifyOrder(orderId, "order_placed");
+    await queueOrderWhatsApp(orderId, "cod_confirmation").catch((error) => console.error("WhatsApp order notification", error));
     await clearCartCookies();
     redirect(`/order?t=${token}`);
   }

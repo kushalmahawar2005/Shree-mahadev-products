@@ -7,6 +7,7 @@ import type {
 } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
+import { queueOrderWhatsApp } from "./whatsapp";
 import { ensureInvoiceForOrder } from "./invoices";
 import { queueMarketingEvent } from "./marketing";
 import { calculateCoupon } from "./coupons";
@@ -703,6 +704,8 @@ export async function setOrderStatus(
     await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
   if (changed && (to === "delivered" || to === "cancelled"))
     await notifyOrder(orderId, to);
+  if (changed && (to === "delivered" || to === "cancelled"))
+    await queueOrderWhatsApp(orderId, to).catch((error) => console.error("WhatsApp status notification", error));
 }
 
 /** Courier returned an RTO parcel and it reached us: put the stock back (once). */

@@ -2,6 +2,7 @@ import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
+import { queueOrderWhatsApp } from "./whatsapp";
 import { getPayment, logWebhook, markPaid, markPaymentFailed } from "./orders";
 import { verifyPaymentWithPayu, verifyPayuResponse } from "./payu";
 
@@ -33,6 +34,7 @@ export async function handlePayuResult(p: Record<string, string>, source: "callb
     if (check?.status === "success" && check.amount === pay.amount) {
       await markPaid(pay.id, pay.orderId, { mihpayid: p.mihpayid ?? check.mihpayid, mode: p.mode });
       await notifyOrder(pay.orderId, "payment_received");
+      await queueOrderWhatsApp(pay.orderId, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
       return { outcome: "paid", orderToken: pay.orderToken };
     }
     await markPaymentFailed(pay.id, pay.orderId, "Awaiting PayU confirmation", "pending");
@@ -60,6 +62,7 @@ export async function reconcilePayments(olderThanMin = 15, limit = 50) {
     if (v?.status === "success" && v.amount === r.amount) {
       await markPaid(r.id, r.order_id, { mihpayid: v.mihpayid, mode: "reconciled" });
       await notifyOrder(r.order_id, "payment_received");
+      await queueOrderWhatsApp(r.order_id, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
       result.paid++;
     } else if (v && ["failure", "failed", "userCancelled", "dropped", "bounced"].includes(v.status)) {
       await markPaymentFailed(r.id, r.order_id, `PayU: ${v.status}`);
