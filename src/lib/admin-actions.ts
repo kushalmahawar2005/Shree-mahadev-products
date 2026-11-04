@@ -91,3 +91,14 @@ export async function resendOrderEmailAction(orderId: number, kind: string): Pro
   await processOutbox();
   return listOrderEmails(id);
 }
+
+// ───────────── Refunds ─────────────
+export async function refundOrderAction(orderId: number, amount: number, reason: string) {
+  const admin = await requireAdmin();
+  if (admin.role !== "owner") throw new Error("Only the owner can issue refunds");
+  const { refundOrder } = await import("@/lib/server/refunds");
+  const v = zz.object({ orderId: zz.number().int().positive(), amount: zz.number().int().positive().max(1_000_000), reason: zz.string().trim().max(200) }).parse({ orderId, amount, reason });
+  const out = await refundOrder(v.orderId, v.amount, v.reason, admin.username);
+  revalidatePath("/admin/orders");
+  return out;
+}

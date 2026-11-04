@@ -10,7 +10,9 @@
     "db:setup": "node scripts/db-setup.mjs",
     "test:inventory": "node scripts/test-inventory.mjs",
     "test:emails": "node scripts/test-emails.mjs",
-    "admin:create": "node scripts/admin-create.mjs"
+    "admin:create": "node scripts/admin-create.mjs",
+    "payu:reconcile": "node scripts/payu-reconcile.mjs",
+    "test:payu": "node scripts/test-payu.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

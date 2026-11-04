@@ -12,4 +12,5 @@ export const ORDER_LABEL: Record<Order["status"], { text: string; tone: "green" 
   cancelled: { text: "Cancelled", tone: "red" },
   rto: { text: "RTO", tone: "red" },
   refunded: { text: "Refunded", tone: "gray" },
+  partially_refunded: { text: "Partly refunded", tone: "amber" },
 };

@@ -29,6 +29,7 @@ const HEADLINE: Record<Order["status"], { title: string; note: string }> = {
   packed: { title: "Packed and ready to ship", note: "It will be handed to the courier soon." },
   rto: { title: "Your order is returning to us", note: "The courier couldn't deliver it. Message us to reship." },
   refunded: { title: "Refunded", note: "Your refund has been processed." },
+  partially_refunded: { title: "Partly refunded", note: "Part of your payment has been refunded. Message us if you have questions." },
   shipped: { title: "Your order is on the way", note: "It has been handed to the courier." },
   delivered: { title: "Delivered", note: "We hope you enjoy it." },
   cancelled: { title: "This order was cancelled", note: "Message us if this looks wrong." },

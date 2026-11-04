@@ -16,7 +16,8 @@ export type OrderStatus =
   | "delivered"
   | "cancelled"
   | "rto"
-  | "refunded";
+  | "refunded"
+  | "partially_refunded";
 
 export type PaymentMethod = "payu" | "cod";
 type Actor = "system" | "customer" | "admin" | "payu" | "nimbuspost";
@@ -343,4 +344,19 @@ export async function markRtoReceived(orderId: number, actor: Actor) {
     await logEvent(conn, orderId, "rto", "rto", actor, n ? "RTO parcel received back; stock returned" : "RTO parcel received back");
     return n;
   });
+}
+
+// ───────────── Refunds (PayU) ─────────────
+
+export async function listRefunds(orderId: number) {
+  const [rows] = await db().query<Row[]>("SELECT id, amount, reason, status, provider_ref, error, created_by, created_at FROM refunds WHERE order_id = ? ORDER BY id DESC", [orderId]);
+  return rows.map((r) => ({ id: r.id as number, amount: r.amount as number, reason: r.reason as string | null, status: r.status as string, ref: r.provider_ref as string | null, error: r.error as string | null, by: r.created_by as string | null, at: r.created_at as string }));
+}
+
+/** Paid amount and what is still refundable for a PayU order. */
+export async function refundableFor(orderId: number) {
+  const [[pay]] = await db().query<Row[]>("SELECT id, amount, mihpayid FROM payments WHERE order_id = ? AND status = 'success' ORDER BY id DESC LIMIT 1", [orderId]);
+  if (!pay) return null;
+  const [[r]] = await db().query<Row[]>("SELECT COALESCE(SUM(amount),0) AS done FROM refunds WHERE order_id = ? AND status IN ('requested','success')", [orderId]);
+  return { paymentId: pay.id as number, mihpayid: pay.mihpayid as string | null, paid: pay.amount as number, refunded: Number(r.done), left: (pay.amount as number) - Number(r.done) };
 }
