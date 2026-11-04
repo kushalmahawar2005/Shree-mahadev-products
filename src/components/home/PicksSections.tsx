@@ -45,7 +45,7 @@ export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   return (
     <section className="relative overflow-hidden bg-[#FBF8F2] pt-16 pb-12 md:pt-20 md:pb-16">
       <Sky />
-      <Wrap className="relative">
+      <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <Reveal>
           <h2 className="text-center text-3xl text-forest md:text-[44px]">
             {topPicks.title}
@@ -226,7 +226,7 @@ function Seal({ label, sub }: { label: string; sub: string }) {
 export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
   return (
     <section className="relative overflow-hidden bg-[#FEF1DC] pt-2 pb-12 md:pt-4 md:pb-16">
-      <Wrap className="relative">
+      <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <div>
           <Reveal>
             <h2 className="text-3xl text-sale md:text-[44px]">
