@@ -40,6 +40,34 @@ export async function queueMarketingEvent(
   void dispatchMarketingEvent(payload, orderId, String(eventId));
 }
 
+export async function processMarketingOutbox(limit = 25) {
+  const [rows] = await db().execute(
+    `SELECT id, event_name, event_id, order_id, payload, attempts
+     FROM marketing_outbox
+     WHERE status = 'pending' AND next_attempt <= NOW()
+     ORDER BY id LIMIT ?`,
+    [Math.min(Math.max(limit, 1), 100)],
+  ) as [{ id: number; event_name: string; event_id: string; order_id: number; payload: string; attempts: number }[], unknown];
+  let processed = 0;
+  for (const row of rows) {
+    try {
+      const payload = JSON.parse(row.payload) as Parameters<typeof dispatchMarketingEvent>[0];
+      await dispatchMarketingEvent(payload, row.order_id, row.event_id);
+      processed++;
+    } catch (error) {
+      console.error("processMarketingOutbox failed", { id: row.id, error });
+      await db().execute(
+        `UPDATE marketing_outbox
+         SET attempts=attempts+1, next_attempt=DATE_ADD(NOW(), INTERVAL LEAST(60, POW(2, attempts)) MINUTE),
+             last_error=?
+         WHERE id=?`,
+        [error instanceof Error ? error.message.slice(0, 500) : "Unknown marketing dispatch error", row.id],
+      );
+    }
+  }
+  return { processed, found: rows.length };
+}
+
 async function dispatchMarketingEvent(
   payload: {
     event_name: string;

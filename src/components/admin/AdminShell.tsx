@@ -19,6 +19,7 @@ const nav = [
   { label: "Coupons", href: "/admin/discounts" },
   { label: "Reviews", href: "/admin/reviews" },
   { label: "Bulk inquiries", href: "/admin/inquiries" },
+  { label: "Marketing", href: "/admin/marketing" },
   { label: "Hero banners", href: "/admin/banners" },
   { label: "Videos", href: "/admin/videos" },
   { label: "Settings", href: "/admin/settings" },
@@ -96,4 +97,3 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
