@@ -8,6 +8,8 @@ export type ProductVariant = {
   price: Money;
   compareAtPrice?: Money;
   availableForSale: boolean;
+  /** Priced and on sale, but stock is 0 (shows "Out of stock" + "Notify me"). */
+  outOfStock?: boolean;
   sku?: string;
 };
 

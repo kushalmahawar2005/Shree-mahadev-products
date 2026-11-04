@@ -8,6 +8,7 @@ import { INDIAN_STATES } from "@/lib/checkout";
 import { captureCartContact } from "@/lib/server/carts";
 import { clearCartCookies, getCartDbToken } from "@/lib/server/cart-cookies";
 import { createOrder, type OrderItemInput, type PaymentMethod } from "@/lib/server/orders";
+import { OutOfStockError } from "@/lib/server/inventory";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
 
 export type CheckoutState = { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
@@ -132,6 +133,7 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
       cartToken: await getCartDbToken(),
     }));
   } catch (e) {
+    if (e instanceof OutOfStockError) return { error: e.message };
     console.error("createOrder failed", e);
     return { error: "We couldn't place your order. Please try again or order on WhatsApp." };
   }

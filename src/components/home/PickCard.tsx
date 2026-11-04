@@ -10,6 +10,7 @@ import { DISCOUNT_BADGE_MIN, discountPercent, formatMoney } from "@/lib/utils/mo
 import { unitPrice } from "@/lib/utils/unitPrice";
 import type { PickProduct } from "./pickProduct";
 import { SizeChips } from "./SizeChips";
+import { NotifyMe } from "@/components/product/NotifyMe";
 
 export type { PickProduct };
 
@@ -43,8 +44,9 @@ function Stars({ value }: { value: number }) {
 /** Product card (AGENTS.md §9): photo, name, Hindi name, rating, one row of size chips, price + unit price, add button. */
 export function PickCard({ product, priority = false }: { product: PickProduct; priority?: boolean }) {
   const { add, pending } = useCart();
-  const available = product.variants.filter((v) => v.availableForSale);
-  const [selectedId, setSelectedId] = useState(available[0]?.id);
+  // Sizes we can show: on sale, or priced but sold out (shown struck through with "Notify me").
+  const available = product.variants.filter((v) => v.availableForSale || v.outOfStock);
+  const [selectedId, setSelectedId] = useState((available.find((v) => v.availableForSale) ?? available[0])?.id);
   const [added, setAdded] = useState(false);
   const selected = available.find((v) => v.id === selectedId) ?? available[0];
   const off = selected ? discountPercent(selected.price, selected.compareAtPrice) : 0;
@@ -120,7 +122,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
           <>
             {/* 5. Sizes: whole chips only, "+N" for the rest */}
             <SizeChips
-              sizes={available.map((v) => ({ id: v.id, title: v.title }))}
+              sizes={available.map((v) => ({ id: v.id, title: v.title, soldOut: !!v.outOfStock }))}
               selectedId={selected?.id}
               onSelect={setSelectedId}
               label={`Size for ${product.title}`}
@@ -145,12 +147,21 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                       </s>
                     )}
                   </p>
-                  {per && <p className="text-[13px] text-ink-muted">{per}</p>}
+                  {selected?.outOfStock ? (
+                    <p className="text-[13px] font-semibold text-sale">Out of stock</p>
+                  ) : (
+                    per && <p className="text-[13px] text-ink-muted">{per}</p>
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
 
-            {/* 7. Add to cart */}
+            {/* 7. Add to cart (or Notify me when the size is sold out) */}
+            {selected?.outOfStock ? (
+              <div className="mt-3">
+                <NotifyMe key={selected.id} variantKey={selected.id} sizeLabel={`${product.title.replace(/^(Wood|Cold)-Pressed /, "")} ${selected.title}`} compact />
+              </div>
+            ) : (
             <button
               type="button"
               disabled={pending}
@@ -173,6 +184,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 "Add to cart"
               )}
             </button>
+            )}
           </>
         ) : (
           <Link

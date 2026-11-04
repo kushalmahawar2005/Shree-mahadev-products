@@ -1,5 +1,6 @@
 import "server-only";
 import { catalogIsEmpty, findVariants, loadCollections, loadProducts } from "@/lib/server/catalog";
+import { sweepExpiredHolds } from "@/lib/server/inventory";
 import type { Cart, CartLine, CommerceProvider, GetProductsOptions, Product, ProductSort } from "../types";
 
 /**
@@ -26,6 +27,8 @@ function decode(id: string): Encoded {
 }
 
 async function build(lines: Encoded): Promise<Cart> {
+  // Unpaid online orders past their hold give stock back before we check availability.
+  await sweepExpiredHolds();
   const found = await findVariants(lines.map(([v]) => v));
   const byKey = new Map(found.map((f) => [f.variant.id, f]));
   const cartLines: CartLine[] = [];

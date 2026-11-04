@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
-type Size = { id: string; title: string };
+type Size = { id: string; title: string; soldOut?: boolean };
 
 const chip =
   "h-8 shrink-0 rounded-full border px-3 text-[13px] whitespace-nowrap transition-colors duration-200 md:text-sm";
@@ -167,8 +167,8 @@ export function SizeChips({
                     : "hover:bg-khaki-soft/60",
                 )}
               >
-                {s.title}
-                {s.id === selectedId && <span aria-hidden>✓</span>}
+                <span className={cn(s.soldOut && "line-through")}>{s.title}</span>
+                {s.soldOut ? <span className="text-xs text-ink-muted">Sold out</span> : s.id === selectedId && <span aria-hidden>✓</span>}
               </button>
             </li>
           ))}

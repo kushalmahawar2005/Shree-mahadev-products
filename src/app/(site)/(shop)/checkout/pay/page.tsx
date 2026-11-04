@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { AutoSubmit } from "@/components/checkout/AutoSubmit";
 import { Container } from "@/components/ui/primitives";
 import { buildPayuForm, PAYU_PAYMENT_URL, payuConfigured } from "@/lib/server/payu";
+import { OutOfStockError } from "@/lib/server/inventory";
 import { getOrderByToken, startPaymentAttempt } from "@/lib/server/orders";
 import { whatsappLink } from "@/data/site";
 
@@ -38,7 +39,21 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
     );
   }
 
-  const txnid = await startPaymentAttempt(order);
+  let txnid: string;
+  try {
+    txnid = await startPaymentAttempt(order);
+  } catch (e) {
+    if (!(e instanceof OutOfStockError)) throw e;
+    return (
+      <div>
+        <h1 className="text-3xl">Sorry, this went out of stock</h1>
+        <p className="mt-3 text-ink-muted">{e.message}</p>
+        <a className="mt-6 inline-block font-semibold text-forest underline" href={whatsappLink(`Hi, order ${order.orderNo} went out of stock while paying.`)}>
+          Message us on WhatsApp
+        </a>
+      </div>
+    );
+  }
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const callback = `${base}/api/payu/callback`;
   const fields = buildPayuForm({

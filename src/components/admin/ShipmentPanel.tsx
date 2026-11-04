@@ -10,6 +10,7 @@ import {
   refreshTrackingAction,
   setOrderStatusAction,
 } from "@/lib/admin-actions";
+import { markRtoReceivedAction } from "@/lib/inventory-actions";
 import type { OrderStatus } from "@/lib/server/orders";
 import type { CourierQuote, Shipment } from "@/lib/server/shipments";
 import { formatMoney } from "@/lib/utils/money";
@@ -241,6 +242,20 @@ export function ShipmentPanel({
         {orderStatus === "cod_pending" && (
           <button type="button" disabled={pending} onClick={() => run(async () => (await setOrderStatusAction(orderId, "confirmed", "COD confirmed with customer"), setOrderStatus("confirmed")))} className={cn(btn, "border border-line")}>
             Mark COD confirmed
+          </button>
+        )}
+        {orderStatus === "rto" && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              if (window.confirm("Has the returned parcel reached you? Its stock will be added back.")) {
+                run(async () => void (await markRtoReceivedAction(orderId)));
+              }
+            }}
+            className={cn(btn, "border border-line")}
+          >
+            RTO received back (restock)
           </button>
         )}
         {["shipped", "packed"].includes(orderStatus) && (

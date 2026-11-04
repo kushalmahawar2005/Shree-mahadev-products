@@ -34,6 +34,7 @@ function toVariant(v: RowDataPacket): ProductVariant & { stock: number | null; w
     price: inr(price),
     compareAtPrice: v.compare_at_price ? inr(Number(v.compare_at_price)) : undefined,
     availableForSale: !!v.available && price > 0 && (stock === null || stock > 0),
+    outOfStock: !!v.available && price > 0 && stock !== null && stock <= 0,
     sku: v.sku ?? undefined,
     stock,
     weightGrams: v.weight_grams === null ? null : Number(v.weight_grams),
@@ -90,7 +91,8 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
   return ps.map((p) => {
     const rev = revs.find((r) => r.product_handle === p.handle);
     const variants = vs.filter((v) => v.product_id === p.id).map(toVariant);
-    const priced = variants.filter((v) => v.availableForSale).map((v) => v.price.amount);
+    // Sold-out sizes still count for "From ₹X" so a fully sold-out product doesn't show ₹0.
+    const priced = variants.filter((v) => v.availableForSale || v.outOfStock).map((v) => v.price.amount);
     const images = imgs
       .filter((i) => i.product_handle === p.handle)
       .map((i) => ({ url: i.url, alt: i.alt || p.title, width: i.width, height: i.height }));

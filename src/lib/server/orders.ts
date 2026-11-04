@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
+import { commitStock, releaseExpiredHolds, reholdStock, returnStock, takeStock } from "./inventory";
 
 export type OrderStatus =
   | "pending_payment"
@@ -130,6 +131,8 @@ export async function createOrder(input: {
   courierName: string | null;
   cartToken?: string;
 }): Promise<{ id: number; orderNo: string; token: string }> {
+  // Free stock from abandoned PayU attempts before checking availability.
+  await releaseExpiredHolds().catch((e) => console.error("releaseExpiredHolds", e));
   return inTx(async (conn) => {
     const a = input.address;
     // Guest customer keyed by phone; latest name/email win.
@@ -171,6 +174,13 @@ export async function createOrder(input: {
          it.compareAtPrice ?? null, it.quantity, it.unitPrice * it.quantity],
       );
     }
+    // Locks the variant rows; throws OutOfStockError (rolls back the whole order) if someone else got the last unit.
+    await takeStock(
+      conn,
+      id,
+      input.items.map((it) => ({ variantKey: it.variantKey, title: `${it.productTitle} (${it.variantTitle})`, quantity: it.quantity })),
+      input.method === "cod" ? "commit" : "hold",
+    );
     await logEvent(conn, id, null, status, "customer", input.method === "cod" ? "COD order placed" : "Order created, awaiting payment");
 
     if (cartId) {
@@ -204,6 +214,7 @@ export const getOrderByToken = (token: string) =>
 export async function startPaymentAttempt(order: Order): Promise<string> {
   const txnid = `${order.orderNo}T${Date.now().toString(36)}`.slice(0, 25);
   await inTx(async (conn) => {
+    await reholdStock(conn, order.id, new Map(order.items.map((i) => [i.variantKey, `${i.productTitle} (${i.variantTitle})`])));
     await conn.execute("INSERT INTO payments (order_id, txnid, amount) VALUES (?,?,?)", [order.id, txnid, order.total]);
     if (order.status === "payment_failed") {
       await conn.execute("UPDATE orders SET status = 'pending_payment' WHERE id = ?", [order.id]);
@@ -238,6 +249,8 @@ export async function markPaid(paymentId: number, orderId: number, p: { mihpayid
     );
     if (r.affectedRows) {
       await logEvent(conn, orderId, "pending_payment", "paid", "payu", `PayU ${p.mode ?? ""} ${p.mihpayid ?? ""}`.trim());
+      const { oversold } = await commitStock(conn, orderId);
+      if (oversold) await logEvent(conn, orderId, "paid", "paid", "system", "Paid after the stock hold expired and stock ran short. Check inventory before packing.");
       await conn.execute("UPDATE carts SET status = 'converted', converted_at = NOW() WHERE order_id = ?", [orderId]);
     }
   });
@@ -251,7 +264,10 @@ export async function markPaymentFailed(paymentId: number, orderId: number, erro
         "UPDATE orders SET status = 'payment_failed' WHERE id = ? AND status = 'pending_payment'",
         [orderId],
       );
-      if (r.affectedRows) await logEvent(conn, orderId, "pending_payment", "payment_failed", "payu", error);
+      if (r.affectedRows) {
+        await logEvent(conn, orderId, "pending_payment", "payment_failed", "payu", error);
+        await returnStock(conn, orderId, "held", "release", "payu");
+      }
     }
   });
 }
@@ -308,5 +324,18 @@ export async function setOrderStatus(orderId: number, to: OrderStatus, actor: Ac
       [to, to, orderId],
     );
     await logEvent(conn, orderId, from, to, actor, note);
+    // Cancelled before delivery: whatever this order holds or took goes back (once).
+    if (to === "cancelled") await returnStock(conn, orderId, "any", "restock", actor);
+  });
+}
+
+/** Courier returned an RTO parcel and it reached us: put the stock back (once). */
+export async function markRtoReceived(orderId: number, actor: Actor) {
+  return inTx(async (conn) => {
+    const [r] = await conn.execute<Row[]>("SELECT status FROM orders WHERE id = ? FOR UPDATE", [orderId]);
+    if (r[0]?.status !== "rto") throw new Error("Only RTO orders can be marked as received back");
+    const n = await returnStock(conn, orderId, "committed", "rto_return", actor);
+    await logEvent(conn, orderId, "rto", "rto", actor, n ? "RTO parcel received back; stock returned" : "RTO parcel received back");
+    return n;
   });
 }

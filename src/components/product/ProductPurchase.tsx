@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { QtyStepper } from "@/components/cart/CartLine";
 import { useCart } from "@/components/cart/CartProvider";
 import { WhatsAppIcon } from "@/components/layout/icons";
+import { NotifyMe } from "./NotifyMe";
 import { Badge, Pill } from "@/components/ui/primitives";
 import { buttonClass } from "@/components/ui/Button";
 import { site, whatsappLink } from "@/data/site";
@@ -54,9 +55,10 @@ export function ProductPurchase({ handle, title, variants }: Props) {
             <Pill
               key={v.id}
               active={v.id === variant.id}
-              disabled={!v.availableForSale}
+              disabled={!v.availableForSale && !v.outOfStock}
               onClick={() => setVariantId(v.id)}
-              aria-label={`${v.title}${v.availableForSale ? "" : ", price coming soon"}`}
+              aria-label={`${v.title}${v.availableForSale ? "" : v.outOfStock ? ", out of stock" : ", price coming soon"}`}
+              className={v.outOfStock ? "line-through" : undefined}
             >
               {v.title}
             </Pill>
@@ -64,17 +66,24 @@ export function ProductPurchase({ handle, title, variants }: Props) {
         </div>
       </fieldset>
 
-      <div ref={ctaRef} className="mt-6 flex flex-wrap items-center gap-3">
-        <QtyStepper value={qty} min={1} onChange={setQty} label={title} disabled={!canBuy} />
-        <button
-          type="button"
-          disabled={!canBuy || pending}
-          onClick={() => add(variant.id, qty)}
-          className={buttonClass("primary", "lg", "btn-shine flex-1")}
-        >
-          {canBuy ? "Add to cart" : "Price coming soon"}
-        </button>
-      </div>
+      {variant.outOfStock ? (
+        <div ref={ctaRef} className="mt-6">
+          <p className="mb-2 font-semibold text-sale">Out of stock</p>
+          <NotifyMe key={variant.id} variantKey={variant.id} sizeLabel={`${title} ${variant.title}`} />
+        </div>
+      ) : (
+        <div ref={ctaRef} className="mt-6 flex flex-wrap items-center gap-3">
+          <QtyStepper value={qty} min={1} onChange={setQty} label={title} disabled={!canBuy} />
+          <button
+            type="button"
+            disabled={!canBuy || pending}
+            onClick={() => add(variant.id, qty)}
+            className={buttonClass("primary", "lg", "btn-shine flex-1")}
+          >
+            {canBuy ? "Add to cart" : "Price coming soon"}
+          </button>
+        </div>
+      )}
       <a
         href={whatsappLink(waMessage)}
         target="_blank"
