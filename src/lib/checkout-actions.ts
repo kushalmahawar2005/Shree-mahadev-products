@@ -1,5 +1,8 @@
 "use server";
 
+import { z } from "zod";
+import { clientIp, rateLimit } from "@/lib/server/rate-limit";
+
 import { redirect } from "next/navigation";
 import { site } from "@/data/site";
 import { getProduct } from "@/lib/commerce";
@@ -7,7 +10,7 @@ import { getCartAction } from "@/lib/commerce/actions";
 import { INDIAN_STATES } from "@/lib/checkout";
 import { captureCartContact } from "@/lib/server/carts";
 import { clearCartCookies, getCartDbToken } from "@/lib/server/cart-cookies";
-import { createOrder, type OrderItemInput, type PaymentMethod } from "@/lib/server/orders";
+import { createOrder, type OrderItemInput } from "@/lib/server/orders";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { notifyOrder } from "@/lib/server/mail";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
@@ -18,7 +21,6 @@ export type ShippingQuoteResult =
   | { ok: true; serviceable: boolean; payu: { shipping: number }; cod: { shipping: number; codFee: number }; edd: string | null }
   | { ok: false };
 
-const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const cleanPhone = (p: string) => p.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
 const PIN = /^[1-9]\d{5}$/;
 
@@ -52,7 +54,7 @@ async function pricedCart() {
 
 /** Called when the shopper finishes typing a pincode: cheapest courier for prepaid and COD. */
 export async function quoteShippingAction(pincode: string): Promise<ShippingQuoteResult> {
-  if (typeof pincode !== "string" || !PIN.test(pincode)) return { ok: false };
+  if (!z.string().regex(PIN).safeParse(pincode).success) return { ok: false };
   const c = await pricedCart();
   if ("error" in c) return { ok: false };
   const base = { pincode, subtotal: c.subtotal, weightGrams: c.weight };
@@ -70,7 +72,12 @@ export async function quoteShippingAction(pincode: string): Promise<ShippingQuot
 }
 
 /** Saves contact details as they are typed, so abandoned checkouts can be followed up. */
-export async function saveCheckoutContactAction(input: { name?: string; phone?: string; email?: string; pincode?: string }) {
+const Contact = z.object({ name: z.string().max(200), phone: z.string().max(20), email: z.string().max(200), pincode: z.string().max(10) }).partial().strict();
+
+export async function saveCheckoutContactAction(raw: { name?: string; phone?: string; email?: string; pincode?: string }) {
+  const p = Contact.safeParse(raw);
+  if (!p.success) return;
+  const input = p.data;
   const token = await getCartDbToken();
   if (!token) return;
   const phone = cleanPhone(String(input.phone ?? ""));
@@ -87,30 +94,40 @@ export async function saveCheckoutContactAction(input: { name?: string; phone?: 
   }
 }
 
-export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Promise<CheckoutState> {
-  const method = (s(fd, "method") === "cod" ? "cod" : "payu") as PaymentMethod;
-  const address = {
-    name: s(fd, "name").slice(0, 120),
-    phone: cleanPhone(s(fd, "phone")),
-    email: s(fd, "email").toLowerCase().slice(0, 160),
-    line1: s(fd, "line1").slice(0, 255),
-    line2: s(fd, "line2").slice(0, 255) || undefined,
-    city: s(fd, "city").slice(0, 80),
-    state: s(fd, "state"),
-    pincode: s(fd, "pincode"),
-  };
-
-  const fieldErrors: Record<string, string> = {};
-  if (address.name.length < 2) fieldErrors.name = "Please enter your full name.";
-  if (!/^[6-9]\d{9}$/.test(address.phone)) fieldErrors.phone = "Enter a 10-digit mobile number.";
+const CheckoutForm = z.object({
+  method: z.enum(["payu", "cod"]).catch("payu"),
+  name: z.string().trim().min(2, "Please enter your full name.").max(120),
+  phone: z
+    .string()
+    .transform(cleanPhone)
+    .pipe(z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit mobile number.")),
   // Email is optional (order updates only); if given it must be valid.
-  if (address.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email)) fieldErrors.email = "Enter a valid email or leave it empty.";
-  if (address.line1.length < 5) fieldErrors.line1 = "Enter house no. and street.";
-  if (address.city.length < 2) fieldErrors.city = "Enter your city.";
-  if (!(INDIAN_STATES as readonly string[]).includes(address.state)) fieldErrors.state = "Select your state.";
-  if (!PIN.test(address.pincode)) fieldErrors.pincode = "Enter a 6-digit pincode.";
-  if (method === "cod" && !site.codAvailable) fieldErrors.method = "Cash on delivery is not available.";
-  if (Object.keys(fieldErrors).length) return { fieldErrors };
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(160)
+    .refine((e) => !e || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e), "Enter a valid email or leave it empty."),
+  line1: z.string().trim().min(5, "Enter house no. and street.").max(255),
+  line2: z.string().trim().max(255).transform((v) => v || undefined),
+  city: z.string().trim().min(2, "Enter your city.").max(80),
+  state: z.string().refine((v) => (INDIAN_STATES as readonly string[]).includes(v), "Select your state."),
+  pincode: z.string().trim().regex(PIN, "Enter a 6-digit pincode."),
+});
+
+export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Promise<CheckoutState> {
+  const limit = await rateLimit("checkout", await clientIp(), 10, 10);
+  if (!limit.ok) return { error: `Too many attempts. Please try again in ${limit.retryInMin} min or order on WhatsApp.` };
+
+  const field = (k: string) => String(fd.get(k) ?? "");
+  const parsed = CheckoutForm.safeParse(Object.fromEntries(["method", "name", "phone", "email", "line1", "line2", "city", "state", "pincode"].map((k) => [k, field(k)])));
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const i of parsed.error.issues) fieldErrors[String(i.path[0])] ??= i.message;
+    return { fieldErrors };
+  }
+  const { method, ...address } = parsed.data;
+  if (method === "cod" && !site.codAvailable) return { fieldErrors: { method: "Cash on delivery is not available." } };
 
   const c = await pricedCart();
   if ("error" in c) return { error: c.error };

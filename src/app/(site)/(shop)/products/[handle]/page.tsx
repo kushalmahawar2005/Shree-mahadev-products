@@ -28,6 +28,9 @@ export async function generateMetadata({ params }: PageProps<"/products/[handle]
   });
 }
 
+// Blocking on purpose: an unknown handle must return a real HTTP 404 (not a streamed soft 404).
+export const instant = false;
+
 export default async function ProductPage({ params }: PageProps<"/products/[handle]">) {
   const { handle } = await params;
   const product = await getProduct(handle);

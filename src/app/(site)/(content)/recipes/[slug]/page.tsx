@@ -15,6 +15,9 @@ export async function generateMetadata({ params }: PageProps<"/recipes/[slug]">)
   return e ? pageMetadata({ title: e.title, description: e.description, path: `/recipes/${e.slug}` }) : {};
 }
 
+// Blocking on purpose: an unknown handle must return a real HTTP 404 (not a streamed soft 404).
+export const instant = false;
+
 export default async function Entry({ params }: PageProps<"/recipes/[slug]">) {
   const { slug } = await params;
   const entry = getEntry("recipes", slug);

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { addBackInStockRequest } from "@/lib/server/inventory";
+import { clientIp, rateLimit } from "@/lib/server/rate-limit";
 
 const NotifyInput = z
   .object({
@@ -15,6 +16,8 @@ const NotifyInput = z
 
 /** "Notify me when back in stock". Saves the phone against the size. */
 export async function notifyMeAction(input: { variantKey: string; phone: string }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const limit = await rateLimit("notify", await clientIp(), 8, 60);
+  if (!limit.ok) return { ok: false, error: `Too many requests. Try again in ${limit.retryInMin} min.` };
   const parsed = NotifyInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Check your number" };
   try {

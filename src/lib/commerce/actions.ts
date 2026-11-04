@@ -1,5 +1,7 @@
 "use server";
 
+import { z } from "zod";
+
 import {
   getProductImagesMap,
   addToCart,
@@ -41,11 +43,9 @@ export async function getCartAction(): Promise<Cart | null> {
   }
 }
 
-function validQty(qty: unknown, min: number) {
-  const n = Number(qty);
-  if (!Number.isInteger(n) || n < min || n > 99) throw new Error("Invalid quantity");
-  return n;
-}
+const Qty = (min: number) => z.number().int().min(min).max(99);
+const VariantId = z.string().min(1).max(100).regex(/^[a-z0-9-]+--[a-z0-9.]+$/);
+const validQty = (qty: unknown, min: number) => Qty(min).parse(qty);
 
 async function save(cart: Cart) {
   await writeCartId(cart.id);
@@ -54,7 +54,7 @@ async function save(cart: Cart) {
 }
 
 export async function addToCartAction(variantId: string, quantity = 1): Promise<Cart> {
-  if (typeof variantId !== "string" || !variantId) throw new Error("Invalid variant");
+  VariantId.parse(variantId);
   const qty = validQty(quantity, 1);
   let cartId = await ensureCartId();
   let cart: Cart;
@@ -69,12 +69,14 @@ export async function addToCartAction(variantId: string, quantity = 1): Promise<
 }
 
 export async function updateCartLineAction(lineId: string, quantity: number): Promise<Cart> {
+  VariantId.parse(lineId);
   const qty = validQty(quantity, 0);
   const cartId = await ensureCartId();
   return save(qty === 0 ? await removeCartLine(cartId, lineId) : await updateCartLine(cartId, lineId, qty));
 }
 
 export async function removeCartLineAction(lineId: string): Promise<Cart> {
+  VariantId.parse(lineId);
   const cartId = await ensureCartId();
   return save(await removeCartLine(cartId, lineId));
 }
