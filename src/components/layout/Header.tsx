@@ -124,9 +124,8 @@ export function Header({
               >
                 <SearchIcon />
               </Link>
-              {/* TODO: customer accounts (OTP login) are planned; link goes to order tracking for now */}
               <Link
-                href="/track-order"
+                href="/account"
                 className="hidden size-11 place-items-center rounded-full text-forest transition-colors duration-200 hover:bg-khaki-soft sm:grid"
                 aria-label="My account"
               >
