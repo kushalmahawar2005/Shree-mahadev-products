@@ -6,7 +6,7 @@ import { Container } from "@/components/ui/primitives";
 import { buildPayuForm, PAYU_PAYMENT_URL, payuConfigured } from "@/lib/server/payu";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { getOrderByToken, startPaymentAttempt } from "@/lib/server/orders";
-import { whatsappLink } from "@/data/site";
+import { site, whatsappLink } from "@/data/site";
 
 export const metadata: Metadata = { title: "Redirecting to payment", robots: { index: false } };
 
@@ -61,7 +61,7 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
     amount: order.total.toFixed(2),
     productinfo: `Order ${order.orderNo}`,
     firstname: order.address.name.split(" ")[0].replace(/[^\p{L}\p{N} .]/gu, "").slice(0, 60) || "Customer",
-    email: order.address.email,
+    email: order.address.email || site.email, // PayU requires an email; ours is optional at checkout
     phone: order.address.phone,
     surl: callback,
     furl: callback,

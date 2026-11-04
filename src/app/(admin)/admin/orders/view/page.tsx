@@ -8,6 +8,8 @@ import { nimbusConfigured } from "@/lib/server/nimbuspost";
 import { getOrderById, getOrderEvents } from "@/lib/server/orders";
 import { estimateWeightGrams } from "@/lib/server/shipping";
 import { listShipments } from "@/lib/server/shipments";
+import { listOrderEmails, mailConfigured } from "@/lib/server/mail";
+import { OrderEmails } from "@/components/admin/OrderEmails";
 import { formatMoney } from "@/lib/utils/money";
 
 export const metadata = { title: "Order" };
@@ -24,7 +26,7 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
   const id = Number((await searchParams).id);
   const order = Number.isInteger(id) && id > 0 ? await getOrderById(id).catch(() => null) : null;
   if (!order) return <p className="text-sale">Order not found.</p>;
-  const [shipments, events] = await Promise.all([listShipments(order.id), getOrderEvents(order.id)]);
+  const [shipments, events, emails] = await Promise.all([listShipments(order.id), getOrderEvents(order.id), listOrderEmails(order.id)]);
 
   // Prefill packed weight from the catalog (admin can edit before booking).
   let weight = 0;
@@ -98,6 +100,9 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
               {a.email}
             </address>
             {order.courierName && <p className="mt-3 text-sm text-ink-muted">Quoted at checkout: {order.courierName}</p>}
+          </Card>
+          <Card title="Messages">
+            <OrderEmails orderId={order.id} initial={emails} hasEmail={!!order.address.email} configured={mailConfigured()} />
           </Card>
           <Card title="History">
             <ol className="space-y-2 text-sm">

@@ -83,7 +83,7 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field label="Full name" name="name" autoComplete="name" required error={fe.name} />
             <Field label="Mobile number" name="phone" type="tel" inputMode="numeric" autoComplete="tel" placeholder="10-digit mobile" required error={fe.phone} />
-            <Field label="Email" name="email" type="email" autoComplete="email" required error={fe.email} className="sm:col-span-2" />
+            <Field label="Email (optional, for order updates)" name="email" type="email" autoComplete="email" error={fe.email} className="sm:col-span-2" />
           </div>
         </section>
 

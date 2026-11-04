@@ -1,6 +1,7 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
+import { notifyOrder } from "./mail";
 import {
   cancelShipment as npCancel,
   createShipment as npCreate,
@@ -103,6 +104,7 @@ export async function bookShipment(
      booked.trackingUrl, pickup ? 1 : 0, booked.charged],
   );
   await setOrderStatus(orderId, "packed", "admin", `Shipment booked: ${booked.courierName} AWB ${booked.awb}`);
+  await notifyOrder(orderId, "shipped");
   return listShipments(orderId);
 }
 

@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
+import { notifyOrder } from "./mail";
 import { commitStock, releaseExpiredHolds, reholdStock, returnStock, takeStock } from "./inventory";
 
 export type OrderStatus =
@@ -315,6 +316,7 @@ export async function getOrderEvents(orderId: number) {
 }
 
 export async function setOrderStatus(orderId: number, to: OrderStatus, actor: Actor, note?: string) {
+  let changed = false;
   await inTx(async (conn) => {
     const [r] = await conn.execute<Row[]>("SELECT status FROM orders WHERE id = ? FOR UPDATE", [orderId]);
     const from = r[0]?.status as string | undefined;
@@ -324,9 +326,12 @@ export async function setOrderStatus(orderId: number, to: OrderStatus, actor: Ac
       [to, to, orderId],
     );
     await logEvent(conn, orderId, from, to, actor, note);
+    changed = true;
     // Cancelled before delivery: whatever this order holds or took goes back (once).
     if (to === "cancelled") await returnStock(conn, orderId, "any", "restock", actor);
   });
+  // Customer emails go out after the change is committed.
+  if (changed && (to === "delivered" || to === "cancelled")) await notifyOrder(orderId, to);
 }
 
 /** Courier returned an RTO parcel and it reached us: put the stock back (once). */

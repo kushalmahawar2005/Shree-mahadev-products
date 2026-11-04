@@ -9,6 +9,7 @@ import { captureCartContact } from "@/lib/server/carts";
 import { clearCartCookies, getCartDbToken } from "@/lib/server/cart-cookies";
 import { createOrder, type OrderItemInput, type PaymentMethod } from "@/lib/server/orders";
 import { OutOfStockError } from "@/lib/server/inventory";
+import { notifyOrder } from "@/lib/server/mail";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
 
 export type CheckoutState = { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
@@ -102,7 +103,8 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
   const fieldErrors: Record<string, string> = {};
   if (address.name.length < 2) fieldErrors.name = "Please enter your full name.";
   if (!/^[6-9]\d{9}$/.test(address.phone)) fieldErrors.phone = "Enter a 10-digit mobile number.";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email)) fieldErrors.email = "Enter a valid email.";
+  // Email is optional (order updates only); if given it must be valid.
+  if (address.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.email)) fieldErrors.email = "Enter a valid email or leave it empty.";
   if (address.line1.length < 5) fieldErrors.line1 = "Enter house no. and street.";
   if (address.city.length < 2) fieldErrors.city = "Enter your city.";
   if (!(INDIAN_STATES as readonly string[]).includes(address.state)) fieldErrors.state = "Select your state.";
@@ -120,8 +122,9 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
   }
 
   let token: string;
+  let orderId: number;
   try {
-    ({ token } = await createOrder({
+    ({ token, id: orderId } = await createOrder({
       method,
       address,
       items: c.items,
@@ -139,6 +142,7 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
   }
 
   if (method === "cod") {
+    await notifyOrder(orderId, "order_placed");
     await clearCartCookies();
     redirect(`/order?t=${token}`);
   }

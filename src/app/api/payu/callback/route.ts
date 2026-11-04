@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { CART_COOKIE, CART_DB_COOKIE } from "@/lib/server/cart-cookies";
 import { getPayment, logWebhook, markPaid, markPaymentFailed } from "@/lib/server/orders";
+import { notifyOrder } from "@/lib/server/mail";
 import { verifyPaymentWithPayu, verifyPayuResponse } from "@/lib/server/payu";
 
 /**
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
     const check = await verifyPaymentWithPayu(p.txnid);
     if (check?.status === "success" && check.amount === pay.amount) {
       await markPaid(pay.id, pay.orderId, { mihpayid: p.mihpayid, mode: p.mode });
+      await notifyOrder(pay.orderId, "payment_received");
       back.cookies.delete(CART_COOKIE);
       back.cookies.delete(CART_DB_COOKIE);
       return back;

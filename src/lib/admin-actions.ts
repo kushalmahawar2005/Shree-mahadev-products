@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/server/admin-auth";
 import { markReminderSent } from "@/lib/server/carts";
+import { listOrderEmails, processOutbox, queueOrderEmail, type OutboxRow } from "@/lib/server/mail";
+import { z as zz } from "zod";
 import {
   bookShipment,
   cancelOrderShipment,
@@ -76,4 +78,16 @@ export async function labelUrlAction(orderId: number): Promise<string> {
 export async function requestPickupAction(orderId: number): Promise<Shipment[]> {
   await requireAdmin();
   return requestPickup(orderId);
+}
+
+// ───────────── Order emails ─────────────
+
+const EmailKindSchema = zz.enum(["order_placed", "payment_received", "shipped", "delivered", "cancelled", "refund", "store_new_order"]);
+
+export async function resendOrderEmailAction(orderId: number, kind: string): Promise<OutboxRow[]> {
+  await requireAdmin();
+  const id = zz.number().int().positive().parse(orderId);
+  await queueOrderEmail(id, EmailKindSchema.parse(kind), { resend: true });
+  await processOutbox();
+  return listOrderEmails(id);
 }
