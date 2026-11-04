@@ -114,6 +114,9 @@ async function OrderContent({
           {order.courierName ? ` (${order.courierName})` : ""}
         </p>
       )}
+      <Link href={`/track-order?t=${order.token}`} className={buttonClass("secondary", "md", "mt-5 inline-flex")}>
+        Track this order
+      </Link>
 
       <div className="mt-10 grid gap-8 md:grid-cols-2">
         <section>

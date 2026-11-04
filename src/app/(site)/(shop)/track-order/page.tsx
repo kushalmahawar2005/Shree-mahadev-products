@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Container } from "@/components/ui/primitives";
-import { buttonClass } from "@/components/ui/Button";
-import { site, whatsappLink } from "@/data/site";
+import { TrackOrderLookup } from "@/components/track-order/TrackOrderLookup";
+import { site } from "@/data/site";
 import { pageMetadata } from "@/lib/utils/seo";
+import { lookupTrackingByToken } from "@/lib/server/tracking";
 
 export const metadata: Metadata = pageMetadata({
   title: "Track your order",
@@ -10,30 +12,26 @@ export const metadata: Metadata = pageMetadata({
   path: "/track-order",
 });
 
-export default function TrackOrderPage() {
+export default function TrackOrderPage({ searchParams }: PageProps<"/track-order">) {
   return (
     <Container className="max-w-2xl py-12 md:py-16">
       <h1 className="text-4xl md:text-5xl">Track your order</h1>
       <p className="mt-4 text-lg text-ink-muted">
-        Open the link on your order confirmation page, or message us on WhatsApp with your order number (it starts with SMP).
+        Check the latest progress with your order number and checkout phone, or open the secure tracking link from your email.
       </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        {/* TODO: order lookup by order no. + phone (ADMIN_PROMPTS Prompt 16) */}
-        <a href="#" aria-disabled className={buttonClass("primary", "lg", "pointer-events-none opacity-60")}>
-          My orders (coming soon)
-        </a>
-        <a
-          href={whatsappLink("Hi, I'd like to know the status of my order. Order number: ")}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={buttonClass("secondary", "lg")}
-        >
-          Ask on WhatsApp
-        </a>
-      </div>
+      <Suspense fallback={<div className="mt-8 h-64 animate-pulse rounded-3xl bg-khaki-soft" aria-label="Loading tracking form" />}>
+        <TrackingSection searchParams={searchParams} />
+      </Suspense>
       <p className="mt-6 text-sm text-ink-muted">
         Support: {site.phone}, {site.supportHours}.
       </p>
     </Container>
   );
+}
+
+async function TrackingSection({ searchParams }: { searchParams: PageProps<"/track-order">["searchParams"] }) {
+  const params = await searchParams;
+  const token = typeof params.t === "string" ? params.t : "";
+  const initial = token ? await lookupTrackingByToken(token) : { tracking: null, error: null };
+  return <TrackOrderLookup initialTracking={initial.tracking} initialError={initial.error} />;
 }

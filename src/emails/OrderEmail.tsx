@@ -41,6 +41,7 @@ export type EmailOrder = {
   orderUrl: string;
   reviewUrl: string;
   invoiceUrl: string;
+  trackingPageUrl: string;
   courier?: string | null;
   awb?: string | null;
   trackingUrl?: string | null;
@@ -279,6 +280,7 @@ export function OrderEmail({
                 <br />
                 AWB: <strong>{o.awb ?? "—"}</strong>
               </Text>
+              {o.trackingUrl?.startsWith("https://") && <Text style={{ margin: "8px 0 0", fontSize: 13 }}><Link href={o.trackingUrl} style={{ color: C.forest }}>Open courier tracking</Link></Text>}
             </Section>
           )}
 

@@ -18,6 +18,7 @@ export type Shipment = {
   awb: string | null;
   courier: string | null;
   status: string;
+  expectedDelivery: string | null;
   labelUrl: string | null;
   trackingUrl: string | null;
   pickupRequested: boolean;
@@ -39,6 +40,7 @@ export async function listShipments(orderId: number): Promise<Shipment[]> {
     awb: r.awb,
     courier: r.courier,
     status: r.status,
+    expectedDelivery: r.estimated_delivery ? String(r.estimated_delivery).slice(0, 10) : null,
     labelUrl: r.label_url,
     trackingUrl: r.tracking_url,
     pickupRequested: !!r.pickup_requested,
@@ -90,6 +92,18 @@ export async function bookShipment(
     items: order.items.map((i) => ({ name: `${i.productTitle} (${i.variantTitle})`, qty: i.quantity, price: i.unitPrice, sku: i.sku })),
   });
 
+  let expectedDelivery: string | null = null;
+  try {
+    const quote = (await quoteForOrder(order, opts.weightGrams, opts.dims)).find((item) => item.courierId === booked.courierId);
+    if (quote?.tatDays) {
+      expectedDelivery = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date(Date.now() + quote.tatDays * 86_400_000));
+    }
+  } catch (error) {
+    console.error("Could not retrieve courier delivery estimate", error);
+  }
+
   let pickup = booked.pickupGenerated;
   if (!pickup && booked.providerOrderId) {
     pickup = await schedulePickup(booked.providerOrderId).then(
@@ -98,9 +112,9 @@ export async function bookShipment(
     );
   }
   await db().execute<ResultSetHeader>(
-    `INSERT INTO shipments (order_id, provider_shipment_id, awb, courier, status, weight_grams, label_url, tracking_url, pickup_requested, charged)
-     VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?)`,
-    [orderId, booked.providerOrderId || null, booked.awb, booked.courierName || null, opts.weightGrams, booked.labelUrl,
+    `INSERT INTO shipments (order_id, provider_shipment_id, awb, courier, status, estimated_delivery, weight_grams, label_url, tracking_url, pickup_requested, charged)
+     VALUES (?, ?, ?, ?, 'booked', ?, ?, ?, ?, ?, ?)`,
+    [orderId, booked.providerOrderId || null, booked.awb, booked.courierName || null, expectedDelivery, opts.weightGrams, booked.labelUrl,
      booked.trackingUrl, pickup ? 1 : 0, booked.charged],
   );
   await setOrderStatus(orderId, "packed", "admin", `Shipment booked: ${booked.courierName} AWB ${booked.awb}`);

@@ -90,6 +90,7 @@ async function loadEmailOrder(
     orderUrl: `${siteUrl()}/order?t=${o.token}`,
     reviewUrl: `${siteUrl()}/review?t=${o.token}`,
     invoiceUrl: `${siteUrl()}/order/invoice?t=${o.token}`,
+    trackingPageUrl: `${siteUrl()}/track-order?t=${o.token}`,
     courier: o.courier,
     awb: o.awb,
     trackingUrl: o.tracking_url,
@@ -116,8 +117,8 @@ export async function queueOrderEmail(
     ? `${siteUrl()}/admin/orders/view?id=${order.id}`
     : kind === "delivered"
       ? order.reviewUrl
-      : kind === "shipped" && order.trackingUrl
-        ? order.trackingUrl
+      : kind === "shipped"
+        ? order.trackingPageUrl
         : order.orderUrl;
   const element = OrderEmail({ kind, order: data, brand: brand(), ctaUrl });
   const [html, text] = await Promise.all([
