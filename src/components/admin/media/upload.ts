@@ -35,7 +35,7 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // Cloudinary free plan: 100 MB per v
 
 export async function uploadToCloudinary(
   file: File,
-  folder: "products" | "banners" | "reels",
+  folder: "products" | "banners" | "reels" | "collections",
   onProgress?: (pct: number) => void,
 ): Promise<UploadedImage> {
   const isVideo = folder === "reels";

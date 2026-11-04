@@ -1,53 +1,28 @@
+import { connection } from "next/server";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { Card, Field, MockSave, PageHeader, inputCls } from "@/components/admin/ui";
-import { getCollection, getCollections, getProducts } from "@/lib/commerce";
+import { CollectionEditor } from "@/components/admin/CollectionEditor";
+import { PageHeader } from "@/components/admin/ui";
+import { listAdminCollections, getCollectionProductHandles } from "@/lib/server/collections";
+import { loadProducts } from "@/lib/server/catalog";
 
-export async function generateStaticParams() {
-  return (await getCollections()).map((c) => ({ handle: c.handle }));
+export const instant = false;
+
+export default function EditCollectionPage({ params }: { params: Promise<{ handle: string }> }) {
+  return <Suspense fallback={<><PageHeader title="Edit collection" intro="Loading collection details…" /><div className="h-72 animate-pulse rounded-2xl bg-khaki-soft" /></>}><Content params={params} /></Suspense>;
 }
 
-export default async function EditCategory({ params }: { params: Promise<{ handle: string }> }) {
+async function Content({ params }: { params: Promise<{ handle: string }> }) {
+  await connection();
   const { handle } = await params;
-  const [c, all] = await Promise.all([getCollection(handle), getProducts()]);
-  if (!c) notFound();
-  const inCat = new Set(c.products.map((p) => p.handle));
-  return (
-    <>
-      <PageHeader title={c.title} intro={`/collections/${c.handle}`} />
-      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
-        <Card title="Details">
-          <div className="space-y-4">
-            <Field label="Name">
-              <input className={inputCls} defaultValue={c.title} />
-            </Field>
-            <Field label="Handle (URL)">
-              <input className={inputCls} defaultValue={c.handle} />
-            </Field>
-            <Field label="Description">
-              <textarea className={`${inputCls} py-3`} rows={4} defaultValue={c.description} />
-            </Field>
-            <label className="flex items-center gap-3">
-              <input type="checkbox" className="size-5 accent-[var(--color-forest)]" />
-              <span className="font-semibold text-forest-text">Show in header menu</span>
-            </label>
-          </div>
-        </Card>
-        <Card title={`Products (${inCat.size})`}>
-          <ul className="max-h-96 space-y-1 overflow-y-auto">
-            {all.map((p) => (
-              <li key={p.handle}>
-                <label className="flex min-h-11 items-center gap-3 rounded-lg px-2 hover:bg-khaki-soft">
-                  <input type="checkbox" defaultChecked={inCat.has(p.handle)} className="size-5 accent-[var(--color-forest)]" />
-                  {p.title}
-                </label>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-      <div className="mt-6">
-        <MockSave />
-      </div>
-    </>
-  );
+  const [collections, products, membership] = await Promise.all([
+    listAdminCollections(), loadProducts({ status: "any" }), getCollectionProductHandles(handle),
+  ]);
+  const row = collections.find((c) => c.handle === handle);
+  if (!row) notFound();
+  return <CollectionEditor initial={{
+    handle: row.handle, title: row.title, description: row.description, imageUrl: row.imageUrl,
+    seoTitle: row.seoTitle, seoDescription: row.seoDescription, inMenu: row.inMenu,
+    menuOrder: row.menuOrder, showHomepage: row.showHomepage, products: membership,
+  }} allProducts={products.map((p) => ({ handle: p.handle, title: p.title, titleHi: p.titleHi }))} />;
 }

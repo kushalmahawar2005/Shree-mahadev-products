@@ -1,5 +1,6 @@
 import "server-only";
 import { catalogIsEmpty, findVariants, loadCollections, loadProducts } from "@/lib/server/catalog";
+import { getCollectionProductHandles } from "@/lib/server/collections";
 import { sweepExpiredHolds } from "@/lib/server/inventory";
 import type { Cart, CartLine, CommerceProvider, GetProductsOptions, Product, ProductSort } from "../types";
 
@@ -89,12 +90,38 @@ export const dbProvider: CommerceProvider = {
   async getCollection(handle) {
     const col = (await loadCollections()).find((c) => c.handle === handle);
     if (!col) return undefined;
-    const products = (await active()).filter((p) => p.collections.includes(handle));
-    return { handle: col.handle, title: col.title, description: col.description, products: sortProducts(products) };
+    const [products, order] = await Promise.all([
+      active().then((list) => list.filter((p) => p.collections.includes(handle))),
+      getCollectionProductHandles(handle),
+    ]);
+    const rank = new Map(order.map((h, i) => [h, i]));
+    products.sort((a, b) => (rank.get(a.handle) ?? 99999) - (rank.get(b.handle) ?? 99999));
+    return {
+      handle: col.handle,
+      title: col.title,
+      description: col.description,
+      image: col.imageUrl ? { url: col.imageUrl, alt: col.title } : undefined,
+      seoTitle: col.seoTitle,
+      seoDescription: col.seoDescription,
+      inMenu: col.inMenu,
+      menuOrder: col.menuOrder,
+      showHomepage: col.showHomepage,
+      products,
+    };
   },
 
   async getCollections() {
-    return (await loadCollections()).map(({ handle, title, description }) => ({ handle, title, description }));
+    return (await loadCollections()).map((c) => ({
+      handle: c.handle,
+      title: c.title,
+      description: c.description,
+      image: c.imageUrl ? { url: c.imageUrl, alt: c.title } : undefined,
+      seoTitle: c.seoTitle,
+      seoDescription: c.seoDescription,
+      inMenu: c.inMenu,
+      menuOrder: c.menuOrder,
+      showHomepage: c.showHomepage,
+    }));
   },
 
   async searchProducts(query) {

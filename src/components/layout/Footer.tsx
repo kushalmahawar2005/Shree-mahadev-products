@@ -2,6 +2,7 @@ import Image from "next/image";
 import { DecoBg } from "@/components/ui/DecoBg";
 import Link from "next/link";
 import { footerNav, site, whatsappLink } from "@/data/site";
+import { getCollections } from "@/lib/commerce";
 import { getStoreSettings } from "@/lib/server/store-settings";
 
 const payments = ["UPI", "Visa", "Mastercard", "RuPay", "Net banking", "COD"];
@@ -14,10 +15,14 @@ const GRASS_GREEN = "#A7AE3C";
  * and a full-width hand-drawn harvest illustration (mustard field, ghani, bullock, honey, fort) along the bottom.
  */
 export async function Footer() {
-  const st = await getStoreSettings();
+  const [st, collections] = await Promise.all([getStoreSettings(), getCollections()]);
   const b = st.business;
   const socials = st.socials;
   const address = [b.addressLine1, `${b.city} ${b.postalCode}`, b.district && `Dist. ${b.district}`, b.state].filter(Boolean).join(", ");
+  const shopLinks = [
+    { label: "All products", href: "/shop" },
+    ...collections.filter((c) => c.inMenu).sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0)).map((c) => ({ label: c.title, href: `/collections/${c.handle}` })),
+  ];
   return (
     <footer className="relative bg-white text-forest-text">
       <div className="relative">
@@ -78,7 +83,7 @@ export async function Footer() {
             </a>
 
             <div className="mt-8 grid grid-cols-3 gap-4 text-left sm:gap-6 xl:mt-6">
-              <FooterCol title="Shop" links={footerNav.shop} />
+              <FooterCol title="Shop" links={shopLinks} />
               <FooterCol title="Learn" links={footerNav.learn} />
               <FooterCol title="Help" links={footerNav.help} />
             </div>

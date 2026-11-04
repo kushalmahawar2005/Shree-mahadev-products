@@ -18,6 +18,8 @@ import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import { getFeaturedReviews } from "@/lib/server/reviews";
 import { FeaturedReviewCards } from "@/components/reviews/ReviewList";
+import { FeaturedCollections } from "@/components/home/FeaturedCollections";
+import { getCollections } from "@/lib/commerce";
 
 /** Temporarily hidden sections (listed in HIDDEN.md). Flip to true to show again. */
 const SHOW_RASOI_KIT = false;
@@ -28,8 +30,9 @@ const SHOW_BEYOND_OILS = false;
  * Top Picks → promo strip → brand film → proof → shop by use → spotlight + endorsements → beyond.
  */
 export default async function HomePage() {
-  const [all, ...pickLists] = await Promise.all([
+  const [all, collections, ...pickLists] = await Promise.all([
     getProducts(),
+    getCollections(),
     ...topPicks.tabs.map((t) =>
       getProducts({ collection: t.source.collection }),
     ),
@@ -104,6 +107,7 @@ export default async function HomePage() {
       <Hero />
       <TopPicks tabs={pickTabs} />
       <PromoStrip />
+      <FeaturedCollections collections={collections.filter((collection) => collection.showHomepage)} />
       {reelItems.length > 0 && (
         <Reels title="Straight from the ghani" reels={reelItems} />
       )}

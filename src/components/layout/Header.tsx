@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { StickyHeader } from "@/components/motion/StickyHeader";
 import { useCart } from "@/components/cart/CartProvider";
-import { mainNav, type MenuGroup } from "@/data/site";
+import type { MenuGroup, NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 import { BagIcon, ChevronDown, MenuIcon, SearchIcon, UserIcon } from "./icons";
 import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
@@ -20,11 +20,15 @@ import { MobileNav } from "./MobileNav";
  */
 export function Header({
   menus,
+  nav,
+  collections,
   recommended,
   announcement,
   allProducts,
 }: {
   menus: MenuData;
+  nav: NavItem[];
+  collections: { handle: string; title: string }[];
   recommended: MenuProduct[];
   allProducts: MenuProduct[];
   /** Server-rendered announcement bar (reads store settings). */
@@ -136,7 +140,7 @@ export function Header({
           <nav aria-label="Main" className="hidden lg:block">
             <div className="mx-auto max-w-[1360px] px-8">
               <ul className="flex items-center justify-center gap-1 border-t border-line">
-                {mainNav.map((item) => {
+                {nav.map((item) => {
                   const active = isActive(item.href);
                   return (
                     <li
@@ -192,6 +196,7 @@ export function Header({
             <MegaMenu
               open={mega}
               data={menus}
+          collections={collections}
               onNavigate={() => setMega(null)}
             />
           </div>
@@ -202,6 +207,7 @@ export function Header({
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         menus={menus}
+        nav={nav}
       />
     </>
   );

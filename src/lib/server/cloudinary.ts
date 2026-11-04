@@ -39,7 +39,7 @@ export { cloudinary };
 
 const IMAGE_FORMATS = "jpg,jpeg,png,webp,avif,heic";
 const VIDEO_FORMATS = "mp4,mov,webm,m4v";
-export type UploadFolder = "products" | "banners" | "reels" | "reviews";
+export type UploadFolder = "products" | "banners" | "reels" | "reviews" | "collections";
 
 /**
  * Signature for a direct browser → Cloudinary upload (files never pass through our server,

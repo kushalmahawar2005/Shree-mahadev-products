@@ -58,7 +58,8 @@ export async function signUploadAction(folder: UploadFolder) {
     folder !== "products" &&
     folder !== "banners" &&
     folder !== "reels" &&
-    folder !== "reviews"
+    folder !== "reviews" &&
+    folder !== "collections"
   )
     throw new Error("Invalid folder");
   return signUpload(folder);

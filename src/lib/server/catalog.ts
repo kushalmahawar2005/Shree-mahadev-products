@@ -135,8 +135,20 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
 }
 
 export async function loadCollections() {
-  const [rows] = await db().query<Rows>("SELECT id, handle, title, description, image_url FROM collections WHERE active = 1 ORDER BY sort_order, id");
-  return rows.map((r) => ({ id: r.id as number, handle: r.handle as string, title: r.title as string, description: (r.description ?? "") as string }));
+  const [rows] = await db().query<Rows>("SELECT id, handle, title, description, image_url, seo_title, seo_description, in_menu, menu_order, show_homepage, sort_order FROM collections WHERE active = 1 ORDER BY sort_order, id");
+  return rows.map((r) => ({
+    id: Number(r.id),
+    handle: r.handle as string,
+    title: r.title as string,
+    description: (r.description ?? "") as string,
+    imageUrl: (r.image_url ?? undefined) as string | undefined,
+    seoTitle: (r.seo_title ?? undefined) as string | undefined,
+    seoDescription: (r.seo_description ?? undefined) as string | undefined,
+    inMenu: !!r.in_menu,
+    menuOrder: Number(r.menu_order ?? r.sort_order ?? 0),
+    showHomepage: !!r.show_homepage,
+    sortOrder: Number(r.sort_order ?? 0),
+  }));
 }
 
 export async function catalogIsEmpty() {

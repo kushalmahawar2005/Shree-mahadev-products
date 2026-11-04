@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
+import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { ProductGrid } from "@/components/product/ProductGrid";
 import { Container } from "@/components/ui/primitives";
 import { getCollection, getCollections } from "@/lib/commerce";
+import { getCollectionRedirect } from "@/lib/server/collections";
 import { breadcrumbJsonLd, jsonLdString, pageMetadata } from "@/lib/utils/seo";
 
 export async function generateStaticParams() {
@@ -15,7 +18,7 @@ export async function generateMetadata({ params }: PageProps<"/collections/[hand
   const { handle } = await params;
   const c = await getCollection(handle);
   if (!c) return {};
-  return pageMetadata({ title: c.title, description: c.description, path: `/collections/${handle}` });
+  return pageMetadata({ title: c.seoTitle || c.title, description: c.seoDescription || c.description, path: `/collections/${handle}` });
 }
 
 // Blocking on purpose: an unknown handle must return a real HTTP 404 (not a streamed soft 404).
@@ -24,7 +27,12 @@ export const instant = false;
 export default async function CollectionPage({ params }: PageProps<"/collections/[handle]">) {
   const { handle } = await params;
   const collection = await getCollection(handle);
-  if (!collection) notFound();
+  if (!collection) {
+    await connection();
+    const destination = await getCollectionRedirect(handle);
+    if (destination) permanentRedirect(destination);
+    notFound();
+  }
 
   return (
     <Container className="py-10 md:py-14">
@@ -52,6 +60,7 @@ export default async function CollectionPage({ params }: PageProps<"/collections
       </nav>
       <h1 className="mt-3 text-4xl md:text-5xl">{collection.title}</h1>
       <p className="mt-3 max-w-2xl text-lg text-ink-muted">{collection.description}</p>
+      {collection.image?.url && <Image src={collection.image.url} alt={collection.image.alt || collection.title} width={1600} height={900} sizes="(max-width: 768px) 100vw, 1200px" className="mt-8 aspect-[16/7] w-full rounded-2xl object-cover" />}
       <ProductGrid products={collection.products} className="mt-10" priorityCount={4} />
     </Container>
   );

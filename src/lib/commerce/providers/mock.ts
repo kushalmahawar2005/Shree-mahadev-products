@@ -121,12 +121,20 @@ export const mockProvider: CommerceProvider = {
       handle: def.handle,
       title: def.title,
       description: def.description,
+      inMenu: ["wood-pressed-oils", "raw-honey", "natural-sweeteners", "bestsellers"].includes(def.handle),
+      menuOrder: ["wood-pressed-oils", "raw-honey", "natural-sweeteners", "bestsellers"].indexOf(def.handle),
+      showHomepage: def.handle === "bestsellers",
       products: sortProducts(products.filter(def.match)),
     };
   },
 
   async getCollections() {
-    return collectionDefs.map(({ handle, title, description }) => ({ handle, title, description }));
+    return collectionDefs.map(({ handle, title, description }) => ({
+      handle, title, description,
+      inMenu: ["wood-pressed-oils", "raw-honey", "natural-sweeteners", "bestsellers"].includes(handle),
+      menuOrder: ["wood-pressed-oils", "raw-honey", "natural-sweeteners", "bestsellers"].indexOf(handle),
+      showHomepage: handle === "bestsellers",
+    }));
   },
 
   async searchProducts(query) {

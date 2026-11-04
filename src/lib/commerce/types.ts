@@ -52,6 +52,11 @@ export type Collection = {
   title: string;
   description: string;
   image?: { url: string; alt: string };
+  seoTitle?: string;
+  seoDescription?: string;
+  inMenu?: boolean;
+  menuOrder?: number;
+  showHomepage?: boolean;
   products: Product[];
 };
 

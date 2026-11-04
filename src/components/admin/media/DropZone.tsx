@@ -16,7 +16,7 @@ export function DropZone({
   compact,
   onUploaded,
 }: {
-  folder: "products" | "banners" | "reels";
+  folder: "products" | "banners" | "reels" | "collections";
   multiple?: boolean;
   label?: string;
   hint?: string;

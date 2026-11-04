@@ -43,10 +43,12 @@ const panels: Record<
 export function MegaMenu({
   open,
   data,
+  collections,
   onNavigate,
 }: {
   open: MenuGroup | null;
   data: MenuData;
+  collections: { handle: string; title: string }[];
   onNavigate: () => void;
 }) {
   return (
@@ -115,6 +117,16 @@ export function MegaMenu({
                     >
                       {panels[open].all[0]} <span aria-hidden>→</span>
                     </Link>
+                    {collections.map((collection) => (
+                      <Link
+                        key={collection.handle}
+                        href={`/collections/${collection.handle}`}
+                        onClick={onNavigate}
+                        className="text-sm font-medium text-forest-text hover:text-forest hover:underline"
+                      >
+                        {collection.title}
+                      </Link>
+                    ))}
                     {panels[open].extra.map(([label, href]) => (
                       <Link
                         key={href}

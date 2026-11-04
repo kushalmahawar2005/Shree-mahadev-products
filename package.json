@@ -17,7 +17,8 @@
     "test:customers": "node scripts/test-customers.mjs",
     "test:inquiries": "node scripts/test-inquiries.mjs",
     "test:coupons": "node scripts/test-coupons.mjs",
-    "test:reviews": "node scripts/test-reviews.mjs"
+    "test:reviews": "node scripts/test-reviews.mjs",
+    "test:collections": "node scripts/test-collections.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

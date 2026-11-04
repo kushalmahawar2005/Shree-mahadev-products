@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Drawer } from "@/components/ui/Drawer";
 import { SwatchDot } from "@/components/ui/primitives";
-import { mainNav, site, utilityNav, whatsappLink, type MenuGroup } from "@/data/site";
+import { site, utilityNav, whatsappLink, type MenuGroup, type NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 import { ChevronDown, CloseIcon, WhatsAppIcon } from "./icons";
 import type { MenuData } from "./MegaMenu";
@@ -15,10 +15,12 @@ export function MobileNav({
   open,
   onClose,
   menus,
+  nav,
 }: {
   open: boolean;
   onClose: () => void;
   menus: MenuData;
+  nav: NavItem[];
 }) {
   const [expanded, setExpanded] = useState<MenuGroup | null>("oils");
 
@@ -51,7 +53,7 @@ export function MobileNav({
         </form>
 
         <ul className="divide-y divide-line">
-          {mainNav.map((item) => (
+          {nav.map((item) => (
             <li key={item.href}>
               {item.menu ? (
                 <>
