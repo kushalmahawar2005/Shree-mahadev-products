@@ -17,3 +17,4 @@ async function Content() {
   catch (e) { console.error(e); return <p className="text-sale">Could not load collections. Check the database connection.</p>; }
   return <CollectionWorkspace initialRows={rows} />;
 }
+export const instant = false;

@@ -25,9 +25,11 @@ const nav = [
   { label: "Hero banners", href: "/admin/banners" },
   { label: "Videos", href: "/admin/videos" },
   { label: "Settings", href: "/admin/settings" },
+  { label: "Admin users", href: "/admin/settings/users" },
+  { label: "Activity log", href: "/admin/activity" },
 ];
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export function AdminShell({ children, role }: { children: React.ReactNode; role: "owner" | "manager" | "staff" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
@@ -48,7 +50,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <span className="block text-sm font-normal text-white/60">Admin panel</span>
         </span>
       </Link>
-      {nav.map((n) => (
+      {nav.filter((n) => role === "owner" || (role === "manager" ? !["/admin/settings", "/admin/settings/users", "/admin/activity"].includes(n.href) : ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"].includes(n.href))).map((n) => (
         <Link
           key={n.href}
           href={n.href}

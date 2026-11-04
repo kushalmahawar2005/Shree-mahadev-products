@@ -224,3 +224,4 @@ async function OrderDetail({
     </>
   );
 }
+export const instant = false;

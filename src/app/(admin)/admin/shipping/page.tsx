@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { PageHeader, Card, StatusBadge } from "@/components/admin/ui";
 import { listNdrCases } from "@/lib/server/shipments";
+import { requireRole } from "@/lib/server/admin-auth";
 import { createDailyManifestAction, ndrAction } from "@/lib/admin-actions";
 
 export const metadata = { title: "Shipping operations" };
@@ -25,6 +26,7 @@ async function ndr(formData: FormData) {
 }
 
 export default async function ShippingPage() {
+  await requireRole("owner", "manager");
   await connection();
   const cases = await listNdrCases().catch((error) => {
     console.error("listNdrCases", error);

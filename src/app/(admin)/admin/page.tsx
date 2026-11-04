@@ -412,3 +412,4 @@ function Ranked({
     </section>
   );
 }
+export const instant = false;

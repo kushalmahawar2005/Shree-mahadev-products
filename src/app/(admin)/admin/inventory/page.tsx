@@ -29,3 +29,4 @@ async function Inventory() {
   const [rows, threshold] = data;
   return <InventoryTable rows={rows} threshold={Number(threshold) || 5} />;
 }
+export const instant = false;

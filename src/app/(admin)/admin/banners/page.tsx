@@ -23,3 +23,4 @@ async function Banners() {
   if (!banners) return <p className="text-sale">Could not connect to the database. Check DATABASE_* env vars.</p>;
   return <BannerManager initial={banners} />;
 }
+export const instant = false;

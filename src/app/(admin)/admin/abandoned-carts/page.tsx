@@ -109,3 +109,4 @@ async function Carts() {
     </>
   );
 }
+export const instant = false;

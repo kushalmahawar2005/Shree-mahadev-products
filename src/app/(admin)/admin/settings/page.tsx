@@ -3,8 +3,10 @@ import { Suspense } from "react";
 import { SettingsForm } from "@/components/admin/SettingsForm";
 import { PageHeader } from "@/components/admin/ui";
 import { getStoreSettings } from "@/lib/server/store-settings";
+import { requireRole } from "@/lib/server/admin-auth";
 
 export const metadata = { title: "Store settings" };
+export const instant = false;
 
 export default function SettingsPage() {
   return (
@@ -19,5 +21,6 @@ export default function SettingsPage() {
 
 async function Settings() {
   await connection();
+  await requireRole("owner");
   return <SettingsForm initial={await getStoreSettings()} />;
 }

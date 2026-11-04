@@ -111,3 +111,4 @@ async function List({ searchParams }: { searchParams: PageProps<"/admin/products
     </>
   );
 }
+export const instant = false;

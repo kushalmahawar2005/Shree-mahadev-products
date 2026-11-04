@@ -182,3 +182,4 @@ async function CustomerDetail({
     </>
   );
 }
+export const instant = false;

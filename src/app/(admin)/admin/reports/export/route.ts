@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { resolveRange } from "@/lib/server/dashboard";
 import { reportRows } from "@/lib/server/reports";
 
@@ -9,7 +9,7 @@ function cell(value: unknown) {
 }
 
 export async function GET(request: Request) {
-  try { await requireAdmin(); } catch { return new Response("Unauthorized", { status: 401 }); }
+  try { await requireRole("owner", "manager"); } catch { return new Response("Unauthorized", { status: 401 }); }
   const p = new URL(request.url).searchParams;
   const report = p.get("report") ?? "sales";
   const range = resolveRange(p.get("range") ?? undefined, p.get("from") ?? undefined, p.get("to") ?? undefined);

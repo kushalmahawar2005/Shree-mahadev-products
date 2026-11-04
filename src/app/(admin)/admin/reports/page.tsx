@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { PageHeader, Card, Table } from "@/components/admin/ui";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { resolveRange } from "@/lib/server/dashboard";
 import { getReports } from "@/lib/server/reports";
 import { formatMoney } from "@/lib/utils/money";
@@ -21,7 +21,7 @@ function value(value: unknown, key: string) {
 }
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireAdmin();
+  await requireRole("owner", "manager");
   await connection();
   const sp = await searchParams;
   const str = (key: string) => typeof sp[key] === "string" ? sp[key] as string : undefined;

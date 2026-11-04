@@ -28,3 +28,4 @@ async function Videos() {
   const [reels, youtube, products] = data;
   return <ReelManager initial={reels} youtube={youtube} products={products.map((p) => ({ handle: p.handle, title: p.title }))} />;
 }
+export const instant = false;

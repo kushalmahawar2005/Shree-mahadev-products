@@ -6,6 +6,7 @@ import { loadProducts } from "@/lib/server/catalog";
 import { listAdminReviews } from "@/lib/server/reviews";
 
 export const metadata = { title: "Reviews" };
+export const instant = false;
 
 export default function ReviewsPage() {
   return (

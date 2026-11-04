@@ -113,3 +113,4 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
     </>
   );
 }
+export const instant = false;

@@ -16,3 +16,4 @@ export default function AdminLoginPage({ searchParams }: PageProps<"/admin/login
     </div>
   );
 }
+export const instant = false;

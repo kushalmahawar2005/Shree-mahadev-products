@@ -197,3 +197,4 @@ async function OrdersTable({
     </>
   );
 }
+export const instant = false;

@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { getMarketingSummary } from "@/lib/server/marketing-admin";
 import { formatMoney } from "@/lib/utils/money";
 import { Card, PageHeader, StatusBadge } from "@/components/admin/ui";
@@ -7,7 +7,7 @@ export const metadata = { title: "Marketing" };
 export const instant = false;
 
 export default async function MarketingPage() {
-  await requireAdmin();
+  await requireRole("owner", "manager");
   const data = await getMarketingSummary();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://your-domain.example";
   return (

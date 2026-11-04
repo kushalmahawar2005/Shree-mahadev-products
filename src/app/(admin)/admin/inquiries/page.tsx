@@ -57,3 +57,4 @@ async function InquiryData({
     />
   );
 }
+export const instant = false;
