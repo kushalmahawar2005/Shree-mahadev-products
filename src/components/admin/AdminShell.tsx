@@ -21,6 +21,7 @@ const nav = [
   { label: "Bulk inquiries", href: "/admin/inquiries" },
   { label: "Marketing", href: "/admin/marketing" },
   { label: "Shipping ops", href: "/admin/shipping" },
+  { label: "Reports", href: "/admin/reports" },
   { label: "Hero banners", href: "/admin/banners" },
   { label: "Videos", href: "/admin/videos" },
   { label: "Settings", href: "/admin/settings" },
