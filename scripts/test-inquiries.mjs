@@ -64,6 +64,7 @@ async function action(path, name, args, authenticated = true) {
     headers: {
       "Next-Action": actionId(name),
       "Content-Type": "text/plain;charset=UTF-8",
+      Origin: BASE,
       ...(authenticated ? { Cookie: cookie } : {}),
     },
     body: JSON.stringify([args]),

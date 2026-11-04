@@ -13,7 +13,12 @@ export type ProductVariant = {
   sku?: string;
 };
 
-export type ProductImage = { url: string; alt: string; width: number; height: number };
+export type ProductImage = {
+  url: string;
+  alt: string;
+  width: number;
+  height: number;
+};
 
 export type ProductCategory = "oil" | "honey" | "sweetener";
 
@@ -35,7 +40,7 @@ export type Product = {
   images: ProductImage[];
   variants: ProductVariant[];
   priceRange: { min: Money; max: Money };
-  rating?: number; // Judge.me
+  rating?: number; // Mean of approved first-party reviews
   reviewCount?: number;
   tags: string[];
   faqs?: { q: string; a: string }[];
@@ -83,6 +88,10 @@ export interface CommerceProvider {
   createCart(): Promise<Cart>;
   getCart(id: string): Promise<Cart | undefined>;
   addToCart(cartId: string, variantId: string, quantity: number): Promise<Cart>;
-  updateCartLine(cartId: string, lineId: string, quantity: number): Promise<Cart>;
+  updateCartLine(
+    cartId: string,
+    lineId: string,
+    quantity: number,
+  ): Promise<Cart>;
   removeCartLine(cartId: string, lineId: string): Promise<Cart>;
 }

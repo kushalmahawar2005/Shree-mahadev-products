@@ -16,6 +16,8 @@ import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
 import { topPicks } from "@/data/home";
 import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
+import { getFeaturedReviews } from "@/lib/server/reviews";
+import { FeaturedReviewCards } from "@/components/reviews/ReviewList";
 
 /** Temporarily hidden sections (listed in HIDDEN.md). Flip to true to show again. */
 const SHOW_RASOI_KIT = false;
@@ -79,9 +81,15 @@ export default async function HomePage() {
     };
   });
 
-  const [videos, settings] = await Promise.all([getHomeVideos(), getStoreSettings()]);
+  const [videos, settings, reviews] = await Promise.all([
+    getHomeVideos(),
+    getStoreSettings(),
+    getFeaturedReviews(),
+  ]);
   const reelItems: ReelItem[] = videos.reels.map((r) => {
-    const p = r.productHandle ? all.find((x) => x.handle === r.productHandle) : undefined;
+    const p = r.productHandle
+      ? all.find((x) => x.handle === r.productHandle)
+      : undefined;
     return {
       id: r.id,
       videoUrl: r.videoUrl,
@@ -96,11 +104,17 @@ export default async function HomePage() {
       <Hero />
       <TopPicks tabs={pickTabs} />
       <PromoStrip />
-      {reelItems.length > 0 && <Reels title="Straight from the ghani" reels={reelItems} />}
+      {reelItems.length > 0 && (
+        <Reels title="Straight from the ghani" reels={reelItems} />
+      )}
       <BrandFilmSection youtube={videos.youtube} />
       <ProofCards />
       <ShopByUseCarousel tabs={useTabs} />
-      <Spotlight products={all} fadeTo={SHOW_BEYOND_OILS ? "#FCF2E5" : "#FFFFFF"} />
+      <Spotlight
+        products={all}
+        fadeTo={SHOW_BEYOND_OILS ? "#FCF2E5" : "#FFFFFF"}
+      />
+      <FeaturedReviewCards reviews={reviews} />
       {SHOW_BEYOND_OILS && <BeyondOils />}
       {/* Rasoi Kit card, last section before the footer. TODO(client): kit contents + price.
           Hidden for now: see HIDDEN.md. */}

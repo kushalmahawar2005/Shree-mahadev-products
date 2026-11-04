@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import Link from "next/link";
 import { Suspense } from "react";
 import { CheckoutForm } from "@/components/checkout/CheckoutForm";
@@ -6,13 +7,18 @@ import { buttonClass } from "@/components/ui/Button";
 import { Container } from "@/components/ui/primitives";
 import { getCartAction } from "@/lib/commerce/actions";
 
-export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Checkout",
+  robots: { index: false },
+};
 
 export default function CheckoutPage() {
   return (
     <Container className="max-w-6xl py-10 md:py-14">
       <h1 className="text-4xl md:text-5xl">Checkout</h1>
-      <Suspense fallback={<p className="mt-8 text-ink-muted">Loading your cart…</p>}>
+      <Suspense
+        fallback={<p className="mt-8 text-ink-muted">Loading your cart…</p>}
+      >
         <CheckoutContent />
       </Suspense>
     </Container>
@@ -20,6 +26,7 @@ export default function CheckoutPage() {
 }
 
 async function CheckoutContent() {
+  await connection();
   const cart = await getCartAction();
   if (!cart?.lines.length) {
     return (

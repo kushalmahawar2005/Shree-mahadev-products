@@ -88,6 +88,7 @@ async function loadEmailOrder(
     codFee: o.cod_fee,
     total: o.total,
     orderUrl: `${siteUrl()}/order?t=${o.token}`,
+    reviewUrl: `${siteUrl()}/review?t=${o.token}`,
     courier: o.courier,
     awb: o.awb,
     trackingUrl: o.tracking_url,
@@ -112,9 +113,11 @@ export async function queueOrderEmail(
   };
   const ctaUrl = isStore
     ? `${siteUrl()}/admin/orders/view?id=${order.id}`
-    : kind === "shipped" && order.trackingUrl
-      ? order.trackingUrl
-      : order.orderUrl;
+    : kind === "delivered"
+      ? order.reviewUrl
+      : kind === "shipped" && order.trackingUrl
+        ? order.trackingUrl
+        : order.orderUrl;
   const element = OrderEmail({ kind, order: data, brand: brand(), ctaUrl });
   const [html, text] = await Promise.all([
     render(element),

@@ -30,15 +30,23 @@ export function ProofBand() {
     <section className="bg-forest-deep py-14 text-white md:py-20">
       <Container>
         <Reveal>
-          <h2 className="text-3xl text-white md:text-4xl">Good oil, backed by proof</h2>
+          <h2 className="text-3xl text-white md:text-4xl">
+            Good oil, backed by proof
+          </h2>
           <p className="mt-3 max-w-2xl text-lg text-white/80">
             We would rather show you than tell you.
           </p>
         </Reveal>
         <Stagger className="mt-10 grid gap-5 md:grid-cols-3">
           {items.map((it) => (
-            <StaggerItem key={it.title} className="rounded-[var(--radius-card)] bg-white/5 p-6 ring-1 ring-white/10">
-              <span aria-hidden className="mb-4 block size-10 rounded-full bg-mustard/90" />
+            <StaggerItem
+              key={it.title}
+              className="rounded-[var(--radius-card)] bg-white/5 p-6 ring-1 ring-white/10"
+            >
+              <span
+                aria-hidden
+                className="mb-4 block size-10 rounded-full bg-mustard/90"
+              />
               <h3 className="text-2xl text-white">{it.title}</h3>
               <p className="mt-2 text-white/80">{it.text}</p>
               <p className="mt-3 text-sm text-khaki">TODO(client): {it.todo}</p>
@@ -60,16 +68,24 @@ export function ShopByUse() {
     <section className="py-14 md:py-20">
       <Container>
         <Reveal>
-          <SectionHeading title="Shop by use" intro="Not sure which oil? Start with what you are cooking." />
+          <SectionHeading
+            title="Shop by use"
+            intro="Not sure which oil? Start with what you are cooking."
+          />
         </Reveal>
-        <Stagger as="ul" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <Stagger
+          as="ul"
+          className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+        >
           {shopByUse.map((u) => (
             <StaggerItem as="li" key={u.tag}>
               <Link
                 href={`/shop?use=${u.tag}`}
                 className="flex h-full min-h-28 flex-col justify-between rounded-[var(--radius-card)] border border-line bg-white p-5 transition-colors duration-200 hover:border-forest hover:bg-khaki-soft"
               >
-                <span className="font-display text-xl text-forest-text">{u.label}</span>
+                <span className="font-display text-xl text-forest-text">
+                  {u.label}
+                </span>
                 <span className="mt-2 text-sm text-ink-muted">{u.note}</span>
               </Link>
             </StaggerItem>
@@ -85,11 +101,17 @@ export function Combos() {
     <section className="bg-khaki-soft py-14 md:py-20">
       <Container>
         <Reveal>
-          <SectionHeading title="Rasoi kits" intro="Everything a kitchen needs, packed together." />
+          <SectionHeading
+            title="Rasoi kits"
+            intro="Everything a kitchen needs, packed together."
+          />
         </Reveal>
         <div className="grid gap-5 md:grid-cols-2">
           {plannedCombos.map((c) => (
-            <Reveal key={c.title} className="rounded-[var(--radius-card)] bg-white p-6 md:p-8">
+            <Reveal
+              key={c.title}
+              className="rounded-[var(--radius-card)] bg-white p-6 md:p-8"
+            >
               <h3 className="text-2xl">{c.title}</h3>
               <ul className="mt-3 space-y-1 text-ink-muted">
                 {c.items.map((i) => (
@@ -130,35 +152,24 @@ export function FounderNote() {
           <h2 className="text-3xl md:text-4xl">A note from our ghani</h2>
           <blockquote className="mt-5 space-y-4 text-lg">
             <p>
-              TODO(client): 3–4 lines in the founder&apos;s own words. Why they started, what their family
-              cooked with, and what they will never compromise on.
+              TODO(client): 3–4 lines in the founder&apos;s own words. Why they
+              started, what their family cooked with, and what they will never
+              compromise on.
             </p>
           </blockquote>
-          <p className="mt-6 font-display text-2xl text-forest-text">TODO(client): founder name</p>
-          <p className="text-ink-muted">Founder, Swadeshi Mahadev Products, Bijainagar</p>
-          <Link href="/about" className="mt-5 inline-block font-semibold text-forest underline underline-offset-4">
+          <p className="mt-6 font-display text-2xl text-forest-text">
+            TODO(client): founder name
+          </p>
+          <p className="text-ink-muted">
+            Founder, Swadeshi Mahadev Products, Bijainagar
+          </p>
+          <Link
+            href="/about"
+            className="mt-5 inline-block font-semibold text-forest underline underline-offset-4"
+          >
             Read our story
           </Link>
         </Reveal>
-      </Container>
-    </section>
-  );
-}
-
-export function Reviews() {
-  return (
-    <section className="bg-khaki-soft py-14 md:py-20">
-      <Container>
-        <Reveal>
-          <SectionHeading title="What customers say" intro="Only verified reviews, unedited." />
-        </Reveal>
-        {/*
-          Real, verified reviews only (Judge.me / Google). Never keyword-stuffed ones.
-          TODO: render real approved reviews here (reviews table).
-        */}
-        <div className="rounded-[var(--radius-card)] border border-dashed border-khaki bg-white p-8 text-center text-ink-muted">
-          Verified reviews from Judge.me will appear here. TODO(client): connect Judge.me / Google reviews.
-        </div>
       </Container>
     </section>
   );
@@ -170,10 +181,12 @@ export function BulkBand() {
       <Container>
         <Reveal className="flex flex-col items-start gap-6 rounded-[var(--radius-card)] bg-forest p-8 text-white md:flex-row md:items-center md:justify-between md:p-12">
           <div>
-            <h2 className="text-3xl text-white md:text-4xl">Restaurant or store? Order 15L tins</h2>
+            <h2 className="text-3xl text-white md:text-4xl">
+              Restaurant or store? Order 15L tins
+            </h2>
             <p className="mt-3 max-w-xl text-lg text-white/80">
-              Bulk 5L and 15L tins for restaurants, caterers and retailers. Tell us what you need and we will
-              reply on WhatsApp.
+              Bulk 5L and 15L tins for restaurants, caterers and retailers. Tell
+              us what you need and we will reply on WhatsApp.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -185,7 +198,14 @@ export function BulkBand() {
             >
               <WhatsAppIcon className="size-5" /> Order on WhatsApp
             </a>
-            <Link href="/bulk-orders" className={buttonClass("ghost", "lg", "text-white hover:bg-white/10")}>
+            <Link
+              href="/bulk-orders"
+              className={buttonClass(
+                "ghost",
+                "lg",
+                "text-white hover:bg-white/10",
+              )}
+            >
               Bulk order form
             </Link>
           </div>
@@ -195,7 +215,11 @@ export function BulkBand() {
   );
 }
 
-export function StoriesRow({ items }: { items: (ContentEntry & { kind: "recipes" | "journal" })[] }) {
+export function StoriesRow({
+  items,
+}: {
+  items: (ContentEntry & { kind: "recipes" | "journal" })[];
+}) {
   if (!items.length) return null;
   return (
     <section className="pb-16 md:pb-24">
@@ -223,7 +247,11 @@ export function StoriesRow({ items }: { items: (ContentEntry & { kind: "recipes"
   );
 }
 
-export function StoryCard({ entry }: { entry: ContentEntry & { kind: "recipes" | "journal" } }) {
+export function StoryCard({
+  entry,
+}: {
+  entry: ContentEntry & { kind: "recipes" | "journal" };
+}) {
   return (
     <Link href={`/${entry.kind}/${entry.slug}`} className="group block">
       <div
@@ -231,7 +259,9 @@ export function StoryCard({ entry }: { entry: ContentEntry & { kind: "recipes" |
         style={{ backgroundColor: entry.color ?? "#F6EFE2" }}
       >
         <div className="grid size-full place-items-center transition-transform duration-500 group-hover:scale-[1.04]">
-          <span className="font-display text-3xl text-forest-deep/70">{entry.kind === "recipes" ? "Recipe" : "Journal"}</span>
+          <span className="font-display text-3xl text-forest-deep/70">
+            {entry.kind === "recipes" ? "Recipe" : "Journal"}
+          </span>
         </div>
       </div>
       <h3 className="mt-4 text-2xl group-hover:underline">{entry.title}</h3>

@@ -39,6 +39,7 @@ export type EmailOrder = {
   codFee: number;
   total: number;
   orderUrl: string;
+  reviewUrl: string;
   courier?: string | null;
   awb?: string | null;
   trackingUrl?: string | null;
@@ -106,7 +107,7 @@ const COPY: Record<
     heading: "Delivered. We hope you love it.",
     intro: () =>
       "Your order has been delivered. Unrefined oil can look a little cloudy or settle in winter. That is normal. If anything is not right, just reply to this email or WhatsApp us.",
-    cta: "See your order",
+    cta: "Write a review",
   },
   cancelled: {
     preview: (o) => `Order ${o.orderNo} has been cancelled.`,

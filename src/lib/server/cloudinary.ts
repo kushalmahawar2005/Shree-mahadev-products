@@ -10,26 +10,36 @@ cloudinary.config({
 
 export function cloudinaryConfigured() {
   return Boolean(
-    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET,
+    process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+    process.env.CLOUDINARY_API_KEY &&
+    process.env.CLOUDINARY_API_SECRET,
   );
 }
 
 /** Upload a local file or remote URL into the store's folder. Returns the delivery URL + size. */
-export async function uploadImage(source: string, opts: { folder: string; publicId?: string }) {
+export async function uploadImage(
+  source: string,
+  opts: { folder: string; publicId?: string },
+) {
   const r = await cloudinary.uploader.upload(source, {
     folder: `swadeshi-mahadev/${opts.folder}`,
     public_id: opts.publicId,
     overwrite: true,
     resource_type: "image",
   });
-  return { url: r.secure_url, width: r.width, height: r.height, publicId: r.public_id };
+  return {
+    url: r.secure_url,
+    width: r.width,
+    height: r.height,
+    publicId: r.public_id,
+  };
 }
 
 export { cloudinary };
 
 const IMAGE_FORMATS = "jpg,jpeg,png,webp,avif,heic";
 const VIDEO_FORMATS = "mp4,mov,webm,m4v";
-export type UploadFolder = "products" | "banners" | "reels";
+export type UploadFolder = "products" | "banners" | "reels" | "reviews";
 
 /**
  * Signature for a direct browser → Cloudinary upload (files never pass through our server,
@@ -41,7 +51,10 @@ export function signUpload(folder: UploadFolder) {
     timestamp: Math.round(Date.now() / 1000),
     allowed_formats: folder === "reels" ? VIDEO_FORMATS : IMAGE_FORMATS,
   };
-  const signature = cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET!);
+  const signature = cloudinary.utils.api_sign_request(
+    params,
+    process.env.CLOUDINARY_API_SECRET!,
+  );
   return {
     ...params,
     signature,
@@ -51,9 +64,15 @@ export function signUpload(folder: UploadFolder) {
   };
 }
 
-export async function destroyImage(publicId: string, resourceType: "image" | "video" = "image") {
+export async function destroyImage(
+  publicId: string,
+  resourceType: "image" | "video" = "image",
+) {
   try {
-    await cloudinary.uploader.destroy(publicId, { invalidate: true, resource_type: resourceType });
+    await cloudinary.uploader.destroy(publicId, {
+      invalidate: true,
+      resource_type: resourceType,
+    });
   } catch (e) {
     console.error("Cloudinary destroy failed", publicId, e);
   }

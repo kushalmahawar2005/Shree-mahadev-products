@@ -1,5 +1,5 @@
 /**
- * MOCK admin data for pages not yet wired to MySQL (dashboard, reviews).
+ * MOCK admin data for pages not yet wired to MySQL.
  * Replace page by page with real queries; keep only as a no-DB fallback.
  */
 export type OrderStatus =
@@ -222,44 +222,5 @@ export const abandonedCarts: AbandonedCart[] = [
     value: 1252,
     ago: "2 days ago",
     status: "WhatsApp sent",
-  },
-];
-
-export type Review = {
-  id: string;
-  product: string;
-  name: string;
-  rating: number;
-  text: string;
-  verified: boolean;
-  status: "Published" | "Pending";
-};
-export const reviews: Review[] = [
-  {
-    id: "R-31",
-    product: "Yellow Mustard Oil",
-    name: "Ramesh S.",
-    rating: 5,
-    text: "Strong aroma, tastes like the oil we had in the village.",
-    verified: true,
-    status: "Published",
-  },
-  {
-    id: "R-30",
-    product: "Groundnut Oil",
-    name: "Sunita V.",
-    rating: 4,
-    text: "Good for frying. Packing could be better.",
-    verified: true,
-    status: "Pending",
-  },
-  {
-    id: "R-29",
-    product: "Jamun Raw Honey",
-    name: "Kavita S.",
-    rating: 5,
-    text: "Thick and dark. Not too sweet.",
-    verified: true,
-    status: "Published",
   },
 ];

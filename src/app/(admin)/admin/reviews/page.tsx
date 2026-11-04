@@ -1,26 +1,40 @@
-import { PageHeader, StatusBadge, Table } from "@/components/admin/ui";
-import { reviews } from "@/data/admin";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { PageHeader } from "@/components/admin/ui";
+import { ReviewsWorkspace } from "@/components/admin/ReviewsWorkspace";
+import { loadProducts } from "@/lib/server/catalog";
+import { listAdminReviews } from "@/lib/server/reviews";
 
 export const metadata = { title: "Reviews" };
 
 export default function ReviewsPage() {
   return (
     <>
-      <PageHeader title="Reviews" intro="Only real, verified reviews go live. Judge.me will feed this later." />
-      <Table head={["Product", "Customer", "Rating", "Review", "Verified", "Status"]}>
-        {reviews.map((r) => (
-          <tr key={r.id}>
-            <td className="font-semibold">{r.product}</td>
-            <td>{r.name}</td>
-            <td className="whitespace-nowrap text-mustard">{"★".repeat(r.rating)}<span className="text-black/20">{"★".repeat(5 - r.rating)}</span></td>
-            <td className="max-w-xs text-sm">{r.text}</td>
-            <td>{r.verified ? "Yes" : "No"}</td>
-            <td>
-              <StatusBadge tone={r.status === "Published" ? "green" : "amber"}>{r.status}</StatusBadge>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <PageHeader
+        title="Reviews"
+        intro="Moderate genuine buyer feedback before it appears in the store."
+      />
+      <Suspense fallback={<p className="text-ink-muted">Loading reviews…</p>}>
+        <ReviewData />
+      </Suspense>
     </>
+  );
+}
+
+async function ReviewData() {
+  await connection();
+  const [pending, approved, rejected, products] = await Promise.all([
+    listAdminReviews("pending"),
+    listAdminReviews("approved"),
+    listAdminReviews("rejected"),
+    loadProducts({ status: "active" }),
+  ]);
+  return (
+    <ReviewsWorkspace
+      pending={pending}
+      approved={approved}
+      rejected={rejected}
+      products={products.map((p) => ({ handle: p.handle, title: p.title }))}
+    />
   );
 }

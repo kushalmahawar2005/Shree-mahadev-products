@@ -66,6 +66,7 @@ async function invoke(route, name, args) {
       "Content-Type": "text/plain;charset=UTF-8",
       Cookie: cookie(),
       "x-forwarded-for": testIp,
+      Origin: BASE,
     },
     body: JSON.stringify(Array.isArray(args) ? args : [args]),
     redirect: "manual",
@@ -166,6 +167,7 @@ try {
       "Next-Action": actionId("saveCouponAction"),
       "Content-Type": "text/plain;charset=UTF-8",
       Cookie: adminCookie(admin.username, Number(admin.session_version)),
+      Origin: BASE,
     },
     body: JSON.stringify([
       {
@@ -192,7 +194,7 @@ try {
   );
 
   const checkout = await fetch(`${BASE}/checkout`, {
-    headers: { Cookie: cookie(), "x-forwarded-for": testIp },
+    headers: { Cookie: cookie(), "x-forwarded-for": testIp, Origin: BASE },
   });
   const html = await checkout.text();
   const fd = new FormData();
@@ -220,7 +222,7 @@ try {
   const placed = await fetch(`${BASE}/checkout`, {
     method: "POST",
     body: fd,
-    headers: { Cookie: cookie(), "x-forwarded-for": testIp },
+    headers: { Cookie: cookie(), "x-forwarded-for": testIp, Origin: BASE },
     redirect: "manual",
   });
   const [[placedOrder]] = await db.query(
