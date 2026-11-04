@@ -33,7 +33,7 @@ class Shopper {
   cookie() { return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; "); }
   keep(res) { for (const c of res.headers.getSetCookie()) { const [kv] = c.split(";"); const [k, ...v] = kv.split("="); this.jar.set(k, v.join("=")); } }
   async action(path, id, args) {
-    const res = await fetch(BASE + path, { method: "POST", headers: { "Next-Action": id, "Content-Type": "text/plain;charset=UTF-8", Cookie: this.cookie() }, body: JSON.stringify(args), redirect: "manual" });
+    const res = await fetch(BASE + path, { method: "POST", headers: { "Next-Action": id, "Content-Type": "text/plain;charset=UTF-8", Origin: BASE, "x-forwarded-for": "198.18.250.1", Cookie: this.cookie() }, body: JSON.stringify(args), redirect: "manual" });
     this.keep(res); return res;
   }
   async checkout(method) {
@@ -44,7 +44,7 @@ class Shopper {
     for (const [k, v] of Object.entries({ "$ACTION_REF_1": "", "$ACTION_1:0": aid, "$ACTION_1:1": '["$undefined"]', "$ACTION_KEY": key,
       name: "Race Test", phone: "98" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0"), email: "race@example.com",
       line1: "12 Test Street", city: "Ajmer", state: "Rajasthan", pincode: "305001", method })) fd.append(k, v);
-    const res = await fetch(BASE + "/checkout", { method: "POST", body: fd, headers: { Cookie: this.cookie() }, redirect: "manual" });
+    const res = await fetch(BASE + "/checkout", { method: "POST", body: fd, headers: { Cookie: this.cookie(), Origin: BASE, "x-forwarded-for": "198.18.250.1" }, redirect: "manual" });
     const body = res.status === 200 ? await res.text() : "";
     return { placed: res.status === 303, location: res.headers.get("location"), outOfStock: /out of stock|left of/i.test(body) };
   }
@@ -59,6 +59,7 @@ const [a, b] = [new Shopper(), new Shopper()];
 await a.action("/shop", ADD, [VARIANT, 1]); await b.action("/shop", ADD, [VARIANT, 1]);
 const results = await Promise.all([a.checkout("cod"), b.checkout("cod")]);
 const placed = results.filter((r) => r.placed).length;
+if (placed !== 1) console.log("      race responses:", JSON.stringify(results));
 check(placed === 1, `parallel checkout for the last unit: ${placed} order placed (expected 1)`);
 check(results.some((r) => r.outOfStock), "the other shopper sees an out-of-stock message");
 check((await stock()) === 0, `stock is 0 after the race (got ${await stock()})`);
@@ -83,7 +84,9 @@ const [[last]] = await db.query("SELECT order_id FROM stock_reservations WHERE v
 const s0 = await stock();
 // Cancel twice through the real admin action (signed admin session, same format as src/lib/admin-session.ts).
 const { createHmac } = await import("node:crypto");
-const payload = Buffer.from(JSON.stringify({ u: process.env.ADMIN_USER ?? "admin", exp: Date.now() + 600_000 })).toString("base64url");
+const [[adminUser]] = await db.query("SELECT username, session_version FROM admin_users WHERE username = ?", [process.env.ADMIN_USER ?? "admin"]);
+if (!adminUser) throw new Error("Configured admin user not found; run pnpm admin:create first.");
+const payload = Buffer.from(JSON.stringify({ u: adminUser.username, v: adminUser.session_version, exp: Date.now() + 600_000 })).toString("base64url");
 const sig = createHmac("sha256", process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD).update(payload).digest("base64url");
 const admin = new Shopper(); admin.jar.set("smp_admin", `${payload}.${sig}`);
 const SET = actionId("setOrderStatusAction");

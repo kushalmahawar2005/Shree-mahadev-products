@@ -47,8 +47,13 @@ async function queue(
 
 export async function queueOrderWhatsApp(orderId: number, template: "order_placed" | "cod_confirmation" | "shipped" | "delivered" | "cancelled") {
   const [[order]] = await db().query<Rows>(
-    `SELECT id, order_no, token, customer_name, phone, total, payment_method, status, awb, tracking_url
-     FROM orders WHERE id = ?`,
+    `SELECT o.id, o.order_no, o.token, o.customer_name, o.phone, o.total, o.payment_method, o.status,
+            s.awb, s.tracking_url
+     FROM orders o
+     LEFT JOIN shipments s ON s.id = (
+       SELECT MAX(s2.id) FROM shipments s2 WHERE s2.order_id = o.id
+     )
+     WHERE o.id = ?`,
     [orderId],
   );
   if (!order) return false;

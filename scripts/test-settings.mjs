@@ -6,11 +6,13 @@ process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
 const actionId = (n) => { for (const f of walk(".next/dev").filter((f) => f.endsWith("server-reference-manifest.json"))) { const m = JSON.parse(readFileSync(f, "utf8")); for (const [id, v] of Object.entries(m.node ?? {})) if (v.exportedName === n) return id; } throw new Error(n); };
-const p = Buffer.from(JSON.stringify({ u: "admin", v: 1, exp: Date.now() + 600_000 })).toString("base64url");
-const cookie = `smp_admin=${p}.${createHmac("sha256", process.env.ADMIN_SESSION_SECRET).update(p).digest("base64url")}`;
 const page = (u) => fetch(BASE + u).then((r) => r.text());
 import mysql from "mysql2/promise";
 const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +process.env.DATABASE_PORT, user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
+const [[adminUser]] = await db.query("SELECT username, session_version FROM admin_users WHERE username = ?", [process.env.ADMIN_USER ?? "admin"]);
+if (!adminUser) throw new Error("Configured admin user not found; run pnpm admin:create first.");
+const p = Buffer.from(JSON.stringify({ u: adminUser.username, v: adminUser.session_version, exp: Date.now() + 600_000 })).toString("base64url");
+const cookie = `smp_admin=${p}.${createHmac("sha256", process.env.ADMIN_SESSION_SECRET).update(p).digest("base64url")}`;
 const KEYS = ["business", "shipping", "announcement", "socials", "low_stock_threshold"];
 const [snapshot] = await db.query("SELECT `key`, CAST(value AS CHAR) AS value FROM settings WHERE `key` IN (?)", [KEYS]);
 const initial = {
@@ -21,7 +23,7 @@ const initial = {
   lowStockThreshold: 5,
 };
 const SAVE = actionId("saveStoreSettingsAction");
-const save = async (s) => (await fetch(BASE + "/admin/settings", { method: "POST", headers: { "Next-Action": SAVE, "Content-Type": "text/plain;charset=UTF-8", Cookie: cookie }, body: JSON.stringify([s]) })).text();
+const save = async (s) => (await fetch(BASE + "/admin/settings", { method: "POST", headers: { "Next-Action": SAVE, "Content-Type": "text/plain;charset=UTF-8", Cookie: cookie, Origin: BASE }, body: JSON.stringify([s]) })).text();
 let pass = true; const check = (ok, m) => { console.log(`${ok ? "PASS" : "FAIL"}  ${m}`); if (!ok) pass = false; };
 const changed = { ...initial, shipping: { ...initial.shipping, freeShippingThreshold: 1499 }, announcement: { ...initial.announcement, messages: [{ text: "Free shipping on orders above {threshold}", href: "", startsAt: "", endsAt: "" }] } };
 const r1 = await save(changed); check(r1.includes('"ok":true'), "admin saved threshold 1499");

@@ -132,9 +132,16 @@ console.log(
     .join(", "),
 );
 
+const [[adminUser]] = await db.query(
+  "SELECT username, session_version FROM admin_users WHERE username = ?",
+  [process.env.ADMIN_USER ?? "admin"],
+);
+if (!adminUser)
+  throw new Error("Configured admin user not found; run pnpm admin:create first.");
 const p = Buffer.from(
   JSON.stringify({
-    u: process.env.ADMIN_USER ?? "admin",
+    u: adminUser.username,
+    v: adminUser.session_version,
     exp: Date.now() + 600_000,
   }),
 ).toString("base64url");
