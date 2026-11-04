@@ -43,7 +43,7 @@ export function AdminShell({ children, role }: { children: React.ReactNode; role
   const active = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
 
   const sidebar = (
-    <nav aria-label="Admin" className="flex h-full flex-col gap-1 p-4">
+    <nav aria-label="Admin" className="flex h-full min-h-0 flex-col p-3">
       <Link href="/admin" className="mb-4 flex items-center gap-3 px-2">
         <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={44} height={44} unoptimized className="size-11" />
         <span className="leading-tight font-semibold text-white">
@@ -51,19 +51,21 @@ export function AdminShell({ children, role }: { children: React.ReactNode; role
           <span className="block text-sm font-normal text-white/60">Admin panel</span>
         </span>
       </Link>
-      {nav.filter((n) => role === "owner" || (role === "manager" ? !["/admin/settings", "/admin/settings/users", "/admin/activity"].includes(n.href) : ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"].includes(n.href))).map((n) => (
-        <Link
-          key={n.href}
-          href={n.href}
-          className={cn(
-            "flex min-h-11 items-center rounded-xl px-4 font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white",
-            active(n.href) && "bg-white/15 text-white",
-          )}
-        >
-          {n.label}
-        </Link>
-      ))}
-      <Link href="/" target="_blank" className="mt-auto min-h-11 rounded-xl px-4 py-3 text-sm text-white/60 hover:text-white">
+      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
+        {nav.filter((n) => role === "owner" || (role === "manager" ? !["/admin/settings", "/admin/settings/users", "/admin/activity"].includes(n.href) : ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"].includes(n.href))).map((n) => (
+          <Link
+            key={n.href}
+            href={n.href}
+            className={cn(
+              "flex min-h-11 items-center rounded-xl px-4 font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white",
+              active(n.href) && "bg-white/15 text-white",
+            )}
+          >
+            {n.label}
+          </Link>
+        ))}
+      </div>
+      <Link href="/" target="_blank" className="mt-3 min-h-11 shrink-0 rounded-xl px-4 py-3 text-sm text-white/60 hover:text-white">
         View storefront ↗
       </Link>
     </nav>

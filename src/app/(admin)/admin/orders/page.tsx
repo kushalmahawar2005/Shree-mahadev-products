@@ -157,8 +157,8 @@ async function OrdersTable({
               </td>
               <td>{formatMoney(o.total)}</td>
               <td>
-                <StatusBadge tone={ORDER_LABEL[o.status].tone}>
-                  {ORDER_LABEL[o.status].text}
+                <StatusBadge tone={(ORDER_LABEL[o.status] ?? { tone: "gray" as const }).tone}>
+                  {ORDER_LABEL[o.status]?.text ?? o.status}
                 </StatusBadge>
               </td>
             </tr>
