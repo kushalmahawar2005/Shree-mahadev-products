@@ -8,6 +8,7 @@ import type {
 import { db } from "./db";
 import { notifyOrder } from "./mail";
 import { ensureInvoiceForOrder } from "./invoices";
+import { queueMarketingEvent } from "./marketing";
 import { calculateCoupon } from "./coupons";
 import {
   commitStock,
@@ -168,6 +169,8 @@ export async function createOrder(input: {
   courierId: string | null;
   courierName: string | null;
   cartToken?: string;
+  clientIp?: string | null;
+  userAgent?: string | null;
 }): Promise<{ id: number; orderNo: string; token: string }> {
   if (input.method === "offline" && input.source !== "admin") {
     throw new Error("Offline payment orders can only be created by an admin.");
@@ -246,12 +249,32 @@ export async function createOrder(input: {
     );
 
     let cartId: number | null = null;
+    let attribution: Record<string, unknown> = {};
     if (input.cartToken) {
       const [r] = await conn.execute<RowDataPacket[]>(
-        "SELECT id FROM carts WHERE token = ? AND status = 'active'",
+        `SELECT id, utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+           fbclid, fbc, fbp, gclid, client_id, landing_page, referrer, marketing_consent
+         FROM carts WHERE token = ? AND status = 'active'`,
         [input.cartToken],
       );
       cartId = (r[0]?.id as number) ?? null;
+      if (r[0]) {
+        attribution = {
+          utm_source: r[0].utm_source,
+          utm_medium: r[0].utm_medium,
+          utm_campaign: r[0].utm_campaign,
+          utm_content: r[0].utm_content,
+          utm_term: r[0].utm_term,
+          fbclid: r[0].fbclid,
+          fbc: r[0].fbc,
+          fbp: r[0].fbp,
+          gclid: r[0].gclid,
+          client_id: r[0].client_id,
+          landing_page: r[0].landing_page,
+          referrer: r[0].referrer,
+          marketing_consent: r[0].marketing_consent,
+        };
+      }
     }
 
     const token = randomBytes(16).toString("hex");
@@ -264,8 +287,10 @@ export async function createOrder(input: {
     const total = input.subtotal - discount + finalShipping + input.codFee;
     const [res] = await conn.execute<ResultSetHeader>(
       `INSERT INTO orders (token, customer_id, cart_id, source, status, payment_method, customer_name, phone, email,
-         address_line1, address_line2, city, state, pincode, subtotal, discount, coupon_code, shipping, cod_fee, courier_id, courier_name, total, paid_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL))`,
+         address_line1, address_line2, city, state, pincode, subtotal, discount, coupon_code, shipping, cod_fee, courier_id, courier_name, total,
+         utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, fbc, fbp, gclid, client_id,
+         landing_page, referrer, marketing_consent, client_ip, user_agent, paid_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL))`,
       [
         token,
         cid,
@@ -289,6 +314,21 @@ export async function createOrder(input: {
         input.courierId,
         input.courierName,
         total,
+        attribution.utm_source ?? null,
+        attribution.utm_medium ?? null,
+        attribution.utm_campaign ?? null,
+        attribution.utm_content ?? null,
+        attribution.utm_term ?? null,
+        attribution.fbclid ?? null,
+        attribution.fbc ?? null,
+        attribution.fbp ?? null,
+        attribution.gclid ?? null,
+        attribution.client_id ?? null,
+        attribution.landing_page ?? null,
+        attribution.referrer ?? null,
+        attribution.marketing_consent ? 1 : 0,
+        input.clientIp ?? null,
+        input.userAgent?.slice(0, 255) ?? null,
         input.method === "offline" ? 1 : 0,
       ],
     );
@@ -367,6 +407,7 @@ export async function createOrder(input: {
   });
   if (input.method === "cod" || input.method === "offline") {
     await ensureInvoiceForOrder(created.id).catch((error) => console.error("Invoice could not be created", created.orderNo, error));
+    void queueMarketingEvent("Purchase", created.orderNo, created.id);
   }
   return created;
 }
@@ -523,6 +564,8 @@ export async function markPaid(
       }
     }
   });
+  const paidOrder = await getOrderById(orderId);
+  if (paidOrder) void queueMarketingEvent("Purchase", paidOrder.orderNo, orderId);
   await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
 }
 

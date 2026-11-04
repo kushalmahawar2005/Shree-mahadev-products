@@ -1,0 +1,50 @@
+ALTER TABLE carts
+  ADD COLUMN utm_source VARCHAR(100) NULL,
+  ADD COLUMN utm_medium VARCHAR(100) NULL,
+  ADD COLUMN utm_campaign VARCHAR(150) NULL,
+  ADD COLUMN utm_content VARCHAR(150) NULL,
+  ADD COLUMN utm_term VARCHAR(150) NULL,
+  ADD COLUMN fbclid VARCHAR(255) NULL,
+  ADD COLUMN fbc VARCHAR(255) NULL,
+  ADD COLUMN fbp VARCHAR(255) NULL,
+  ADD COLUMN gclid VARCHAR(255) NULL,
+  ADD COLUMN client_id VARCHAR(100) NULL,
+  ADD COLUMN landing_page VARCHAR(500) NULL,
+  ADD COLUMN referrer VARCHAR(500) NULL,
+  ADD COLUMN marketing_consent TINYINT(1) NOT NULL DEFAULT 0;
+
+ALTER TABLE orders
+  ADD COLUMN utm_source VARCHAR(100) NULL,
+  ADD COLUMN utm_medium VARCHAR(100) NULL,
+  ADD COLUMN utm_campaign VARCHAR(150) NULL,
+  ADD COLUMN utm_content VARCHAR(150) NULL,
+  ADD COLUMN utm_term VARCHAR(150) NULL,
+  ADD COLUMN fbclid VARCHAR(255) NULL,
+  ADD COLUMN fbc VARCHAR(255) NULL,
+  ADD COLUMN fbp VARCHAR(255) NULL,
+  ADD COLUMN gclid VARCHAR(255) NULL,
+  ADD COLUMN client_id VARCHAR(100) NULL,
+  ADD COLUMN landing_page VARCHAR(500) NULL,
+  ADD COLUMN referrer VARCHAR(500) NULL,
+  ADD COLUMN marketing_consent TINYINT(1) NOT NULL DEFAULT 0,
+  ADD COLUMN client_ip VARCHAR(45) NULL,
+  ADD COLUMN user_agent VARCHAR(255) NULL,
+  ADD KEY idx_orders_utm_source (utm_source, created_at);
+
+CREATE TABLE marketing_outbox (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  event_name VARCHAR(40) NOT NULL,
+  event_id VARCHAR(100) NOT NULL,
+  order_id INT UNSIGNED NULL,
+  payload JSON NOT NULL,
+  status VARCHAR(12) NOT NULL DEFAULT 'pending',
+  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  next_attempt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_error VARCHAR(500) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  sent_at DATETIME NULL,
+  UNIQUE KEY uq_marketing_event (event_name, event_id),
+  KEY idx_marketing_pending (status, next_attempt),
+  KEY idx_marketing_created (created_at),
+  CONSTRAINT fk_marketing_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

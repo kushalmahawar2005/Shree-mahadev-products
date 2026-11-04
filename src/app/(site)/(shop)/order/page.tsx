@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { buttonClass } from "@/components/ui/Button";
+import { PurchaseEvent } from "@/components/marketing/PurchaseEvent";
 import { Container } from "@/components/ui/primitives";
 import { site, whatsappLink } from "@/data/site";
 import { getOrderByToken, type Order } from "@/lib/server/orders";
@@ -84,6 +85,17 @@ async function OrderContent({
 
   return (
     <>
+      {(order.status === "paid" || order.status === "cod_pending" || order.status === "confirmed") && (
+        <PurchaseEvent
+          orderNo={order.orderNo}
+          total={order.total}
+          items={order.items.map((item) => ({
+            productHandle: item.productHandle,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          }))}
+        />
+      )}
       <p className="text-sm font-semibold text-mustard">
         Order {order.orderNo}
       </p>

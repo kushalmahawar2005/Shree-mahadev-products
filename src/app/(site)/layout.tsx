@@ -6,6 +6,7 @@ import { getStoreSettings } from "@/lib/server/store-settings";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
+import { ConsentManager } from "@/components/marketing/ConsentManager";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { site } from "@/data/site";
 import {
@@ -86,6 +87,7 @@ export default async function RootLayout({
               <Footer />
               <MobileBottomBar />
               <SiteCartDrawer />
+              <ConsentManager />
             </SmoothScroll>
           </CartProvider>
         </StoreSettingsProvider>

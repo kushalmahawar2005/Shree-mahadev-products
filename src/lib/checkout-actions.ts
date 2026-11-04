@@ -15,6 +15,7 @@ import { notifyOrder } from "@/lib/server/mail";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { calculateCoupon, CouponError } from "@/lib/server/coupons";
+import { headers } from "next/headers";
 
 export type CheckoutState =
   { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
@@ -280,6 +281,7 @@ export async function placeOrderAction(
   let token: string;
   let orderId: number;
   try {
+    const requestHeaders = await headers();
     ({ token, id: orderId } = await createOrder({
       method,
       address,
@@ -291,6 +293,8 @@ export async function placeOrderAction(
       courierName: q.courierName,
       couponCode: couponCode || undefined,
       cartToken: await getCartDbToken(),
+      clientIp: await clientIp(),
+      userAgent: requestHeaders.get("user-agent"),
     }));
   } catch (e) {
     if (e instanceof OutOfStockError) return { error: e.message };

@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { addToCart, createCart, type Cart } from "@/lib/commerce";
 import { syncCart } from "./carts";
+import { readAttributionCookie, syncAttributionToCart } from "./attribution";
 
 export const CART_COOKIE = "smp_cart";
 /** Stable id of this shopper's cart row in MySQL (abandoned-cart tracking + recovery link). */
@@ -38,6 +39,7 @@ export async function persistCart(cart: Cart) {
   }
   try {
     await syncCart(token, cart);
+    await syncAttributionToCart(await readAttributionCookie());
   } catch (e) {
     console.error("syncCart failed", e);
   }
