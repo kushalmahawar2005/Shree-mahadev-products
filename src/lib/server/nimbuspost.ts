@@ -14,6 +14,7 @@ export function nimbusConfigured() {
 type Envelope<T> = { success?: boolean; data?: T; error?: { detail?: string; title?: string; code?: string }; message?: string };
 
 async function call<T>(path: string, init: { method?: "GET" | "POST"; body?: unknown } = {}): Promise<T> {
+  if (!nimbusConfigured()) throw new Error("NimbusPost is not configured");
   const res = await fetch(`${API}${path}`, {
     method: init.method ?? "GET",
     headers: {
@@ -29,7 +30,76 @@ async function call<T>(path: string, init: { method?: "GET" | "POST"; body?: unk
     const msg = json.error?.detail || json.error?.title || json.message || `NimbusPost error (HTTP ${res.status})`;
     throw new Error(msg);
   }
+
   return json.data as T;
+}
+
+export type NdrCase = {
+  awb: string;
+  orderNumber: string | null;
+  status: string;
+  reason: string | null;
+  attemptDate: string | null;
+  customerName: string | null;
+  phone: string | null;
+  address: string | null;
+};
+
+function ndrRows(value: unknown): Record<string, unknown>[] {
+  if (Array.isArray(value)) return value as Record<string, unknown>[];
+  if (value && typeof value === "object") {
+    const o = value as Record<string, unknown>;
+    for (const key of ["ndr", "items", "rows", "data"]) {
+      if (Array.isArray(o[key])) return o[key] as Record<string, unknown>[];
+    }
+  }
+  return [];
+}
+
+export async function listNdr(): Promise<NdrCase[]> {
+  const data = await call<unknown>("/ndr");
+  return ndrRows(data).map((row) => ({
+    awb: String(row.awb ?? row.awb_number ?? ""),
+    orderNumber: row.order_number ? String(row.order_number) : null,
+    status: String(row.status ?? row.ndr_status ?? "ndr"),
+    reason: row.reason ? String(row.reason) : row.remark ? String(row.remark) : null,
+    attemptDate: row.attempt_date ? String(row.attempt_date) : null,
+    customerName: row.customer_name ? String(row.customer_name) : row.name ? String(row.name) : null,
+    phone: row.phone ? String(row.phone) : null,
+    address: row.address ? String(row.address) : null,
+  })).filter((row) => row.awb);
+}
+
+export type NdrAction = "reattempt" | "change_address_phone" | "rto";
+
+export async function actOnNdr(
+  awb: string,
+  action: NdrAction,
+  details?: { address?: string; phone?: string },
+) {
+  if (!/^[A-Za-z0-9_-]{3,60}$/.test(awb)) throw new Error("Invalid AWB");
+  return call<unknown>(`/ndr/${encodeURIComponent(awb)}/action`, {
+    method: "POST",
+    body: {
+      action,
+      ...(details?.address ? { address: details.address } : {}),
+      ...(details?.phone ? { phone: details.phone } : {}),
+    },
+  });
+}
+
+export async function createManifest(input: { awbs: string[] }): Promise<{ url: string | null; manifestId: string | null }> {
+  const awbs = input.awbs.filter((awb) => /^[A-Za-z0-9_-]{3,60}$/.test(awb));
+  if (!awbs.length) throw new Error("Select at least one booked shipment");
+  const data = await call<Record<string, unknown>>("/manifests", {
+    method: "POST",
+    body: { awbs },
+  });
+  const nested = (data.data && typeof data.data === "object" ? data.data : data) as Record<string, unknown>;
+  return {
+    url: typeof nested.url === "string" ? nested.url : typeof nested.manifest_url === "string" ? nested.manifest_url : null,
+    manifestId: typeof nested.id === "string" ? nested.id : typeof nested.manifest_id === "string" ? nested.manifest_id : null,
+  };
 }
 
 const pickupPincode = () => process.env.NIMBUSPOST_PICKUP_PINCODE ?? "305624";

@@ -3,13 +3,17 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
 import {
+  actOnNdr,
   cancelShipment as npCancel,
+  createManifest,
   createShipment as npCreate,
   getCourierQuotes,
   getLabelUrl,
   schedulePickup,
   trackShipment,
   type CourierQuote,
+  type NdrAction,
+  type NdrCase,
 } from "./nimbuspost";
 import { getOrderById, setOrderStatus, type Order } from "./orders";
 
@@ -184,6 +188,54 @@ export async function refreshTracking(orderId: number): Promise<Shipment[]> {
   await applyTrackingUpdate(s.awb, t.status, t.events, "admin");
   if (t.trackingUrl) await db().execute("UPDATE shipments SET tracking_url = ? WHERE id = ?", [t.trackingUrl, s.id]);
   return listShipments(orderId);
+}
+
+export async function refreshStaleTracking() {
+  const [rows] = await db().execute<RowDataPacket[]>(
+    `SELECT DISTINCT order_id FROM shipments
+     WHERE status NOT IN ('delivered', 'rto', 'cancelled')
+       AND updated_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
+     ORDER BY updated_at ASC LIMIT 100`,
+  );
+  let refreshed = 0;
+  const errors: { orderId: number; error: string }[] = [];
+  for (const row of rows) {
+    const orderId = Number(row.order_id);
+    try {
+      await refreshTracking(orderId);
+      refreshed++;
+    } catch (error) {
+      errors.push({ orderId, error: error instanceof Error ? error.message : "Tracking refresh failed" });
+    }
+  }
+  return { found: rows.length, refreshed, errors };
+}
+
+export async function listNdrCases(): Promise<NdrCase[]> {
+  const { nimbusConfigured } = await import("./nimbuspost");
+  if (!nimbusConfigured()) return [];
+  const { listNdr } = await import("./nimbuspost");
+  return listNdr();
+}
+
+export async function applyNdrAction(awb: string, action: NdrAction, details?: { address?: string; phone?: string }) {
+  await actOnNdr(awb, action, details);
+  if (action === "rto") {
+    await applyTrackingUpdate(awb, "rto", [], "admin");
+  }
+  return true;
+}
+
+export async function createDailyManifest(date = new Date()) {
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(date);
+  const [rows] = await db().execute<RowDataPacket[]>(
+    `SELECT awb FROM shipments
+     WHERE awb IS NOT NULL AND status NOT IN ('cancelled', 'delivered', 'rto')
+       AND DATE(created_at) = ? ORDER BY id`,
+    [day],
+  );
+  const result = await createManifest({ awbs: rows.map((row) => String(row.awb)) });
+  return { date: day, count: rows.length, ...result };
 }
 
 async function active(orderId: number) {

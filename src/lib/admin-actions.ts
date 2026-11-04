@@ -10,6 +10,9 @@ import {
   cancelOrderShipment,
   labelForOrder,
   requestPickup,
+  applyNdrAction,
+  createDailyManifest,
+  listNdrCases,
   quoteForOrder,
   refreshTracking,
   type CourierQuote,
@@ -78,6 +81,25 @@ export async function labelUrlAction(orderId: number): Promise<string> {
 export async function requestPickupAction(orderId: number): Promise<Shipment[]> {
   await requireAdmin();
   return requestPickup(orderId);
+}
+
+export async function createDailyManifestAction(date?: string) {
+  await requireAdmin();
+  const parsed = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00+05:30`) : new Date();
+  return createDailyManifest(parsed);
+}
+
+export async function listNdrAction() {
+  await requireAdmin();
+  return listNdrCases();
+}
+
+export async function ndrAction(awb: string, action: "reattempt" | "change_address_phone" | "rto", details?: { address?: string; phone?: string }) {
+  await requireAdmin();
+  if (action === "change_address_phone" && (!details?.address || !/^[6-9]\d{9}$/.test(details.phone ?? ""))) {
+    throw new Error("Address and valid phone are required");
+  }
+  await applyNdrAction(awb, action, details);
 }
 
 // ───────────── Order emails ─────────────
