@@ -1,30 +1,59 @@
-import { PageHeader, StatusBadge, Table, statusTone } from "@/components/admin/ui";
-import { inquiries } from "@/data/admin";
+import { Suspense } from "react";
+import { connection } from "next/server";
+import { PageHeader } from "@/components/admin/ui";
+import { InquiriesWorkspace } from "@/components/admin/InquiriesWorkspace";
+import { loadProducts } from "@/lib/server/catalog";
+import { listInquiries } from "@/lib/server/inquiries";
+import { db } from "@/lib/server/db";
+import type { RowDataPacket } from "mysql2/promise";
 
 export const metadata = { title: "Bulk inquiries" };
 
-export default function InquiriesPage() {
+export default function InquiriesPage({
+  searchParams,
+}: PageProps<"/admin/inquiries">) {
   return (
     <>
-      <PageHeader title="Bulk inquiries" intro="From the Bulk orders form (restaurants, stores). Today the form opens WhatsApp; later it can also land here." />
-      <Table head={["ID", "Date", "Contact", "Business", "Product", "Qty", "Status"]}>
-        {inquiries.map((i) => (
-          <tr key={i.id}>
-            <td className="font-semibold">{i.id}</td>
-            <td>{i.date}</td>
-            <td>{i.name}</td>
-            <td>
-              {i.business}
-              <span className="block text-sm text-ink-muted">{i.city}</span>
-            </td>
-            <td>{i.product}</td>
-            <td>{i.qty}</td>
-            <td>
-              <StatusBadge tone={statusTone(i.status) as "green"}>{i.status}</StatusBadge>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      <PageHeader
+        title="Bulk inquiries"
+        intro="Track wholesale leads, follow-ups and quotes in one place."
+      />
+      <Suspense fallback={<p className="text-ink-muted">Loading inquiries…</p>}>
+        <InquiryData searchParams={searchParams} />
+      </Suspense>
     </>
+  );
+}
+
+async function InquiryData({
+  searchParams,
+}: {
+  searchParams: PageProps<"/admin/inquiries">["searchParams"];
+}) {
+  await connection();
+  const [params, inquiries, products] = await Promise.all([
+    searchParams,
+    listInquiries(),
+    loadProducts({ status: "active" }),
+  ]);
+  const [[todayRow]] = await db().query<RowDataPacket[]>(
+    "SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS today",
+  );
+  const variants = products.flatMap((product) =>
+    product.variants
+      .filter((variant) => variant.availableForSale)
+      .map((variant) => ({
+        variantKey: variant.id,
+        title: `${product.title} · ${variant.title}`,
+        price: variant.price.amount,
+      })),
+  );
+  return (
+    <InquiriesWorkspace
+      initialInquiries={inquiries}
+      variants={variants}
+      initialFilter={params.f === "due" ? "due" : "all"}
+      today={todayRow.today}
+    />
   );
 }

@@ -18,7 +18,8 @@ export default async function BulkOrdersPage() {
       <div>
         <h1 className="text-4xl md:text-5xl">Bulk orders</h1>
         <p className="mt-4 text-lg text-ink-muted">
-          For restaurants, caterers, sweet shops and retailers. We supply wood-pressed oil in 5L and 15L tins.
+          For restaurants, caterers, sweet shops and retailers. We supply
+          wood-pressed oil in 5L and 15L tins.
         </p>
         <ul className="mt-6 space-y-2 text-ink">
           <li>· 5L and 15L tins of groundnut and mustard oil</li>
@@ -28,7 +29,10 @@ export default async function BulkOrdersPage() {
       </div>
       <div className="rounded-[var(--radius-card)] bg-khaki-soft p-6 md:p-8">
         <h2 className="text-2xl">Send an inquiry</h2>
-        <p className="mt-1 text-sm text-ink-muted">This opens WhatsApp with your details filled in.</p>
+        <p className="mt-1 text-sm text-ink-muted">
+          We’ll save your inquiry for the team, then open WhatsApp with your
+          details filled in.
+        </p>
         <BulkForm products={products.map((p) => p.title)} />
       </div>
     </Container>

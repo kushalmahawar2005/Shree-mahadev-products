@@ -14,7 +14,8 @@
     "payu:reconcile": "node scripts/payu-reconcile.mjs",
     "test:payu": "node scripts/test-payu.mjs",
     "test:settings": "node scripts/test-settings.mjs",
-    "test:customers": "node scripts/test-customers.mjs"
+    "test:customers": "node scripts/test-customers.mjs",
+    "test:inquiries": "node scripts/test-inquiries.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

@@ -9,34 +9,95 @@ import { getStoreSettings } from "./store-settings";
 type Rows = RowDataPacket[];
 
 /** Orders that count as sales (placed and not undone). */
-export const PLACED = ["paid", "cod_pending", "confirmed", "packed", "shipped", "delivered", "partially_refunded"];
+export const PLACED = [
+  "paid",
+  "cod_pending",
+  "confirmed",
+  "packed",
+  "shipped",
+  "delivered",
+  "partially_refunded",
+];
 
 export type Preset = "today" | "7d" | "30d" | "month" | "custom";
-export type Range = { preset: Preset; from: string; to: string; days: number; prevFrom: string; prevTo: string; label: string };
+export type Range = {
+  preset: Preset;
+  from: string;
+  to: string;
+  days: number;
+  prevFrom: string;
+  prevTo: string;
+  label: string;
+};
 
-const istToday = () => new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
-const addDays = (d: string, n: number) => new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
-const diffDays = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
-const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+const istToday = () =>
+  new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+const addDays = (d: string, n: number) =>
+  new Date(Date.parse(`${d}T00:00:00Z`) + n * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+const diffDays = (a: string, b: string) =>
+  Math.round(
+    (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000,
+  );
+const isDate = (s?: string) =>
+  !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 
 /** Inclusive IST date range from URL params, plus the previous period of the same length. */
-export function resolveRange(preset?: string, fromQ?: string, toQ?: string): Range {
+export function resolveRange(
+  preset?: string,
+  fromQ?: string,
+  toQ?: string,
+): Range {
   const today = istToday();
-  let from = today, to = today, p: Preset = "7d", label = "Last 7 days";
+  let from = today,
+    to = today,
+    p: Preset = "7d",
+    label = "Last 7 days";
   switch (preset) {
-    case "today": p = "today"; label = "Today"; break;
-    case "30d": p = "30d"; from = addDays(today, -29); label = "Last 30 days"; break;
-    case "month": p = "month"; from = `${today.slice(0, 8)}01`; label = "This month"; break;
+    case "today":
+      p = "today";
+      label = "Today";
+      break;
+    case "30d":
+      p = "30d";
+      from = addDays(today, -29);
+      label = "Last 30 days";
+      break;
+    case "month":
+      p = "month";
+      from = `${today.slice(0, 8)}01`;
+      label = "This month";
+      break;
     case "custom":
-      if (isDate(fromQ) && isDate(toQ) && fromQ! <= toQ! && diffDays(fromQ!, toQ!) <= 366) {
-        p = "custom"; from = fromQ!; to = toQ!; label = `${from} → ${to}`;
+      if (
+        isDate(fromQ) &&
+        isDate(toQ) &&
+        fromQ! <= toQ! &&
+        diffDays(fromQ!, toQ!) <= 366
+      ) {
+        p = "custom";
+        from = fromQ!;
+        to = toQ!;
+        label = `${from} → ${to}`;
         break;
       }
     // fall through to 7d on bad input
-    default: p = "7d"; from = addDays(today, -6); label = "Last 7 days";
+    default:
+      p = "7d";
+      from = addDays(today, -6);
+      label = "Last 7 days";
   }
   const days = diffDays(from, to) + 1;
-  return { preset: p, from, to, days, prevFrom: addDays(from, -days), prevTo: addDays(from, -1), label };
+  return {
+    preset: p,
+    from,
+    to,
+    days,
+    prevFrom: addDays(from, -days),
+    prevTo: addDays(from, -1),
+    label,
+  };
 }
 
 async function kpis(from: string, to: string) {
@@ -46,7 +107,10 @@ async function kpis(from: string, to: string) {
      FROM orders WHERE status IN (?) AND DATE(created_at) BETWEEN ? AND ?`,
     [PLACED, from, to],
   );
-  const [[r]] = await db().query<Rows>("SELECT COALESCE(SUM(amount),0) AS refunded FROM refunds WHERE status = 'success' AND DATE(created_at) BETWEEN ? AND ?", [from, to]);
+  const [[r]] = await db().query<Rows>(
+    "SELECT COALESCE(SUM(amount),0) AS refunded FROM refunds WHERE status = 'success' AND DATE(created_at) BETWEEN ? AND ?",
+    [from, to],
+  );
   const [[ship]] = await db().query<Rows>(
     `SELECT COALESCE(SUM(status='rto'),0) AS rto, COALESCE(SUM(status IN ('shipped','delivered','rto')),0) AS outbound
      FROM orders WHERE DATE(created_at) BETWEEN ? AND ?`,
@@ -64,7 +128,9 @@ async function kpis(from: string, to: string) {
      FROM carts WHERE item_count > 0 AND DATE(created_at) BETWEEN ? AND ?`,
     [from, to],
   );
-  const orders = Number(o.orders), gross = Number(o.gross), refunded = Number(r.refunded);
+  const orders = Number(o.orders),
+    gross = Number(o.gross),
+    refunded = Number(r.refunded);
   const outbound = Number(ship.outbound);
   return {
     orders,
@@ -77,7 +143,9 @@ async function kpis(from: string, to: string) {
     customers: Number(o.customers),
     newCustomers: Number(nc.n),
     carts: Number(ac.carts),
-    conversion: Number(ac.carts) ? Number(ac.converted) / Number(ac.carts) : null,
+    conversion: Number(ac.carts)
+      ? Number(ac.converted) / Number(ac.carts)
+      : null,
     recovered: Number(ac.recovered),
     abandonedCheckouts: Number(ac.abandoned_checkouts),
   };
@@ -85,15 +153,25 @@ async function kpis(from: string, to: string) {
 export type Kpis = Awaited<ReturnType<typeof kpis>>;
 
 export async function getDashboard(range: Range) {
-  const [cur, prev] = await Promise.all([kpis(range.from, range.to), kpis(range.prevFrom, range.prevTo)]);
+  const [cur, prev] = await Promise.all([
+    kpis(range.from, range.to),
+    kpis(range.prevFrom, range.prevTo),
+  ]);
   const [daily] = await db().query<Rows>(
     `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS d, COUNT(*) AS orders, SUM(total) AS gross
      FROM orders WHERE status IN (?) AND DATE(created_at) BETWEEN ? AND ? GROUP BY d ORDER BY d`,
     [PLACED, range.from, range.to],
   );
-  const byDay = new Map(daily.map((r) => [r.d as string, { orders: Number(r.orders), gross: Number(r.gross) }]));
+  const byDay = new Map(
+    daily.map((r) => [
+      r.d as string,
+      { orders: Number(r.orders), gross: Number(r.gross) },
+    ]),
+  );
   const series = Array.from({ length: Math.min(range.days, 366) }, (_, i) => {
-    const d = new Date(Date.parse(`${range.from}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10);
+    const d = new Date(Date.parse(`${range.from}T00:00:00Z`) + i * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
     return { date: d, ...(byDay.get(d) ?? { orders: 0, gross: 0 }) };
   });
   const [topProducts] = await db().query<Rows>(
@@ -121,53 +199,219 @@ export async function getDashboard(range: Range) {
     cur,
     prev,
     series,
-    topProducts: topProducts.map((r) => ({ handle: r.handle as string, title: r.title as string, units: n(r.units), revenue: n(r.revenue) })),
-    topSizes: topSizes.map((r) => ({ title: r.title as string, size: r.size as string, units: n(r.units), revenue: n(r.revenue) })),
-    topPlaces: topPlaces.map((r) => ({ state: r.state as string, city: r.city as string, orders: n(r.orders), revenue: n(r.revenue) })),
-    recent: recent.map((r) => ({ id: n(r.id), orderNo: r.order_no as string, name: r.customer_name as string, city: r.city as string, total: n(r.total), status: r.status as string, method: r.payment_method as string, at: r.created_at as string })),
+    topProducts: topProducts.map((r) => ({
+      handle: r.handle as string,
+      title: r.title as string,
+      units: n(r.units),
+      revenue: n(r.revenue),
+    })),
+    topSizes: topSizes.map((r) => ({
+      title: r.title as string,
+      size: r.size as string,
+      units: n(r.units),
+      revenue: n(r.revenue),
+    })),
+    topPlaces: topPlaces.map((r) => ({
+      state: r.state as string,
+      city: r.city as string,
+      orders: n(r.orders),
+      revenue: n(r.revenue),
+    })),
+    recent: recent.map((r) => ({
+      id: n(r.id),
+      orderNo: r.order_no as string,
+      name: r.customer_name as string,
+      city: r.city as string,
+      total: n(r.total),
+      status: r.status as string,
+      method: r.payment_method as string,
+      at: r.created_at as string,
+    })),
   };
 }
 
-export type Attention = { key: string; label: string; count: number; href: string; tone: "red" | "amber" | "gray"; note?: string };
+export type Attention = {
+  key: string;
+  label: string;
+  count: number;
+  href: string;
+  tone: "red" | "amber" | "gray";
+  note?: string;
+};
 
 /** Things that need someone today (not limited to the date range). Zero-count rows are dropped. */
 export async function getAttention(): Promise<Attention[]> {
-  const q = async (sql: string, p: unknown[] = []) => Number(((await db().query<Rows>(sql, p))[0][0] ?? { n: 0 }).n);
+  const q = async (sql: string, p: unknown[] = []) =>
+    Number(((await db().query<Rows>(sql, p))[0][0] ?? { n: 0 }).n);
   const settings = await getStoreSettings();
-  const [toShip, codConfirm, payPending, rto, inquiries, reviews, out, low, waiting, failedMail, abandoned] = await Promise.all([
-    q(`SELECT COUNT(*) n FROM orders o WHERE o.status IN ('paid','confirmed') AND NOT EXISTS (SELECT 1 FROM shipments s WHERE s.order_id=o.id AND s.status<>'cancelled')`),
+  const [
+    toShip,
+    codConfirm,
+    payPending,
+    rto,
+    inquiries,
+    inquiryFollowUps,
+    reviews,
+    out,
+    low,
+    waiting,
+    failedMail,
+    abandoned,
+  ] = await Promise.all([
+    q(
+      `SELECT COUNT(*) n FROM orders o WHERE o.status IN ('paid','confirmed') AND NOT EXISTS (SELECT 1 FROM shipments s WHERE s.order_id=o.id AND s.status<>'cancelled')`,
+    ),
     q("SELECT COUNT(*) n FROM orders WHERE status='cod_pending'"),
-    q("SELECT COUNT(*) n FROM orders WHERE status='pending_payment' AND created_at < NOW() - INTERVAL 15 MINUTE"),
+    q(
+      "SELECT COUNT(*) n FROM orders WHERE status='pending_payment' AND created_at < NOW() - INTERVAL 15 MINUTE",
+    ),
     q("SELECT COUNT(*) n FROM orders WHERE status='rto'"),
     q("SELECT COUNT(*) n FROM inquiries WHERE status='new'"),
+    q(
+      "SELECT COUNT(*) n FROM inquiries WHERE kind='bulk' AND follow_up_at <= CURDATE() AND status NOT IN ('won','lost')",
+    ),
     q("SELECT COUNT(*) n FROM reviews WHERE status='pending'"),
-    q("SELECT COUNT(*) n FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.status='active' AND v.available=1 AND v.stock_qty IS NOT NULL AND v.stock_qty<=0"),
-    q("SELECT COUNT(*) n FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.status='active' AND v.available=1 AND v.stock_qty>0 AND v.stock_qty<=?", [settings.lowStockThreshold]),
+    q(
+      "SELECT COUNT(*) n FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.status='active' AND v.available=1 AND v.stock_qty IS NOT NULL AND v.stock_qty<=0",
+    ),
+    q(
+      "SELECT COUNT(*) n FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.status='active' AND v.available=1 AND v.stock_qty>0 AND v.stock_qty<=?",
+      [settings.lowStockThreshold],
+    ),
     q("SELECT COUNT(*) n FROM back_in_stock WHERE notified_at IS NULL"),
     q("SELECT COUNT(*) n FROM email_outbox WHERE status='failed'"),
-    q("SELECT COUNT(*) n FROM carts WHERE status='active' AND item_count>0 AND phone IS NOT NULL AND reminder_count=0 AND last_activity_at < NOW() - INTERVAL 30 MINUTE AND created_at > NOW() - INTERVAL 7 DAY"),
+    q(
+      "SELECT COUNT(*) n FROM carts WHERE status='active' AND item_count>0 AND phone IS NOT NULL AND reminder_count=0 AND last_activity_at < NOW() - INTERVAL 30 MINUTE AND created_at > NOW() - INTERVAL 7 DAY",
+    ),
   ]);
   const list: Attention[] = [
-    { key: "ship", label: "Orders to ship", count: toShip, href: "/admin/orders?f=to_ship", tone: "red" },
-    { key: "cod", label: "COD orders to confirm", count: codConfirm, href: "/admin/orders?f=to_ship", tone: "amber" },
-    { key: "pay", label: "Payments pending over 15 min", count: payPending, href: "/admin/orders?f=awaiting_payment", tone: "amber" },
-    { key: "rto", label: "RTO shipments to receive back", count: rto, href: "/admin/orders?f=cancelled", tone: "red" },
-    { key: "abandoned", label: "Abandoned checkouts to message", count: abandoned, href: "/admin/abandoned-carts", tone: "amber" },
-    { key: "out", label: "Sizes out of stock", count: out, href: "/admin/inventory", tone: "red" },
-    { key: "low", label: `Sizes at or below ${settings.lowStockThreshold} in stock`, count: low, href: "/admin/inventory", tone: "amber" },
-    { key: "waiting", label: "Back-in-stock requests waiting", count: waiting, href: "/admin/inventory", tone: "gray" },
-    { key: "inq", label: "New bulk inquiries", count: inquiries, href: "/admin/inquiries", tone: "amber" },
-    { key: "rev", label: "Reviews to moderate", count: reviews, href: "/admin/reviews", tone: "gray" },
-    { key: "mail", label: "Emails that failed to send", count: failedMail, href: "/admin/orders", tone: "red" },
+    {
+      key: "ship",
+      label: "Orders to ship",
+      count: toShip,
+      href: "/admin/orders?f=to_ship",
+      tone: "red",
+    },
+    {
+      key: "cod",
+      label: "COD orders to confirm",
+      count: codConfirm,
+      href: "/admin/orders?f=to_ship",
+      tone: "amber",
+    },
+    {
+      key: "pay",
+      label: "Payments pending over 15 min",
+      count: payPending,
+      href: "/admin/orders?f=awaiting_payment",
+      tone: "amber",
+    },
+    {
+      key: "rto",
+      label: "RTO shipments to receive back",
+      count: rto,
+      href: "/admin/orders?f=cancelled",
+      tone: "red",
+    },
+    {
+      key: "abandoned",
+      label: "Abandoned checkouts to message",
+      count: abandoned,
+      href: "/admin/abandoned-carts",
+      tone: "amber",
+    },
+    {
+      key: "out",
+      label: "Sizes out of stock",
+      count: out,
+      href: "/admin/inventory",
+      tone: "red",
+    },
+    {
+      key: "low",
+      label: `Sizes at or below ${settings.lowStockThreshold} in stock`,
+      count: low,
+      href: "/admin/inventory",
+      tone: "amber",
+    },
+    {
+      key: "waiting",
+      label: "Back-in-stock requests waiting",
+      count: waiting,
+      href: "/admin/inventory",
+      tone: "gray",
+    },
+    {
+      key: "inq",
+      label: "New bulk inquiries",
+      count: inquiries,
+      href: "/admin/inquiries",
+      tone: "amber",
+    },
+    {
+      key: "inq_follow_up",
+      label: "Inquiry follow-ups due today",
+      count: inquiryFollowUps,
+      href: "/admin/inquiries?f=due",
+      tone: "amber",
+    },
+    {
+      key: "rev",
+      label: "Reviews to moderate",
+      count: reviews,
+      href: "/admin/reviews",
+      tone: "gray",
+    },
+    {
+      key: "mail",
+      label: "Emails that failed to send",
+      count: failedMail,
+      href: "/admin/orders",
+      tone: "red",
+    },
   ].filter((a) => a.count > 0) as Attention[];
 
   const exp = settings.business.fssaiExpiry;
   if (exp) {
-    const days = Math.ceil((Date.parse(`${exp}T00:00:00+05:30`) - Date.now()) / 86_400_000);
-    if (days <= 30) list.unshift({ key: "fssai", label: days < 0 ? "FSSAI licence has expired" : `FSSAI licence expires in ${days} day${days === 1 ? "" : "s"}`, count: 1, href: "/admin/settings", tone: "red", note: exp });
+    const days = Math.ceil(
+      (Date.parse(`${exp}T00:00:00+05:30`) - Date.now()) / 86_400_000,
+    );
+    if (days <= 30)
+      list.unshift({
+        key: "fssai",
+        label:
+          days < 0
+            ? "FSSAI licence has expired"
+            : `FSSAI licence expires in ${days} day${days === 1 ? "" : "s"}`,
+        count: 1,
+        href: "/admin/settings",
+        tone: "red",
+        note: exp,
+      });
   }
-  if (!payuConfigured()) list.push({ key: "payu", label: "PayU keys missing: online payments are off", count: 1, href: "/admin/settings", tone: "red" });
-  if (!mailConfigured()) list.push({ key: "resend", label: "Resend key missing: order emails are waiting", count: 1, href: "/admin/orders", tone: "amber" });
-  if (!nimbusConfigured()) list.push({ key: "nimbus", label: "NimbusPost keys missing: courier rates use the flat fee", count: 1, href: "/admin/settings", tone: "amber" });
+  if (!payuConfigured())
+    list.push({
+      key: "payu",
+      label: "PayU keys missing: online payments are off",
+      count: 1,
+      href: "/admin/settings",
+      tone: "red",
+    });
+  if (!mailConfigured())
+    list.push({
+      key: "resend",
+      label: "Resend key missing: order emails are waiting",
+      count: 1,
+      href: "/admin/orders",
+      tone: "amber",
+    });
+  if (!nimbusConfigured())
+    list.push({
+      key: "nimbus",
+      label: "NimbusPost keys missing: courier rates use the flat fee",
+      count: 1,
+      href: "/admin/settings",
+      tone: "amber",
+    });
   return list;
 }

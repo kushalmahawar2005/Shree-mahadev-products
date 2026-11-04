@@ -121,7 +121,13 @@ async function CustomerDetail({
                       <td className="whitespace-nowrap">
                         {order.createdAt.slice(0, 10)}
                       </td>
-                      <td>{order.paymentMethod === "cod" ? "COD" : "PayU"}</td>
+                      <td>
+                        {order.paymentMethod === "cod"
+                          ? "COD"
+                          : order.paymentMethod === "offline"
+                            ? "Offline paid"
+                            : "PayU"}
+                      </td>
                       <td className="whitespace-nowrap">
                         {formatMoney(order.total)}
                       </td>

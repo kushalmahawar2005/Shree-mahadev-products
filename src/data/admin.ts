@@ -1,5 +1,5 @@
 /**
- * MOCK admin data for pages not yet wired to MySQL (dashboard, discounts, reviews, inquiries).
+ * MOCK admin data for pages not yet wired to MySQL (dashboard, discounts, reviews).
  * Replace page by page with real queries; keep only as a no-DB fallback.
  */
 export type OrderStatus =
@@ -138,49 +138,6 @@ export const orders: AdminOrder[] = [
     total: 980,
     status: "Cancelled",
     payment: "UPI",
-  },
-];
-
-export type Inquiry = {
-  id: string;
-  date: string;
-  name: string;
-  business: string;
-  city: string;
-  product: string;
-  qty: string;
-  status: "New" | "Contacted" | "Closed";
-};
-export const inquiries: Inquiry[] = [
-  {
-    id: "B-12",
-    date: "03 Nov",
-    name: "Rakesh Jain",
-    business: "Jain Sweets",
-    city: "Kishangarh",
-    product: "Groundnut Oil 15 L",
-    qty: "20 tins",
-    status: "New",
-  },
-  {
-    id: "B-11",
-    date: "02 Nov",
-    name: "Hotel Rajdoot",
-    business: "Rajdoot Restaurant",
-    city: "Ajmer",
-    product: "Yellow Mustard Oil 15 L",
-    qty: "10 tins",
-    status: "Contacted",
-  },
-  {
-    id: "B-10",
-    date: "30 Oct",
-    name: "Vikas Traders",
-    business: "Vikas Kirana",
-    city: "Beawar",
-    product: "Mixed oils 5 L",
-    qty: "40 tins",
-    status: "Closed",
   },
 ];
 
