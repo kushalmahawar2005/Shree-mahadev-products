@@ -41,6 +41,7 @@ export async function inventoryLogAction(variantKey: string) {
 export async function setLowStockThresholdAction(value: number) {
   await requireAdmin();
   await setSetting("low_stock_threshold", z.number().int().min(0).max(1000).parse(value));
+  updateTag("settings");
   revalidatePath("/admin/inventory");
 }
 

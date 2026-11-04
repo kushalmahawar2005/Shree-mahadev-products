@@ -4,7 +4,6 @@ import { z } from "zod";
 import { clientIp, rateLimit } from "@/lib/server/rate-limit";
 
 import { redirect } from "next/navigation";
-import { site } from "@/data/site";
 import { getProduct } from "@/lib/commerce";
 import { getCartAction } from "@/lib/commerce/actions";
 import { INDIAN_STATES } from "@/lib/checkout";
@@ -14,6 +13,7 @@ import { createOrder, type OrderItemInput } from "@/lib/server/orders";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { notifyOrder } from "@/lib/server/mail";
 import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
+import { getStoreSettings } from "@/lib/server/store-settings";
 
 export type CheckoutState = { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
 
@@ -60,7 +60,7 @@ export async function quoteShippingAction(pincode: string): Promise<ShippingQuot
   const base = { pincode, subtotal: c.subtotal, weightGrams: c.weight };
   const [payu, cod] = await Promise.all([
     quoteShipping({ ...base, method: "payu" }),
-    site.codAvailable ? quoteShipping({ ...base, method: "cod" }) : null,
+    (await getStoreSettings()).shipping.codEnabled ? quoteShipping({ ...base, method: "cod" }) : null,
   ]);
   return {
     ok: true,
@@ -127,10 +127,14 @@ export async function placeOrderAction(_prev: CheckoutState, fd: FormData): Prom
     return { fieldErrors };
   }
   const { method, ...address } = parsed.data;
-  if (method === "cod" && !site.codAvailable) return { fieldErrors: { method: "Cash on delivery is not available." } };
+  const { shipping: ship } = await getStoreSettings();
+  if (method === "cod" && !ship.codEnabled) return { fieldErrors: { method: "Cash on delivery is not available right now." } };
 
   const c = await pricedCart();
   if ("error" in c) return { error: c.error };
+  if (method === "cod" && ship.codMaxOrder && c.subtotal > ship.codMaxOrder) {
+    return { fieldErrors: { method: `Cash on delivery is available up to ₹${ship.codMaxOrder}. Please pay online.` } };
+  }
 
   // Re-quote on the server: the price shown in the browser is never trusted.
   const q = await quoteShipping({ pincode: address.pincode, subtotal: c.subtotal, weightGrams: c.weight, method });

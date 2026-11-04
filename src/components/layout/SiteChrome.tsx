@@ -2,6 +2,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { getProducts, type Product } from "@/lib/commerce";
 import { collectionDefs } from "@/data/collections";
 import { oilShelfOrder } from "@/data/products";
+import { AnnouncementBar } from "./AnnouncementBar";
 import { Header } from "./Header";
 import type { MenuProduct } from "./MegaMenu";
 
@@ -28,6 +29,7 @@ export async function SiteHeader() {
   return (
     <>
       <Header
+        announcement={<AnnouncementBar />}
         menus={{
           oils: orderedOils.map(toMenu),
           honey: honey.map(toMenu),

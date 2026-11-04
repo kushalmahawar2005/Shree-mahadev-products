@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useActionState, useRef, useState, useTransition } from "react";
-import { site } from "@/data/site";
+import { useStoreSettings } from "@/components/StoreSettingsProvider";
 import { INDIAN_STATES } from "@/lib/checkout";
 import {
   placeOrderAction,
@@ -43,6 +43,7 @@ function Field({
 }
 
 export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: number }) {
+  const { shipping: ship } = useStoreSettings();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrderAction, undefined);
   const [chosenMethod, setMethod] = useState<"payu" | "cod">("payu");
   const [pincode, setPincode] = useState("");
@@ -125,7 +126,7 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
             {(
               [
                 { id: "payu", title: "Pay online", note: "UPI, cards, net banking, wallets. Secured by PayU." },
-                ...(site.codAvailable && !codBlocked
+                ...(ship.codEnabled && !codBlocked && !(ship.codMaxOrder && subtotal > ship.codMaxOrder)
                   ? [{ id: "cod", title: "Cash on delivery", note: codFee ? `${formatMoney(codFee)} COD charge applies.` : "Pay when your order arrives." }]
                   : []),
               ] as const
@@ -186,9 +187,9 @@ export function CheckoutForm({ lines, subtotal }: { lines: Line[]; subtotal: num
             <dd className="font-bold text-forest-text">{formatMoney(total)}</dd>
           </div>
         </dl>
-        {subtotal < site.freeShippingThreshold && (
+        {subtotal < ship.freeShippingThreshold && (
           <p className="mt-2 text-sm text-ink-muted">
-            Add {formatMoney(site.freeShippingThreshold - subtotal)} more for free shipping.
+            Add {formatMoney(ship.freeShippingThreshold - subtotal)} more for free shipping.
           </p>
         )}
         {known && quote.edd && <p className="mt-1 text-sm text-ink-muted">Estimated delivery: {quote.edd}</p>}

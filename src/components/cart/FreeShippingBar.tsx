@@ -1,8 +1,10 @@
-import { site } from "@/data/site";
+"use client";
+
+import { useStoreSettings } from "@/components/StoreSettingsProvider";
 import { formatMoney } from "@/lib/utils/money";
 
 export function FreeShippingBar({ subtotal }: { subtotal: number }) {
-  const threshold = site.freeShippingThreshold;
+  const threshold = useStoreSettings().shipping.freeShippingThreshold;
   const pct = Math.min(100, (subtotal / threshold) * 100);
   const remaining = Math.max(0, threshold - subtotal);
 

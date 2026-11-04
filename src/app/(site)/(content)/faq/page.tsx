@@ -3,6 +3,7 @@ import { Accordion } from "@/components/ui/Accordion";
 import { Container } from "@/components/ui/primitives";
 import { site } from "@/data/site";
 import { jsonLdString, pageMetadata } from "@/lib/utils/seo";
+import { getStoreSettings } from "@/lib/server/store-settings";
 
 export const metadata: Metadata = pageMetadata({
   title: "FAQ",
@@ -29,7 +30,7 @@ const faqs = [
   },
   {
     q: "How much is shipping?",
-    a: `Shipping is free on orders above ₹${site.freeShippingThreshold}. TODO(client): charges below that and delivery times.`,
+    a: `Shipping is free on orders above ₹{threshold}. TODO(client): charges below that and delivery times.`,
   },
   {
     q: "Do you ship outside India?",
@@ -41,7 +42,9 @@ const faqs = [
   },
 ];
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const { shipping } = await getStoreSettings();
+  const list = faqs.map((f) => ({ ...f, a: f.a.replace("{threshold}", String(shipping.freeShippingThreshold)) }));
   return (
     <Container className="max-w-3xl py-14 md:py-20">
       <script
@@ -50,7 +53,7 @@ export default function FaqPage() {
           __html: jsonLdString({
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            mainEntity: faqs.map((f) => ({
+            mainEntity: list.map((f) => ({
               "@type": "Question",
               name: f.q,
               acceptedAnswer: { "@type": "Answer", text: f.a },
@@ -59,7 +62,7 @@ export default function FaqPage() {
         }}
       />
       <h1 className="text-4xl md:text-5xl">Frequently asked questions</h1>
-      <Accordion items={faqs.map((f) => ({ title: f.q, content: <p>{f.a}</p> }))} className="mt-10" />
+      <Accordion items={list.map((f) => ({ title: f.q, content: <p>{f.a}</p> }))} className="mt-10" />
     </Container>
   );
 }

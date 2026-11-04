@@ -6,9 +6,10 @@ import { QtyStepper } from "@/components/cart/CartLine";
 import { useCart } from "@/components/cart/CartProvider";
 import { WhatsAppIcon } from "@/components/layout/icons";
 import { NotifyMe } from "./NotifyMe";
+import { useStoreSettings } from "@/components/StoreSettingsProvider";
 import { Badge, Pill } from "@/components/ui/primitives";
 import { buttonClass } from "@/components/ui/Button";
-import { site, whatsappLink } from "@/data/site";
+import { whatsappLink } from "@/data/site";
 import { DISCOUNT_BADGE_MIN, discountPercent, formatMoney } from "@/lib/utils/money";
 import { unitPrice } from "@/lib/utils/unitPrice";
 import type { Product, ProductVariant } from "@/lib/commerce/types";
@@ -18,6 +19,7 @@ type Props = Pick<Product, "handle" | "title" | "variants">;
 /** VariantPicker + PriceBlock + AddToCart + sticky mobile ATC. */
 export function ProductPurchase({ handle, title, variants }: Props) {
   const { add, pending } = useCart();
+  const settings = useStoreSettings();
   const firstAvailable = variants.find((v) => v.availableForSale);
   // Default to the 1L / most common size if available, else first in stock.
   const preferred =
@@ -94,7 +96,7 @@ export function ProductPurchase({ handle, title, variants }: Props) {
       </a>
 
       <ul className="mt-5 space-y-1 text-sm text-ink-muted">
-        <li>Free shipping on orders above {formatMoney(site.freeShippingThreshold)}.</li>
+        <li>Free shipping on orders above {formatMoney(settings.shipping.freeShippingThreshold)}.</li>
         <li>Cash on delivery available. {/* TODO(client): COD charges + delivery time by state */}</li>
         <li>Ships from Bijainagar, Rajasthan. Delivery time: TODO(client).</li>
       </ul>

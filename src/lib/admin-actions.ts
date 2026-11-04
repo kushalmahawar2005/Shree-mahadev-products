@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin } from "@/lib/server/admin-auth";
 import { markReminderSent } from "@/lib/server/carts";
 import { listOrderEmails, processOutbox, queueOrderEmail, type OutboxRow } from "@/lib/server/mail";
@@ -101,4 +101,19 @@ export async function refundOrderAction(orderId: number, amount: number, reason:
   const out = await refundOrder(v.orderId, v.amount, v.reason, admin.username);
   revalidatePath("/admin/orders");
   return out;
+}
+
+// ───────────── Store settings ─────────────
+export async function saveStoreSettingsAction(input: unknown) {
+  await requireAdmin();
+  const { StoreSettingsSchema } = await import("@/lib/store-settings");
+  const parsed = StoreSettingsSchema.safeParse(input);
+  if (!parsed.success) {
+    const i = parsed.error.issues[0];
+    return { ok: false as const, error: `${i.path.join(" › ")}: ${i.message}` };
+  }
+  const { saveStoreSettings, SETTINGS_TAG } = await import("@/lib/server/store-settings");
+  await saveStoreSettings(parsed.data);
+  updateTag(SETTINGS_TAG);
+  return { ok: true as const };
 }

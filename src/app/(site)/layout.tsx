@@ -1,12 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Mukta } from "next/font/google";
 import { CartProvider } from "@/components/cart/CartProvider";
+import { StoreSettingsProvider } from "@/components/StoreSettingsProvider";
+import { getStoreSettings } from "@/lib/server/store-settings";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { site } from "@/data/site";
-import { jsonLdString, localBusinessJsonLd, organizationJsonLd } from "@/lib/utils/seo";
+import {
+  jsonLdString,
+  localBusinessJsonLd,
+  organizationJsonLd,
+} from "@/lib/utils/seo";
 import "../globals.css";
 
 /** Clean geometric sans (close to Cowberry's look). Mukta covers Devanagari. */
@@ -33,7 +39,7 @@ export const metadata: Metadata = {
   description: site.description,
   applicationName: site.name,
   alternates: { canonical: "/" },
-  
+
   openGraph: {
     type: "website",
     locale: "en_IN",
@@ -50,7 +56,11 @@ export const viewport: Viewport = {
   colorScheme: "only light",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`}>
       <body className="flex min-h-dvh flex-col">
@@ -62,19 +72,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: jsonLdString([organizationJsonLd(), localBusinessJsonLd()]) }}
+          dangerouslySetInnerHTML={{
+            __html: jsonLdString([organizationJsonLd(), localBusinessJsonLd()]),
+          }}
         />
-        <CartProvider>
-          <SmoothScroll>
-            <SiteHeader />
-            <main id="main" className="flex-1">
-              {children}
-            </main>
-            <Footer />
-            <MobileBottomBar />
-            <SiteCartDrawer />
-          </SmoothScroll>
-        </CartProvider>
+        <StoreSettingsProvider value={await getStoreSettings()}>
+          <CartProvider>
+            <SmoothScroll>
+              <SiteHeader />
+              <main id="main" className="flex-1">
+                {children}
+              </main>
+              <Footer />
+              <MobileBottomBar />
+              <SiteCartDrawer />
+            </SmoothScroll>
+          </CartProvider>
+        </StoreSettingsProvider>
       </body>
     </html>
   );

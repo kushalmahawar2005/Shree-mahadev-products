@@ -1,5 +1,6 @@
 import { Reels, type ReelItem } from "@/components/home/Reels";
 import { getHomeVideos } from "@/lib/home-videos";
+import { getStoreSettings } from "@/lib/server/store-settings";
 import { Hero } from "@/components/home/Hero";
 import { toPickProduct } from "@/components/home/pickProduct";
 import {
@@ -13,7 +14,7 @@ import {
 } from "@/components/home/PicksSections";
 import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
 import { topPicks } from "@/data/home";
-import { shopByUse, site } from "@/data/site";
+import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 
 /** Temporarily hidden sections (listed in HIDDEN.md). Flip to true to show again. */
@@ -78,7 +79,7 @@ export default async function HomePage() {
     };
   });
 
-  const videos = await getHomeVideos();
+  const [videos, settings] = await Promise.all([getHomeVideos(), getStoreSettings()]);
   const reelItems: ReelItem[] = videos.reels.map((r) => {
     const p = r.productHandle ? all.find((x) => x.handle === r.productHandle) : undefined;
     return {
@@ -107,8 +108,8 @@ export default async function HomePage() {
         <RasoiKit
           items={kitItems}
           href="/collections/combos"
-          freeShippingThreshold={site.freeShippingThreshold}
-          codAvailable={site.codAvailable}
+          freeShippingThreshold={settings.shipping.freeShippingThreshold}
+          codAvailable={settings.shipping.codEnabled}
         />
       )}
     </>

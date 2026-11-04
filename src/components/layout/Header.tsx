@@ -9,7 +9,6 @@ import { useCart } from "@/components/cart/CartProvider";
 import { mainNav, type MenuGroup } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 import { BagIcon, ChevronDown, MenuIcon, SearchIcon, UserIcon } from "./icons";
-import { AnnouncementBar } from "./AnnouncementBar";
 import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
 import { SearchBox } from "./SearchBox";
 import { MobileNav } from "./MobileNav";
@@ -22,11 +21,14 @@ import { MobileNav } from "./MobileNav";
 export function Header({
   menus,
   recommended,
+  announcement,
   allProducts,
 }: {
   menus: MenuData;
   recommended: MenuProduct[];
   allProducts: MenuProduct[];
+  /** Server-rendered announcement bar (reads store settings). */
+  announcement?: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mega, setMega] = useState<MenuGroup | null>(null);
@@ -72,7 +74,7 @@ export function Header({
           {/* Announcement strip (collapses once the page is scrolled) */}
           <div className="grid grid-rows-[1fr] transition-[grid-template-rows] duration-300 group-data-[compact]/header:grid-rows-[0fr]">
             <div className="overflow-hidden">
-              <AnnouncementBar />
+              {announcement}
             </div>
           </div>
 

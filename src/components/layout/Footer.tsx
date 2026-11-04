@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { DecoBg } from "@/components/ui/DecoBg";
 import Link from "next/link";
-import { footerNav, fullAddress, site, whatsappLink } from "@/data/site";
+import { footerNav, site, whatsappLink } from "@/data/site";
+import { getStoreSettings } from "@/lib/server/store-settings";
 
 const payments = ["UPI", "Visa", "Mastercard", "RuPay", "Net banking", "COD"];
 
@@ -12,7 +13,11 @@ const GRASS_GREEN = "#A7AE3C";
  * Two Brothers-style footer: white panel with logo · tagline + links · contact,
  * and a full-width hand-drawn harvest illustration (mustard field, ghani, bullock, honey, fort) along the bottom.
  */
-export function Footer() {
+export async function Footer() {
+  const st = await getStoreSettings();
+  const b = st.business;
+  const socials = st.socials;
+  const address = [b.addressLine1, `${b.city} ${b.postalCode}`, b.district && `Dist. ${b.district}`, b.state].filter(Boolean).join(", ");
   return (
     <footer className="relative bg-white text-forest-text">
       <div className="relative">
@@ -78,9 +83,9 @@ export function Footer() {
               <FooterCol title="Help" links={footerNav.help} />
             </div>
 
-            {site.socials.length > 0 && (
+            {socials.length > 0 && (
               <ul className="mt-6 flex justify-center gap-5">
-                {site.socials.map((s) => (
+                {socials.map((s) => (
                   <li key={s.href}>
                     <a
                       href={s.href}
@@ -98,24 +103,24 @@ export function Footer() {
 
           <address className="space-y-3 text-center text-sm not-italic text-forest-text/90 lg:text-left">
             <p className="font-semibold">{site.name}</p>
-            <p>{fullAddress}</p>
+            <p>{address}</p>
             <p>
               Phone:{" "}
               <a
-                href={site.phoneHref}
+                href={`tel:${b.phone.replace(/[^\d+]/g, "")}`}
                 className="underline-offset-2 hover:underline"
               >
-                {site.phone}
+                {b.phone}
               </a>{" "}
-              ({site.supportHours})
+              ({b.supportHours})
             </p>
             <p>
               Email:{" "}
               <a
-                href={`mailto:${site.email}`}
+                href={`mailto:${b.email}`}
                 className="underline underline-offset-2"
               >
-                {site.email}
+                {b.email}
               </a>
             </p>
             <p>
@@ -153,7 +158,7 @@ export function Footer() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 text-sm sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div className="space-y-1">
             <p>
-              FSSAI Lic. No. {site.fssai} · {site.iso} · GSTIN {site.gst}
+              FSSAI Lic. No. {b.fssai}{b.iso ? ` · ${b.iso}` : ""}{b.gstin ? ` · GSTIN ${b.gstin}` : ""}
             </p>
             <p>
               © <CopyrightYear /> {site.name}. All rights reserved.
@@ -169,7 +174,7 @@ export function Footer() {
               </li>
             ))}
           </ul>
-          {site.socials.length === 0 && (
+          {socials.length === 0 && (
             <p className="text-forest-deep/70">TODO(client): social links</p>
           )}
         </div>

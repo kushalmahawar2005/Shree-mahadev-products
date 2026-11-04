@@ -1,5 +1,5 @@
 import "server-only";
-import { site } from "@/data/site";
+import { getStoreSettings } from "./store-settings";
 import { getCourierQuotes, nimbusConfigured } from "./nimbuspost";
 
 export type ShippingQuote = {
@@ -32,11 +32,12 @@ export async function quoteShipping(input: {
   weightGrams: number;
   method: "payu" | "cod";
 }): Promise<ShippingQuote> {
-  const free = input.subtotal >= site.freeShippingThreshold;
+  const { shipping: cfg } = await getStoreSettings();
+  const free = input.subtotal >= cfg.freeShippingThreshold;
   const flat: ShippingQuote = {
     serviceable: true,
-    shipping: free ? 0 : site.shippingFee,
-    codFee: input.method === "cod" ? site.codFee : 0,
+    shipping: free ? 0 : cfg.flatShippingFee,
+    codFee: input.method === "cod" ? cfg.flatCodFee : 0,
     courierId: null,
     courierName: null,
     edd: null,
