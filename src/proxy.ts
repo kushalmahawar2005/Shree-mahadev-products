@@ -26,7 +26,11 @@ export async function proxy(req: NextRequest) {
     }
   }
   if (!pathname.startsWith("/admin")) return NextResponse.next();
-  if (pathname === "/admin/login") return NextResponse.next();
+  if (pathname === "/admin/login") {
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-admin-public", "1");
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
   const session = await verifySessionToken(req.cookies.get(ADMIN_COOKIE)?.value);
   if (session) return NextResponse.next();
   const url = req.nextUrl.clone();
