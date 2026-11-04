@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
 import { DecoBg } from "@/components/ui/DecoBg";
+import { cldUrl } from "@/lib/image-loader";
 import { SmartImage } from "@/components/ui/SmartImage";
 import {
   beyondSlides,
@@ -43,6 +44,7 @@ function Wrap({
 export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   return (
     <section className="relative overflow-hidden bg-[#FBF8F2] pt-16 pb-12 md:pt-20 md:pb-16">
+      <Sky />
       <Wrap className="relative">
         <Reveal>
           <h2 className="text-center text-3xl text-forest md:text-[44px]">
@@ -57,6 +59,25 @@ export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   );
 }
 
+
+/** Sun + birds (left) and clouds + neem (right) around the heading. CSS backgrounds: decorative, never LCP. */
+function Sky() {
+  const bg = (src: string, w: number) => ({ backgroundImage: `url("${cldUrl(src, w)}")` });
+  return (
+    <>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-2 -left-4 aspect-[900/299] w-40 bg-contain bg-no-repeat opacity-90 sm:w-56 md:top-4 md:left-0 lg:w-[340px] xl:w-[400px]"
+        style={bg("https://res.cloudinary.com/bmqxsylj/image/upload/v1793735964/swadeshi-mahadev/static/images/deco/sky-sun-birds.webp", 800)}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-0 right-0 aspect-[900/243] w-44 bg-contain bg-right-top bg-no-repeat opacity-95 sm:w-60 lg:w-[360px] xl:w-[420px]"
+        style={bg("https://res.cloudinary.com/bmqxsylj/image/upload/v1793735962/swadeshi-mahadev/static/images/deco/sky-clouds-neem.webp", 840)}
+      />
+    </>
+  );
+}
 
 /* ───────────── 2. Promo strip ───────────── */
 
