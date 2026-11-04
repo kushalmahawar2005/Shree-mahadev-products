@@ -63,10 +63,9 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
   }, [added]);
 
   return (
-    <article className="group flex h-full flex-col rounded-2xl border border-[#EFE6D2] bg-white p-3 md:p-4">
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white">
       {/* 1. Image */}
-      <Link href={href} data-card-media className="relative block aspect-square overflow-hidden rounded-xl bg-khaki-soft" tabIndex={-1} aria-hidden>
-        <span className="absolute bottom-[7%] left-1/2 h-[5%] w-[44%] -translate-x-1/2 rounded-[50%] bg-forest-deep/12 blur-[6px]" />
+      <Link href={href} data-card-media className="relative block aspect-square overflow-hidden bg-khaki-soft" tabIndex={-1} aria-hidden>
         {img && (
           <SmartImage
             src={img.url}
@@ -76,7 +75,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             priority={priority}
             sizes="(min-width: 1024px) 280px, 45vw"
             className={cn(
-              "absolute top-[10%] left-[10%] h-[80%] w-[80%] origin-bottom object-contain object-bottom transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04]",
+              "absolute inset-[5%] size-[90%] object-contain transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04]",
               img2 && "md:group-hover:opacity-0",
             )}
           />
@@ -88,36 +87,37 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             width={img2.width}
             height={img2.height}
             sizes="(min-width: 1024px) 280px, 45vw"
-            className="absolute top-[10%] left-[10%] h-[80%] w-[80%] origin-bottom object-contain object-bottom opacity-0 transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04] md:group-hover:opacity-100"
+            className="absolute inset-[5%] size-[90%] object-contain opacity-0 transition-[transform,opacity] duration-500 ease-out md:group-hover:scale-[1.04] md:group-hover:opacity-100"
           />
         )}
         {badgeTag && (
-          <span className="absolute bottom-2 left-2 rounded-full bg-forest px-2 py-0.5 text-[11px] font-semibold text-white md:top-2 md:bottom-auto md:px-2.5 md:text-xs">{BADGES[badgeTag]}</span>
+          <span className="absolute top-3 right-3 rounded-full bg-forest px-2.5 py-1 text-xs font-semibold text-white">{BADGES[badgeTag]}</span>
         )}
         {off >= DISCOUNT_BADGE_MIN && (
-          <span className="absolute top-2 right-2 rounded-full bg-mustard px-2 py-0.5 text-[11px] font-bold text-forest-deep md:px-2.5 md:text-xs">{off}% off</span>
+          <span className="absolute top-3 left-3 rounded-full bg-khaki-soft px-3 py-1 text-xs font-bold text-sale shadow-sm">{off}% off</span>
         )}
       </Link>
 
-      {/* 2–4. Name, Hindi name, rating */}
-      <h3 className="mt-3 truncate text-base leading-snug font-semibold text-forest-text md:text-lg">
-        <Link href={href} className="hover:underline">
-          {product.title.replace(/^(Wood|Cold)-Pressed /, "")}
-        </Link>
-      </h3>
-      <p lang="hi" className="truncate text-sm text-ink-muted">
-        {product.titleHi}
-      </p>
-      {/* Only real ratings (Judge.me). No placeholder stars. */}
-      {product.rating && product.reviewCount ? (
-        <p className="mt-1 flex items-center gap-1 text-sm" aria-label={`Rated ${product.rating.toFixed(1)} out of 5 from ${product.reviewCount} reviews`}>
-          <Stars value={product.rating} />
-          <span className="font-semibold text-ink">{product.rating.toFixed(1)}</span>
-          <span className="text-ink-muted">({product.reviewCount})</span>
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        {/* Name, Hindi name, real rating, and product description */}
+        <h3 className="line-clamp-2 min-h-[2.8em] text-base leading-snug font-semibold text-forest-text sm:text-lg">
+          <Link href={href} className="hover:underline">
+            {product.title.replace(/^(Wood|Cold)-Pressed /, "")}
+          </Link>
+        </h3>
+        <p lang="hi" className="mt-0.5 truncate text-sm text-ink-muted">
+          {product.titleHi}
         </p>
-      ) : null}
+        {product.rating && product.reviewCount ? (
+          <p className="mt-2 flex items-center gap-1.5 text-sm" aria-label={`Rated ${product.rating.toFixed(1)} out of 5 from ${product.reviewCount} reviews`}>
+            <Stars value={product.rating} />
+            <span className="font-semibold text-ink">{product.rating.toFixed(1)}</span>
+            <span className="text-ink-muted">({product.reviewCount})</span>
+          </p>
+        ) : null}
+        <p className="mt-2 line-clamp-2 min-h-[2.7em] text-sm leading-relaxed text-ink-muted">{product.shortDescription}</p>
 
-      <div className="mt-auto pt-3">
+        <div className="mt-auto pt-3">
         {available.length > 0 ? (
           <>
             {/* 5. Sizes: whole chips only, "+N" for the rest */}
@@ -129,7 +129,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             />
 
             {/* 6. Price row */}
-            <div className="mt-3 min-h-[48px]" aria-live="polite">
+            <div className="mt-3 min-h-[56px]" aria-live="polite">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={selected?.id}
@@ -138,14 +138,11 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
                 >
-                  <p className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-ink">{formatMoney(selected!.price)}</span>
+                  <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     {selected!.compareAtPrice && selected!.compareAtPrice.amount > selected!.price.amount && (
-                      <s className="text-sm text-ink-muted">
-                        <span className="sr-only">MRP </span>
-                        {formatMoney(selected!.compareAtPrice)}
-                      </s>
+                      <span className="text-xs text-ink-muted">MRP <s>{formatMoney(selected!.compareAtPrice)}</s></span>
                     )}
+                    <span className="text-2xl leading-none font-bold text-forest">{formatMoney(selected!.price)}</span>
                   </p>
                   {selected?.outOfStock ? (
                     <p className="text-[13px] font-semibold text-sale">Out of stock</p>
@@ -170,7 +167,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 await add(selected.id);
                 setAdded(true);
               }}
-              className="btn-shine mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60 md:h-11"
+              className="btn-shine mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
               aria-label={`Add ${product.title} ${selected?.title ?? ""} to cart`}
             >
               {added ? (
@@ -181,7 +178,13 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                   Added
                 </>
               ) : (
-                "Add to cart"
+                <>
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                    <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.4L22 8H6" strokeLinecap="round" strokeLinejoin="round" />
+                    <circle cx="10" cy="20" r="1" /><circle cx="18" cy="20" r="1" />
+                  </svg>
+                  Add to cart
+                </>
               )}
             </button>
             )}
@@ -189,11 +192,12 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         ) : (
           <Link
             href={href}
-            className="inline-flex h-10 w-full items-center justify-center rounded-full border border-forest px-4 text-sm font-semibold text-forest transition-colors duration-200 hover:bg-forest hover:text-white md:h-11"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-forest px-4 text-sm font-semibold text-forest transition-colors duration-200 hover:bg-forest hover:text-white"
           >
             Coming soon · View details
           </Link>
         )}
+      </div>
       </div>
     </article>
   );

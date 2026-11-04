@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/components/cart/CartProvider";
 import { SmartImage } from "@/components/ui/SmartImage";
-import { Badge, Pill, Price, Rating, SwatchDot } from "@/components/ui/primitives";
-import { cn } from "@/lib/utils/cn";
+import { Pill, Rating } from "@/components/ui/primitives";
 import { DISCOUNT_BADGE_MIN, discountPercent } from "@/lib/utils/money";
+import { formatMoney } from "@/lib/utils/money";
 import { unitPrice } from "@/lib/utils/unitPrice";
 import type { CardProduct } from "./cardProduct";
 
@@ -24,95 +24,88 @@ export function ProductCard({ product, priority = false }: { product: CardProduc
   const unit = selected ? unitPrice(selected) : null;
   const [img, img2] = product.images;
   const href = `/products/${product.handle}`;
+  const badgeTag = (["bestseller", "new"] as const).find((tag) => product.tags.includes(tag));
+  const badgeLabel = badgeTag === "bestseller" ? "Bestseller" : badgeTag === "new" ? "New" : null;
 
   return (
-    <article className="group relative flex h-full flex-col">
-      <Link href={href} className="relative block overflow-hidden rounded-[var(--radius-card)] bg-khaki-soft" tabIndex={-1} aria-hidden>
-        <div className="aspect-square">
-          {img && (
-            <SmartImage
-              src={img.url}
-              alt=""
-              width={img.width}
-              height={img.height}
-              priority={priority}
-              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
-              className={cn(
-                "size-full object-cover transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.04]",
-                img2 && "group-hover:opacity-0",
-              )}
-            />
-          )}
-          {img2 && (
-            <SmartImage
-              src={img2.url}
-              alt=""
-              width={img2.width}
-              height={img2.height}
-              sizes="(min-width: 1024px) 25vw, 50vw"
-              className="absolute inset-0 size-full object-cover opacity-0 transition-[transform,opacity] duration-500 group-hover:scale-[1.04] group-hover:opacity-100"
-            />
-          )}
-        </div>
-        {off >= DISCOUNT_BADGE_MIN && (
-          <Badge className="absolute top-3 left-3">{off}% off</Badge>
+    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white">
+      <Link href={href} className="relative block aspect-square overflow-hidden bg-khaki-soft" tabIndex={-1} aria-hidden>
+        {img && (
+          <SmartImage
+            src={img.url}
+            alt=""
+            width={img.width}
+            height={img.height}
+            priority={priority}
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            className={`absolute inset-[5%] size-[90%] object-contain transition-[transform,opacity] duration-500 ease-out group-hover:scale-[1.04] ${img2 ? "group-hover:opacity-0" : ""}`}
+          />
         )}
+        {img2 && (
+          <SmartImage
+            src={img2.url}
+            alt=""
+            width={img2.width}
+            height={img2.height}
+            sizes="(min-width: 1024px) 25vw, 50vw"
+            className="absolute inset-[5%] size-[90%] object-contain opacity-0 transition-[transform,opacity] duration-500 group-hover:scale-[1.04] group-hover:opacity-100"
+          />
+        )}
+        {off >= DISCOUNT_BADGE_MIN && (
+          <span className="absolute top-3 left-3 rounded-full bg-khaki-soft px-3 py-1 text-xs font-bold text-sale shadow-sm">{off}% off</span>
+        )}
+        {badgeLabel && <span className="absolute top-3 right-3 rounded-full bg-forest px-2.5 py-1 text-xs font-semibold text-white">{badgeLabel}</span>}
       </Link>
 
-      <div className="flex flex-1 flex-col pt-3">
-        <div className="flex items-start gap-2">
-          <SwatchDot color={product.swatch} className="mt-1.5" />
-          <div className="min-w-0">
-            <h3 className="font-body text-base leading-snug font-semibold text-forest-text">
-              <Link href={href} className="hover:underline">
-                {product.title}
-              </Link>
-            </h3>
-            <p className="text-sm text-ink-muted" lang="hi">
-              {product.titleHi}
-            </p>
-          </div>
-        </div>
-
-        <Rating rating={product.rating} count={product.reviewCount} className="mt-1.5" />
-
-        <div className="mt-2">
-          {selected ? (
-            <Price
-              price={selected.price}
-              compareAt={selected.compareAtPrice}
-              from={selected.id === cheapest?.id && available.length > 1}
-            />
-          ) : (
-            <span className="text-sm font-semibold text-ink-muted">Price coming soon</span>
-          )}
-          {unit && <p className="text-sm text-ink-muted">{unit}</p>}
-        </div>
-
-        {pills.length > 1 && (
-          <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label={`Size for ${product.title}`}>
-            {pills.map((v) => (
-              <Pill
-                key={v.id}
-                active={v.id === selected?.id}
-                onClick={() => setSelectedId(v.id)}
-                className="min-h-9 px-3 text-xs"
-              >
-                {v.title}
-              </Pill>
-            ))}
-          </div>
-        )}
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <h3 className="line-clamp-2 min-h-[2.8em] text-base leading-snug font-semibold text-forest-text sm:text-lg">
+          <Link href={href} className="hover:underline">{product.title.replace(/^(Wood|Cold)-Pressed /, "")}</Link>
+        </h3>
+        <p className="mt-0.5 truncate text-sm text-ink-muted" lang="hi">{product.titleHi}</p>
+        <Rating rating={product.rating} count={product.reviewCount} className="mt-2" />
+        <p className="mt-2 line-clamp-2 min-h-[2.7em] text-sm leading-relaxed text-ink-muted">{product.shortDescription}</p>
 
         <div className="mt-auto pt-3">
+          {pills.length > 1 && (
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Size for ${product.title}`}>
+              {pills.map((v) => (
+                <Pill
+                  key={v.id}
+                  active={v.id === selected?.id}
+                  onClick={() => setSelectedId(v.id)}
+                  className="min-h-8 px-3 text-xs"
+                >
+                  {v.title}
+                </Pill>
+              ))}
+            </div>
+          )}
+          {selected ? (
+            <div className="mt-3 min-h-[56px]" aria-live="polite">
+              <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                {selected.compareAtPrice && selected.compareAtPrice.amount > selected.price.amount && (
+                  <span className="text-xs text-ink-muted">MRP <s>{formatMoney(selected.compareAtPrice)}</s></span>
+                )}
+                <span className="text-2xl leading-none font-bold text-forest">{formatMoney(selected.price)}</span>
+              </p>
+              {unit && <p className="mt-1 text-[13px] text-ink-muted">{unit}</p>}
+            </div>
+          ) : (
+            <div className="mt-3 min-h-[56px] text-sm font-semibold text-ink-muted">Price coming soon</div>
+          )}
+
           {selected ? (
             <button
               type="button"
               disabled={pending}
               onClick={() => add(selected.id)}
-              className="btn-shine inline-flex min-h-11 w-full items-center justify-center rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
+              className="btn-shine inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors duration-200 hover:bg-forest-mid disabled:opacity-60"
               aria-label={`Add ${product.title} ${selected.title} to cart`}
             >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+                <path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h8.7a2 2 0 0 0 1.9-1.4L22 8H6" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="10" cy="20" r="1" /><circle cx="18" cy="20" r="1" />
+              </svg>
               Add to cart
             </button>
           ) : (
