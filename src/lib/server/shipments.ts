@@ -97,22 +97,16 @@ export async function bookShipment(
     items: order.items.map((i) => ({ name: `${i.productTitle} (${i.variantTitle})`, qty: i.quantity, price: i.unitPrice, sku: i.sku })),
   });
 
-  let expectedDelivery: string | null = null;
-  try {
-    const quote = (await quoteForOrder(order, opts.weightGrams, opts.dims)).find((item) => item.courierId === booked.courierId);
-    if (quote?.tatDays) {
-      expectedDelivery = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
-      }).format(new Date(Date.now() + quote.tatDays * 86_400_000));
-    }
-  } catch (error) {
-    console.error("Could not retrieve courier delivery estimate", error);
-  }
+  const expectedDelivery = booked.expectedDelivery && !Number.isNaN(new Date(booked.expectedDelivery).getTime())
+    ? new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date(booked.expectedDelivery))
+    : null;
 
   let pickup = booked.pickupGenerated;
   if (!pickup && booked.providerOrderId) {
     pickup = await schedulePickup(booked.providerOrderId).then(
-      () => true,
+      (scheduled) => scheduled,
       (e) => (console.error("schedulePickup failed", e), false),
     );
   }
@@ -258,7 +252,8 @@ export async function labelForOrder(orderId: number): Promise<string> {
 export async function requestPickup(orderId: number): Promise<Shipment[]> {
   const s = await active(orderId);
   if (!s.providerOrderId) throw new Error("Missing NimbusPost order id");
-  await schedulePickup(s.providerOrderId);
+  const scheduled = await schedulePickup(s.providerOrderId);
+  if (!scheduled) throw new Error("NimbusPost has not confirmed the pickup yet. Please try again or contact NimbusPost support.");
   await db().execute("UPDATE shipments SET pickup_requested = 1 WHERE id = ?", [s.id]);
   return listShipments(orderId);
 }

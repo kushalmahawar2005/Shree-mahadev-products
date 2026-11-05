@@ -32,6 +32,16 @@ const mailFrom = () =>
   process.env.MAIL_FROM ||
   "Swadeshi Mahadev <orders@swadeshimahadevproducts.com>";
 
+function resendUrl() {
+  const override = process.env.RESEND_API_URL;
+  if (!override || process.env.NODE_ENV === "production") return RESEND_URL;
+  const url = new URL(override);
+  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) {
+    throw new Error("RESEND_API_URL is only allowed to point to a local HTTP mock outside production");
+  }
+  return url.toString();
+}
+
 function brand(): EmailBrand {
   return {
     siteUrl: siteUrl(),
@@ -141,7 +151,7 @@ export async function queueOrderEmail(
 }
 
 async function sendOne(row: RowDataPacket) {
-  const res = await fetch(RESEND_URL, {
+  const res = await fetch(resendUrl(), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,

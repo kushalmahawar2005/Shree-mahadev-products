@@ -74,7 +74,7 @@ export function ShipmentPanel({
               <p className="text-sm text-ink-muted">
                 Status: <strong>{active.status.replace(/_/g, " ")}</strong> · booked {active.createdAt.slice(0, 16)}
                 {active.charged != null && ` · wallet charged ${formatMoney(active.charged)}`}
-                {active.pickupRequested ? " · pickup requested" : ""}
+                {active.pickupRequested ? " · pickup confirmed" : active.status === "booked" ? " · pickup not confirmed yet" : ""}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

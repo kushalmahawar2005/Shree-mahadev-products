@@ -8,7 +8,8 @@ import { StickyHeader } from "@/components/motion/StickyHeader";
 import { useCart } from "@/components/cart/CartProvider";
 import type { MenuGroup, NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
-import { BagIcon, ChevronDown, MenuIcon, SearchIcon, UserIcon } from "./icons";
+import { AccountSmallIcon } from "@/components/ui/AccountSmallIcon";
+import { BagIcon, ChevronDown, MenuIcon, SearchIcon } from "./icons";
 import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
 import { SearchBox } from "./SearchBox";
 import { MobileNav } from "./MobileNav";
@@ -129,7 +130,7 @@ export function Header({
                 className="hidden size-11 place-items-center rounded-full text-forest transition-colors duration-200 hover:bg-khaki-soft sm:grid"
                 aria-label="My account"
               >
-                <UserIcon className="size-6" />
+                <AccountSmallIcon size={28} className="size-7" />
               </Link>
               <CartButton />
             </div>

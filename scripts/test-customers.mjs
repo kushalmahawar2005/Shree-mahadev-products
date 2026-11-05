@@ -1,17 +1,11 @@
 // Customer filters and protected CSV export against a running dev server.
 // Usage: pnpm test:customers [baseUrl]
 import { createHmac, randomBytes } from "node:crypto";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
-const db = await mysql.createConnection({
-  host: process.env.DATABASE_HOST,
-  port: +process.env.DATABASE_PORT,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-});
+const db = await connectQaDatabase();
 const run = randomBytes(4).toString("hex");
 const names = {
   repeat: `Prompt9 Repeat ${run}`,

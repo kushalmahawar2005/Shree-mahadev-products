@@ -3,11 +3,11 @@
 import { randomBytes } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
-const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +process.env.DATABASE_PORT, user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
+const db = await connectQaDatabase();
 const suffix = randomBytes(3).toString("hex").toUpperCase();
 const token = randomBytes(16).toString("hex");
 const orderNo = `SMP16${suffix}`;

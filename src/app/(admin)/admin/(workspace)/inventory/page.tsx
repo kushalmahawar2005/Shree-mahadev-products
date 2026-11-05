@@ -27,6 +27,7 @@ async function Inventory() {
   const data = await Promise.all([listInventory(), getSetting<number>("low_stock_threshold", 5)]).catch((e) => (console.error(e), null));
   if (!data) return <p className="text-sale">Could not connect to the database. Check DATABASE_* env vars.</p>;
   const [rows, threshold] = data;
-  return <InventoryTable rows={rows} threshold={Number(threshold) || 5} />;
+  const savedThreshold = Number(threshold);
+  return <InventoryTable rows={rows} threshold={Number.isFinite(savedThreshold) ? savedThreshold : 5} />;
 }
 export const instant = false;

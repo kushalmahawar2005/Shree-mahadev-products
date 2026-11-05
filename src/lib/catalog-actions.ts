@@ -10,6 +10,7 @@ import {
   catalogIsEmpty,
   importStarterCatalog,
   saveProduct,
+  variantKey,
   type BulkAction,
   type ProductInput,
 } from "@/lib/server/catalog";
@@ -69,6 +70,10 @@ function validate(raw: ProductInput): ProductInput {
   if (!variants.length) throw new Error("Add at least one size");
   const titles = variants.map((v) => v.title.toLowerCase());
   if (new Set(titles).size !== titles.length) throw new Error("Two sizes have the same name");
+  const keys = variants.map((v) => v.key || variantKey(handle, v.title));
+  if (new Set(keys).size !== keys.length) throw new Error("Two sizes produce the same variant key; use distinct size names");
+  const skus = variants.map((v) => v.sku?.toLowerCase()).filter(Boolean);
+  if (new Set(skus).size !== skus.length) throw new Error("Each size must have a different SKU");
   return {
     handle,
     title,

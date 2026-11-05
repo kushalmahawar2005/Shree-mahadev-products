@@ -44,6 +44,7 @@ export default async function HomePage() {
     products: pickLists[i].map(toPickProduct),
   }));
 
+
   // Products with a real price first, so the carousel opens on buyable items.
   const buyableFirst = <
     T extends { variants: { availableForSale: boolean }[] },

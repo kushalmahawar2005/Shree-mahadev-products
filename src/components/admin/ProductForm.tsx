@@ -184,7 +184,7 @@ export function ProductForm({
           </Section>
 
           <Section title="Sizes & prices" hint='Type the size like "500 ml", "1 L" or "250 g". Leave stock empty if you do not track it.'>
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="text-left text-ink-muted">
                   <tr>
@@ -236,6 +236,47 @@ export function ProductForm({
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="space-y-3 lg:hidden">
+              {p.variants.map((v, i) => (
+                <fieldset key={v.key ?? i} className="rounded-xl border border-line bg-khaki-soft/25 p-3">
+                  <legend className="sr-only">Size {i + 1}</legend>
+                  <div className="mb-3 flex items-end gap-2">
+                    <Field label="Size" className="min-w-0 flex-1">
+                      <input
+                        className={input}
+                        value={v.title}
+                        placeholder="1 L"
+                        onChange={(e) => setV(i, { title: e.target.value, ...(parseSize(e.target.value) ?? {}) })}
+                      />
+                    </Field>
+                    <button type="button" onClick={() => set("variants", p.variants.filter((_, j) => j !== i))} className="min-h-11 shrink-0 rounded-xl px-3 text-sm font-semibold text-red-700 hover:bg-red-50" aria-label={`Remove ${v.title || "size"}`}>
+                      Remove
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Price ₹">
+                      <input className={input} inputMode="numeric" value={v.price || ""} onChange={(e) => setV(i, { price: Number(e.target.value.replace(/\D/g, "")) })} />
+                    </Field>
+                    <Field label="MRP ₹">
+                      <input className={input} inputMode="numeric" value={v.compareAtPrice ?? ""} onChange={(e) => setV(i, { compareAtPrice: e.target.value ? Number(e.target.value.replace(/\D/g, "")) : undefined })} />
+                    </Field>
+                    <Field label="Stock (blank = untracked)">
+                      <input className={input} inputMode="numeric" value={v.stock ?? ""} onChange={(e) => setV(i, { stock: e.target.value === "" ? null : Number(e.target.value.replace(/\D/g, "")) })} />
+                    </Field>
+                    <Field label="Packed weight (g)">
+                      <input className={input} inputMode="numeric" placeholder="Auto" value={v.weightGrams ?? ""} onChange={(e) => setV(i, { weightGrams: e.target.value ? Number(e.target.value.replace(/\D/g, "")) : undefined })} />
+                    </Field>
+                    <Field label="SKU" className="col-span-2">
+                      <input className={input} value={v.sku ?? ""} onChange={(e) => setV(i, { sku: e.target.value })} />
+                    </Field>
+                    <label className="col-span-2 flex min-h-11 items-center gap-3 rounded-xl border border-line bg-white px-3 text-sm font-semibold">
+                      <input type="checkbox" checked={v.available} onChange={(e) => setV(i, { available: e.target.checked })} className="size-5 accent-[var(--color-forest)]" />
+                      Available for sale
+                    </label>
+                  </div>
+                </fieldset>
+              ))}
             </div>
             <button type="button" onClick={() => set("variants", [...p.variants, blankVariant()])} className="mt-3 min-h-10 rounded-full border border-forest px-4 text-sm font-semibold text-forest">
               + Add size

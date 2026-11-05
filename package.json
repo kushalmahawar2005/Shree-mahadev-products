@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:qa": "node scripts/dev-qa.mjs",
+    "build:qa": "node scripts/build-qa.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -20,7 +22,12 @@
     "test:reviews": "node scripts/test-reviews.mjs",
     "test:collections": "node scripts/test-collections.mjs",
     "test:invoices": "node scripts/test-invoices.mjs",
-    "test:tracking": "node scripts/test-tracking.mjs"
+    "test:tracking": "node scripts/test-tracking.mjs",
+    "test:email-outbox": "node scripts/test-email-outbox.mjs",
+    "test:email-no-key": "node scripts/test-email-no-key.mjs",
+    "test:nimbuspost": "node --conditions=react-server --experimental-strip-types scripts/test-nimbuspost.mjs",
+    "test:catalog": "node scripts/test-catalog.mjs",
+    "db:qa:seed": "node --conditions=react-server --experimental-strip-types scripts/seed-qa-catalog.mjs"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

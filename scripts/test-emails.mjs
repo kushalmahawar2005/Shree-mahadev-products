@@ -3,18 +3,12 @@
 import { createHmac } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const ROOT = process.env.TEST_MANIFEST_DIR ?? ".next/dev";
-const db = await mysql.createConnection({
-  host: process.env.DATABASE_HOST,
-  port: +process.env.DATABASE_PORT,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-});
+const db = await connectQaDatabase();
 let pass = true;
 const check = (ok, m) => {
   console.log(`${ok ? "PASS" : "FAIL"}  ${m}`);
@@ -60,6 +54,7 @@ const act = async (path, id, args) => {
   return r;
 };
 
+await fetch(`${BASE}/shop`);
 const [[variant]] = await db.query(
   "SELECT v.variant_key FROM product_variants v JOIN products p ON p.id=v.product_id WHERE p.status='active' AND v.available=1 AND v.stock_qty IS NULL LIMIT 1",
 );
@@ -149,6 +144,7 @@ jar.set(
   "smp_admin",
   `${p}.${createHmac("sha256", process.env.ADMIN_SESSION_SECRET).update(p).digest("base64url")}`,
 );
+await fetch(`${BASE}/admin/orders/view?id=${o.id}`, { headers: { Cookie: ck() } });
 await act("/admin/orders/view", actionId("setOrderStatusAction"), [
   o.id,
   "cancelled",

@@ -24,8 +24,8 @@ export async function handlePayuResult(p: Record<string, string>, source: "callb
 
   if (!verifyPayuResponse(p) || p.udf1 !== pay.orderToken) {
     console.error("PayU hash mismatch", { txnid: p.txnid, source });
-    // A forged/garbled browser post must not fail a real payment; only the callback marks it.
-    if (source === "callback") await markPaymentFailed(pay.id, pay.orderId, "Hash verification failed");
+    // A forged or malformed callback must not fail the attempt or release its stock hold.
+    // The reconciler will ask PayU directly for the transaction's actual status.
     return { outcome: "invalid", orderToken: pay.orderToken };
   }
 

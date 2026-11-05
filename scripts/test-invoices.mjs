@@ -3,13 +3,13 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
-const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +process.env.DATABASE_PORT, user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
+const db = await connectQaDatabase();
 const suffix = randomBytes(3).toString("hex").toUpperCase();
-const handles = [`SMP14A${suffix}`, `SMP14B${suffix}`, `SMP14C${suffix}`];
+const handles = [`SMP14A${suffix}`, `SMP14B${suffix}`, `SMP14C${suffix}`, `SMP14D${suffix}`, `SMP14E${suffix}`];
 const tokens = handles.map(() => randomBytes(16).toString("hex"));
 const orderIds = [];
 let product = null;
@@ -56,8 +56,8 @@ try {
     const orderNo = handles[i];
     const [insert] = await db.execute(
       `INSERT INTO orders (order_no,token,status,payment_method,customer_name,phone,email,address_line1,city,state,pincode,subtotal,discount,shipping,cod_fee,total)
-       VALUES (?,?,'cod_pending','cod','Invoice Test Customer','9412345678','invoice-test@example.test','12 Invoice Test Road','Jaipur',?,'302001',1000,0,0,0,1000)`,
-      [orderNo, tokens[i], state],
+       VALUES (?,?,?,'cod','Invoice Test Customer','9412345678','invoice-test@example.test','12 Invoice Test Road','Jaipur',?,'302001',1000,0,0,0,1000)`,
+      [orderNo, tokens[i], i === 4 ? "cancelled" : "cod_pending", state],
     );
     orderIds.push(Number(insert.insertId));
     await db.execute(
@@ -88,6 +88,10 @@ try {
   const bulkResponse = await pdfResponse(`/admin/orders/invoice?ids=${orderIds[0]},${orderIds[1]}`, cookie);
   const bulkBuffer = Buffer.from(await bulkResponse.arrayBuffer());
   check(bulkResponse.status === 200 && bulkBuffer.subarray(0, 4).toString() === "%PDF" && bulkBuffer.length > firstBuffer.length, "bulk route merges multiple orders into one multi-page PDF");
+
+  const invalidBulk = await pdfResponse(`/admin/orders/invoice?ids=${orderIds[3]},${orderIds[4]}`, cookie);
+  const [[partial]] = await db.query("SELECT order_id FROM invoices WHERE order_id=?", [orderIds[3]]);
+  check(invalidBulk.status === 409 && !partial, "invalid order in a bulk selection rolls back every new invoice in that batch");
 
   const noGstin = { ...business, gstin: "" };
   await db.execute("UPDATE settings SET value=? WHERE `key`='business'", [JSON.stringify(noGstin)]);

@@ -4,6 +4,8 @@ import { legacyRedirects } from "./src/data/redirects";
 import { securityHeaders } from "./src/lib/security-headers";
 
 const nextConfig: NextConfig = {
+  // A separate QA runtime can coexist with the user's normal local dev server.
+  distDir: process.env.NEXT_BUILD_DIR || ".next",
   cacheComponents: true,
   // Two root layouts (store + admin): unmatched URLs use app/global-not-found.tsx.
   experimental: { globalNotFound: true },

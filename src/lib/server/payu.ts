@@ -13,6 +13,16 @@ const PAYU_VERIFY_URL = LIVE
   ? "https://info.payu.in/merchant/postservice?form=2"
   : "https://test.payu.in/merchant/postservice?form=2";
 
+function verifyUrl() {
+  const override = process.env.PAYU_VERIFY_URL;
+  if (!override || process.env.NODE_ENV === "production") return PAYU_VERIFY_URL;
+  const url = new URL(override);
+  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname)) {
+    throw new Error("PAYU_VERIFY_URL is only allowed to point to a local HTTP mock outside production");
+  }
+  return url.toString();
+}
+
 function creds() {
   const key = process.env.PAYU_KEY;
   const salt = process.env.PAYU_SALT;
@@ -73,7 +83,7 @@ export async function verifyPaymentWithPayu(txnid: string): Promise<{ status: st
     hash: sha512([key, "verify_payment", txnid, salt].join("|")),
   });
   try {
-    const res = await fetch(PAYU_VERIFY_URL, {
+    const res = await fetch(verifyUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
       body,

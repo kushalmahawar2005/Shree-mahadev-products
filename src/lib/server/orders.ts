@@ -604,6 +604,7 @@ export async function markPaymentFailed(
 // ───────────── Admin ─────────────
 
 export type OrderFilter =
+  | "needs_action"
   | "all"
   | "to_ship"
   | "awaiting_payment"
@@ -612,13 +613,38 @@ export type OrderFilter =
   | "cancelled";
 
 const FILTER_SQL: Record<OrderFilter, string> = {
-  all: "o.status <> 'pending_payment' OR o.created_at > NOW() - INTERVAL 1 DAY",
+  needs_action: "o.status IN ('paid','cod_pending','confirmed','packed','pending_payment','payment_failed','rto')",
+  all: "1=1",
   to_ship: "o.status IN ('paid','cod_pending','confirmed','packed')",
   awaiting_payment: "o.status IN ('pending_payment','payment_failed')",
   shipped: "o.status = 'shipped'",
   delivered: "o.status = 'delivered'",
   cancelled: "o.status IN ('cancelled','rto','refunded')",
 };
+
+/** Small global counts for the order workspace filter tabs. */
+export async function getOrderFilterCounts(): Promise<Record<OrderFilter, number>> {
+  const [[row]] = await db().query<Row[]>(
+    `SELECT COUNT(*) AS all_orders,
+       SUM(status IN ('paid','cod_pending','confirmed','packed','pending_payment','payment_failed','rto')) AS needs_action,
+       SUM(status IN ('paid','cod_pending','confirmed','packed')) AS to_ship,
+       SUM(status IN ('pending_payment','payment_failed')) AS awaiting_payment,
+       SUM(status='shipped') AS shipped,
+       SUM(status='delivered') AS delivered,
+       SUM(status IN ('cancelled','rto','refunded')) AS cancelled
+     FROM orders`,
+  );
+  const count = (value: unknown) => Number(value ?? 0);
+  return {
+    all: count(row.all_orders),
+    needs_action: count(row.needs_action),
+    to_ship: count(row.to_ship),
+    awaiting_payment: count(row.awaiting_payment),
+    shipped: count(row.shipped),
+    delivered: count(row.delivered),
+    cancelled: count(row.cancelled),
+  };
+}
 
 /** Paginated admin list. Two queries per page (orders + their items), never one per order. */
 export async function listOrders(
@@ -644,7 +670,11 @@ export async function listOrders(
     params,
   );
   const [rows] = await db().query<Row[]>(
-    `${ORDER_SELECT} WHERE ${w} ORDER BY o.id DESC LIMIT ? OFFSET ?`,
+    `${ORDER_SELECT} WHERE ${w} ORDER BY ${
+      opts.filter === "needs_action"
+        ? "CASE o.status WHEN 'paid' THEN 0 WHEN 'cod_pending' THEN 1 WHEN 'confirmed' THEN 2 WHEN 'packed' THEN 3 WHEN 'rto' THEN 4 WHEN 'pending_payment' THEN 5 WHEN 'payment_failed' THEN 6 ELSE 7 END ASC, "
+        : ""
+    }o.id DESC LIMIT ? OFFSET ?`,
     [...params, perPage, (page - 1) * perPage],
   );
   if (!rows.length)

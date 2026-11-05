@@ -4,15 +4,12 @@
 // Usage: node scripts/test-inventory.mjs [baseUrl]
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const VARIANT = "flaxseed-oil--500ml";
-const db = await mysql.createConnection({
-  host: process.env.DATABASE_HOST, port: +process.env.DATABASE_PORT, user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME,
-});
+const db = await connectQaDatabase();
 const stock = async () => (await db.query("SELECT stock_qty FROM product_variants WHERE variant_key = ?", [VARIANT]))[0][0].stock_qty;
 const setStock = (n) => db.query("UPDATE product_variants SET stock_qty = ? WHERE variant_key = ?", [n, VARIANT]);
 let pass = true;
@@ -21,7 +18,7 @@ const check = (ok, msg) => { console.log(`${ok ? "PASS" : "FAIL"}  ${msg}`); if 
 // Server action ids from the dev manifests.
 const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
 const actionId = (name) => {
-  for (const f of walk(".next/dev").filter((f) => f.endsWith("server-reference-manifest.json"))) {
+  for (const f of walk(process.env.TEST_MANIFEST_DIR ?? ".next/dev").filter((f) => f.endsWith("server-reference-manifest.json"))) {
     const m = JSON.parse(readFileSync(f, "utf8"));
     for (const [id, v] of Object.entries(m.node ?? {})) if (v.exportedName === name) return id;
   }
@@ -50,6 +47,7 @@ class Shopper {
   }
 }
 
+await fetch(`${BASE}/shop`);
 const ADD = actionId("addToCartAction");
 const before = await stock();
 
@@ -89,6 +87,7 @@ if (!adminUser) throw new Error("Configured admin user not found; run pnpm admin
 const payload = Buffer.from(JSON.stringify({ u: adminUser.username, v: adminUser.session_version, exp: Date.now() + 600_000 })).toString("base64url");
 const sig = createHmac("sha256", process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_PASSWORD).update(payload).digest("base64url");
 const admin = new Shopper(); admin.jar.set("smp_admin", `${payload}.${sig}`);
+await fetch(`${BASE}/admin/orders/view?id=${last.order_id}`, { headers: { Cookie: admin.cookie() } });
 const SET = actionId("setOrderStatusAction");
 const r1 = await admin.action("/admin/orders/view", SET, [last.order_id, "cancelled", "race test"]);
 if (r1.status !== 200) console.log("cancel action HTTP", r1.status, (await r1.text()).slice(0, 200));

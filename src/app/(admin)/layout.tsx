@@ -26,7 +26,9 @@ export const metadata: Metadata = {
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`}>
-      <body className="min-h-dvh bg-khaki-soft/50">{children}</body>
+      <body className="min-h-dvh bg-khaki-soft/50" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

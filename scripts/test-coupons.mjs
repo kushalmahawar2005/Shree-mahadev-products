@@ -3,18 +3,12 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const ROOT = process.env.TEST_MANIFEST_DIR ?? ".next/dev";
-const db = await mysql.createConnection({
-  host: process.env.DATABASE_HOST,
-  port: +process.env.DATABASE_PORT,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-});
+const db = await connectQaDatabase();
 const suffix = randomBytes(3).toString("hex").toUpperCase();
 const testIp = `198.18.${Number.parseInt(suffix.slice(0, 2), 16)}.${Number.parseInt(suffix.slice(2, 4), 16)}`;
 const codes = ["CAP", "MIN", "EXP", "FIRST", "PHONE", "SHIP"].map(

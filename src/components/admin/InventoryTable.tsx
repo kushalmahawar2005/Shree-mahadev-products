@@ -69,6 +69,16 @@ export function InventoryTable({ rows, threshold }: { rows: InventoryRow[]; thre
     setDraft((x) => ({ ...x, [r.variantKey]: { ...d, value: "" } }));
   }
 
+  async function toggleHistory(variantKey: string) {
+    if (openLog === variantKey) return setOpenLog(null);
+    try {
+      setLog(await inventoryLogAction(variantKey));
+      setOpenLog(variantKey);
+    } catch (error) {
+      setMsg({ ok: false, text: (error as Error).message || "Could not load stock history" });
+    }
+  }
+
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -99,10 +109,88 @@ export function InventoryTable({ rows, threshold }: { rows: InventoryRow[]; thre
         <button type="button" disabled={busy} onClick={() => run(() => setLowStockThresholdAction(Number(thr || 0)), "Threshold saved")} className="h-9 rounded-full border border-forest px-3 font-semibold text-forest">
           Save
         </button>
-        {msg && <span className={cn("ml-2", msg.ok ? "text-forest" : "text-sale")}>{msg.text}</span>}
+        {msg && <span role="status" className={cn("ml-2", msg.ok ? "text-forest" : "text-sale")}>{msg.text}</span>}
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+      <div className="space-y-3 xl:hidden">
+        {shown.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-white p-6 text-center text-sm text-ink-muted">
+            {rows.length ? "No sizes match this filter." : "No product sizes yet. Add a product to start tracking stock."}
+          </p>
+        ) : shown.map((r) => {
+          const d = draft[r.variantKey] ?? { value: "", reason: "restock_manual" as const };
+          const low = r.stock !== null && r.stock > 0 && r.stock <= threshold;
+          return (
+            <article key={r.variantKey} className="rounded-2xl border border-line bg-white p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Link href={`/admin/products/edit?handle=${r.handle}`} className="block truncate font-semibold text-forest-text hover:underline">{r.productTitle}</Link>
+                  <p className="text-sm text-ink-muted">{r.size}{r.sku ? ` · ${r.sku}` : ""}</p>
+                  <p className="text-xs text-ink-muted">{r.productStatus !== "active" ? `${r.productStatus} · ` : ""}{r.enabled ? "On sale" : "Not on sale"}</p>
+                </div>
+                {r.stock === null ? <span className="rounded-full bg-black/5 px-2.5 py-1 text-xs font-semibold text-ink-muted">Not tracked</span> : (
+                  <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-sm font-bold", r.stock <= 0 ? "bg-red-100 text-red-800" : low ? "bg-mustard/20 text-sale" : "bg-forest/10 text-forest")}>
+                    {r.stock} in stock
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 flex gap-4 border-y border-line py-2 text-xs text-ink-muted">
+                <span>Held: <strong className="text-ink">{r.held || 0}</strong></span>
+                <span>Back-in-stock requests: <strong className="text-ink">{r.waiting || 0}</strong></span>
+                <button type="button" onClick={() => void toggleHistory(r.variantKey)} className="ml-auto font-semibold text-forest underline">
+                  {openLog === r.variantKey ? "Hide history" : "History"}
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <label className="col-span-2 text-xs font-semibold text-ink-muted">
+                  Quantity
+                  <input
+                    value={d.value}
+                    onChange={(e) => setDraft((x) => ({ ...x, [r.variantKey]: { ...d, value: e.target.value.replace(/\D/g, "") } }))}
+                    inputMode="numeric"
+                    placeholder="Enter quantity"
+                    aria-label={`Quantity for ${r.productTitle} ${r.size}`}
+                    className="mt-1 h-11 w-full rounded-xl border border-line px-3 text-sm text-ink"
+                  />
+                </label>
+                <label className="col-span-2 text-xs font-semibold text-ink-muted">
+                  Reason
+                  <select
+                    value={d.reason}
+                    onChange={(e) => setDraft((x) => ({ ...x, [r.variantKey]: { ...d, reason: e.target.value as typeof d.reason } }))}
+                    className="mt-1 h-11 w-full rounded-xl border border-line bg-white px-3 text-sm text-ink"
+                  >
+                    <option value="restock_manual">Restock</option>
+                    <option value="damaged">Damaged</option>
+                    <option value="correction">Correction</option>
+                  </select>
+                </label>
+                <button type="button" disabled={busy} onClick={() => apply(r, 1)} className="min-h-11 rounded-xl bg-forest px-3 text-sm font-semibold text-white disabled:opacity-50">Add stock</button>
+                <button type="button" disabled={busy} onClick={() => apply(r, -1)} className="min-h-11 rounded-xl border border-line px-3 text-sm font-semibold disabled:opacity-50">Remove</button>
+                <button type="button" disabled={busy} onClick={() => apply(r, 0)} className="min-h-11 rounded-xl border border-line px-3 text-sm font-semibold disabled:opacity-50">Set exact</button>
+                {r.stock !== null && (
+                  <button type="button" disabled={busy} onClick={() => {
+                    if (window.confirm("Stop tracking stock for this size? It will always be available.")) {
+                      run(() => adjustStockAction({ variantKey: r.variantKey, mode: "untrack", value: 0, reason: "correction" }), "Stopped tracking");
+                    }
+                  }} className="min-h-11 rounded-xl px-3 text-sm text-ink-muted underline disabled:opacity-50">Untrack</button>
+                )}
+              </div>
+              {openLog === r.variantKey && (
+                <div className="mt-3 rounded-xl bg-khaki-soft/30 p-3">
+                  {log.length ? <ul className="space-y-1 text-xs">{log.map((entry, i) => (
+                    <li key={i}>
+                      <span className={cn("font-bold", entry.delta < 0 ? "text-sale" : "text-forest")}>{entry.delta > 0 ? `+${entry.delta}` : entry.delta}</span> · {REASON_LABEL[entry.reason] ?? entry.reason} · after: {entry.stockAfter ?? "—"} · {entry.actor} · {entry.at.slice(0, 16)}{entry.note ? ` · ${entry.note}` : ""}
+                    </li>
+                  ))}</ul> : <p className="text-xs text-ink-muted">No stock changes yet.</p>}
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-line bg-white xl:block">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-khaki-soft/60 text-ink-muted">
             <tr>
@@ -116,7 +204,9 @@ export function InventoryTable({ rows, threshold }: { rows: InventoryRow[]; thre
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {shown.map((r) => {
+            {shown.length === 0 ? (
+              <tr><td colSpan={7} className="p-8 text-center text-sm text-ink-muted">{rows.length ? "No sizes match this filter." : "No product sizes yet. Add a product to start tracking stock."}</td></tr>
+            ) : shown.map((r) => {
               const d = draft[r.variantKey] ?? { value: "", reason: "restock_manual" as const };
               const low = r.stock !== null && r.stock > 0 && r.stock <= threshold;
               return (
@@ -192,11 +282,7 @@ export function InventoryTable({ rows, threshold }: { rows: InventoryRow[]; thre
                     <td className="p-3 text-right">
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (openLog === r.variantKey) return setOpenLog(null);
-                          setLog(await inventoryLogAction(r.variantKey));
-                          setOpenLog(r.variantKey);
-                        }}
+                        onClick={() => void toggleHistory(r.variantKey)}
                         className="text-xs font-semibold text-forest underline"
                       >
                         {openLog === r.variantKey ? "Hide" : "History"}

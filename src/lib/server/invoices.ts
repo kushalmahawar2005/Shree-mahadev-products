@@ -145,11 +145,8 @@ async function nextInvoiceNumber(conn: PoolConnection, date: Date) {
   return { fy, seq, invoiceNo: `SMP/${fy}/${String(seq).padStart(4, "0")}` };
 }
 
-/** Assigns one immutable invoice snapshot per eligible order. Sequence allocation and insert are serialized per FY. */
-export async function ensureInvoiceForOrder(orderId: number): Promise<InvoiceSnapshot> {
-  const conn = await db().getConnection();
-  try {
-    await conn.beginTransaction();
+/** Create or return an invoice inside the caller's transaction. */
+async function ensureInvoiceInTransaction(conn: PoolConnection, orderId: number, now: Date, settings: Awaited<ReturnType<typeof invoiceSettings>>) {
     const [[order]] = await conn.execute<InvoiceRow[]>(
       `SELECT id, order_no, token, status, payment_method, customer_name, phone, email, address_line1, address_line2,
               city, state, pincode, subtotal, discount, shipping, cod_fee, total
@@ -160,10 +157,9 @@ export async function ensureInvoiceForOrder(orderId: number): Promise<InvoiceSna
     const [[existing]] = await conn.execute<InvoiceRow[]>("SELECT snapshot FROM invoices WHERE order_id=? FOR UPDATE", [orderId]);
     if (existing) {
       const snapshot = json(existing.snapshot);
-      if (snapshot) { await conn.commit(); return snapshot; }
+      if (snapshot) return snapshot;
+      throw new Error("The saved invoice snapshot is invalid; contact support before issuing another invoice");
     }
-
-    const settings = await invoiceSettings(conn);
     const [rows] = await conn.execute<InvoiceRow[]>(
       `SELECT oi.product_title, oi.variant_title, oi.sku, oi.quantity, oi.unit_price, oi.line_total,
               p.hsn, p.gst_rate
@@ -182,7 +178,6 @@ export async function ensureInvoiceForOrder(orderId: number): Promise<InvoiceSna
       gstRegistered, intraState: sellerState === buyerState, pricesIncludeGst: settings.pricesIncludeGst,
       discount: Number(order.discount), subtotal: Number(order.subtotal),
     });
-    const now = new Date();
     const number = await nextInvoiceNumber(conn, now);
     const invoiceTotal = Number(order.total) + (gstRegistered && !settings.pricesIncludeGst ? tax.taxTotal : 0);
     const snapshot: InvoiceSnapshot = {
@@ -208,14 +203,35 @@ export async function ensureInvoiceForOrder(orderId: number): Promise<InvoiceSna
       taxTotal: tax.taxTotal, total: invoiceTotal, amountInWords: amountInWords(invoiceTotal),
     };
     await conn.execute("INSERT INTO invoices (order_id, invoice_no, fy, seq, snapshot) VALUES (?,?,?,?,?)", [orderId, number.invoiceNo, number.fy, number.seq, JSON.stringify(snapshot)]);
-    await conn.commit();
     return snapshot;
+}
+
+/** Assigns invoices atomically. Sequence allocation and inserts roll back together if any order is invalid. */
+export async function ensureInvoicesForOrders(orderIds: number[]): Promise<InvoiceSnapshot[]> {
+  if (!orderIds.length || orderIds.some((id) => !Number.isSafeInteger(id) || id <= 0)) throw new Error("Invalid order selection");
+  if (new Set(orderIds).size !== orderIds.length) throw new Error("Duplicate order selection");
+  const conn = await db().getConnection();
+  try {
+    await conn.beginTransaction();
+    const now = new Date();
+    const settings = await invoiceSettings(conn);
+    const snapshots = new Map<number, InvoiceSnapshot>();
+    // Stable lock order avoids deadlocks when admins request overlapping batches.
+    for (const orderId of [...orderIds].sort((a, b) => a - b)) {
+      snapshots.set(orderId, await ensureInvoiceInTransaction(conn, orderId, now, settings));
+    }
+    await conn.commit();
+    return orderIds.map((id) => snapshots.get(id)!);
   } catch (error) {
     await conn.rollback();
     throw error;
   } finally {
     conn.release();
   }
+}
+
+export async function ensureInvoiceForOrder(orderId: number): Promise<InvoiceSnapshot> {
+  return (await ensureInvoicesForOrders([orderId]))[0];
 }
 
 export async function readInvoice(orderId: number) {

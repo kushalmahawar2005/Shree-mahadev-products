@@ -143,6 +143,7 @@ async function kpis(from: string, to: string) {
     customers: Number(o.customers),
     newCustomers: Number(nc.n),
     carts: Number(ac.carts),
+    convertedCarts: Number(ac.converted),
     conversion: Number(ac.carts)
       ? Number(ac.converted) / Number(ac.carts)
       : null,
@@ -191,9 +192,6 @@ export async function getDashboard(range: Range) {
      GROUP BY state, city ORDER BY revenue DESC LIMIT 6`,
     [PLACED, range.from, range.to],
   );
-  const [recent] = await db().query<Rows>(
-    "SELECT id, order_no, customer_name, city, total, status, payment_method, created_at FROM orders ORDER BY id DESC LIMIT 8",
-  );
   const n = (v: unknown) => Number(v);
   return {
     cur,
@@ -217,15 +215,40 @@ export async function getDashboard(range: Range) {
       orders: n(r.orders),
       revenue: n(r.revenue),
     })),
-    recent: recent.map((r) => ({
-      id: n(r.id),
-      orderNo: r.order_no as string,
-      name: r.customer_name as string,
-      city: r.city as string,
-      total: n(r.total),
-      status: r.status as string,
-      method: r.payment_method as string,
-      at: r.created_at as string,
+  };
+}
+
+export async function getDashboardOperations() {
+  const settings = await getStoreSettings();
+  const [stockRows, cartRows] = await Promise.all([
+    db().query<Rows>(
+      `SELECT p.handle, p.title, v.title AS variant_title, v.stock_qty
+       FROM product_variants v JOIN products p ON p.id = v.product_id
+       WHERE p.status='active' AND v.available=1 AND v.stock_qty IS NOT NULL AND v.stock_qty <= ?
+       ORDER BY v.stock_qty ASC, p.title ASC LIMIT 5`,
+      [settings.lowStockThreshold],
+    ),
+    db().query<Rows>(
+      `SELECT id, name, subtotal, phone, last_activity_at
+       FROM carts WHERE status='active' AND item_count>0 AND phone IS NOT NULL AND reminder_count=0
+         AND created_at > NOW() - INTERVAL 7 DAY
+         AND last_activity_at < NOW() - INTERVAL 30 MINUTE
+       ORDER BY last_activity_at DESC LIMIT 4`,
+    ),
+  ]);
+  return {
+    lowStock: stockRows[0].map((r) => ({
+      handle: r.handle as string,
+      title: r.title as string,
+      variant: r.variant_title as string,
+      stock: Number(r.stock_qty),
+    })),
+    carts: cartRows[0].map((r) => ({
+      id: Number(r.id),
+      name: (r.name as string | null) ?? "Shopper",
+      subtotal: Number(r.subtotal),
+      phone: r.phone as string,
+      lastActivityAt: String(r.last_activity_at),
     })),
   };
 }
@@ -366,7 +389,7 @@ export async function getAttention(): Promise<Attention[]> {
       key: "mail",
       label: "Emails that failed to send",
       count: failedMail,
-      href: "/admin/orders",
+      href: "/admin/settings",
       tone: "red",
     },
   ].filter((a) => a.count > 0) as Attention[];
@@ -397,12 +420,20 @@ export async function getAttention(): Promise<Attention[]> {
       href: "/admin/settings",
       tone: "red",
     });
+  else if (process.env.PAYU_MODE !== "live")
+    list.push({
+      key: "payu_test",
+      label: "PayU is in test mode: real payments are not being captured",
+      count: 1,
+      href: "/admin/settings",
+      tone: "amber",
+    });
   if (!mailConfigured())
     list.push({
       key: "resend",
       label: "Resend key missing: order emails are waiting",
       count: 1,
-      href: "/admin/orders",
+      href: "/admin/settings",
       tone: "amber",
     });
   if (!nimbusConfigured())

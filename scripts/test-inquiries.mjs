@@ -3,18 +3,12 @@
 import { createHmac, randomBytes } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import mysql from "mysql2/promise";
+import { connectQaDatabase } from "./test-db.mjs";
 
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const MANIFEST_ROOT = process.env.TEST_MANIFEST_DIR ?? ".next/dev";
-const db = await mysql.createConnection({
-  host: process.env.DATABASE_HOST,
-  port: +process.env.DATABASE_PORT,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-});
+const db = await connectQaDatabase();
 const run = randomBytes(3).toString("hex");
 const suffix = String(Number.parseInt(run, 16) % 1_000_000).padStart(6, "0");
 const email = `prompt10-${run}@example.test`;

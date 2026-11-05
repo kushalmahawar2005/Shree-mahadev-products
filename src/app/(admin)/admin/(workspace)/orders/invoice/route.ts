@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireAdmin } from "@/lib/server/admin-auth";
 import { renderInvoicePdf } from "@/lib/server/invoice-render";
-import { ensureInvoiceForOrder, MissingTaxDetailsError } from "@/lib/server/invoices";
+import { ensureInvoicesForOrders, MissingTaxDetailsError } from "@/lib/server/invoices";
 
 const idList = z.array(z.coerce.number().int().positive()).min(1).max(50).refine((ids) => new Set(ids).size === ids.length);
 
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const parsed = idList.safeParse(id ? [id] : ids?.split(","));
   if (!parsed.success) return new Response("Invalid order selection", { status: 400 });
   try {
-    const invoices = await Promise.all(parsed.data.map((orderId) => ensureInvoiceForOrder(orderId)));
+    const invoices = await ensureInvoicesForOrders(parsed.data);
     const pdf = await renderInvoicePdf(invoices);
     const name = invoices.length === 1 ? `${invoices[0].invoiceNo.replaceAll("/", "-")}.pdf` : `Swadeshi-Mahadev-Invoices-${invoices.length}.pdf`;
     return new Response(new Uint8Array(pdf), {

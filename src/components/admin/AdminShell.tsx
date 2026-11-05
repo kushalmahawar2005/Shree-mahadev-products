@@ -30,6 +30,28 @@ const nav = [
   { label: "Activity log", href: "/admin/activity" },
 ];
 
+const sectionNames: Record<string, string> = {
+  "/admin": "Overview",
+  "/admin/orders": "Sales",
+  "/admin/products": "Catalog",
+  "/admin/inventory": "Catalog",
+  "/admin/categories": "Catalog",
+  "/admin/abandoned-carts": "Customers",
+  "/admin/customers": "Customers",
+  "/admin/discounts": "Growth",
+  "/admin/reviews": "Growth",
+  "/admin/inquiries": "Growth",
+  "/admin/marketing": "Growth",
+  "/admin/messages": "Operations",
+  "/admin/shipping": "Operations",
+  "/admin/reports": "Operations",
+  "/admin/banners": "Storefront",
+  "/admin/videos": "Storefront",
+  "/admin/settings": "Settings",
+  "/admin/settings/users": "Settings",
+  "/admin/activity": "Settings",
+};
+
 export function AdminShell({ children, role }: { children: React.ReactNode; role: "owner" | "manager" | "staff" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -40,50 +62,69 @@ export function AdminShell({ children, role }: { children: React.ReactNode; role
   }
   // The login page has no admin chrome.
   if (pathname === "/admin/login") return <>{children}</>;
-  const active = (href: string) => (href === "/admin" ? pathname === href : pathname.startsWith(href));
+  const active = (href: string) =>
+    href === "/admin" || href === "/admin/settings"
+      ? pathname === href
+      : pathname.startsWith(href);
 
+  const allowedNav = nav.filter((n) =>
+    role === "owner"
+      ? true
+      : role === "manager"
+        ? !["/admin/settings", "/admin/settings/users", "/admin/activity"].includes(n.href)
+        : ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"].includes(n.href),
+  );
   const sidebar = (
-    <nav aria-label="Admin" className="flex h-full min-h-0 flex-col p-3">
-      <Link href="/admin" className="mb-4 flex items-center gap-3 px-2">
-        <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={44} height={44} unoptimized className="size-11" />
-        <span className="leading-tight font-semibold text-white">
+    <nav aria-label="Admin" className="flex h-full min-h-0 flex-col px-3 pb-4 pt-5">
+      <Link href="/admin" className="mb-7 flex items-center gap-3 px-2">
+        <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={46} height={46} unoptimized className="size-11 rounded-full bg-white/10 object-contain ring-1 ring-white/10" />
+        <span className="leading-tight font-semibold tracking-wide text-white">
           Mahadev
-          <span className="block text-sm font-normal text-white/60">Admin panel</span>
+          <span className="mt-1 block text-xs font-medium uppercase tracking-[0.16em] text-white/50">Admin workspace</span>
         </span>
       </Link>
-      <div className="min-h-0 flex-1 space-y-1 overflow-y-auto pr-1">
-        {nav.filter((n) => role === "owner" || (role === "manager" ? !["/admin/settings", "/admin/settings/users", "/admin/activity"].includes(n.href) : ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"].includes(n.href))).map((n) => (
-          <Link
-            key={n.href}
-            href={n.href}
-            className={cn(
-              "flex min-h-11 items-center rounded-xl px-4 font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white",
-              active(n.href) && "bg-white/15 text-white",
-            )}
-          >
-            {n.label}
-          </Link>
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
+        {[...new Set(allowedNav.map((n) => sectionNames[n.href] ?? "More"))].map((section) => (
+          <div key={section}>
+            <p className="mb-1.5 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">{section}</p>
+            <div className="space-y-1">
+              {allowedNav.filter((n) => (sectionNames[n.href] ?? "More") === section).map((n) => (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  aria-current={active(n.href) ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-10 items-center rounded-xl border border-transparent px-4 text-[14px] font-medium text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white",
+                    active(n.href) && "border-white/10 bg-white/[0.13] font-semibold text-white shadow-sm",
+                  )}
+                >
+                  {n.label}
+                  {active(n.href) && <span aria-hidden className="ml-auto size-1.5 rounded-full bg-mustard" />}
+                </Link>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
-      <Link href="/" target="_blank" className="mt-3 min-h-11 shrink-0 rounded-xl px-4 py-3 text-sm text-white/60 hover:text-white">
-        View storefront ↗
+      <Link href="/" target="_blank" className="mt-4 flex min-h-11 shrink-0 items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/65 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white">
+        View storefront <span className="ml-auto">↗</span>
       </Link>
     </nav>
   );
 
   return (
-    <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 bg-forest-deep lg:block">{sidebar}</aside>
+    <div className="flex min-h-dvh bg-[#f7f6f1] text-ink">
+      <aside className="sticky top-0 hidden h-dvh w-[250px] shrink-0 bg-[#082f20] lg:block">{sidebar}</aside>
 
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-forest-deep">{sidebar}</aside>
+          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-[#082f20] shadow-2xl">{sidebar}</aside>
         </div>
       )}
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-white px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-line/80 bg-white/95 px-4 shadow-[0_3px_14px_-12px_rgba(0,0,0,.3)] backdrop-blur sm:px-7">
           <button
             type="button"
             aria-label="Open menu"
@@ -92,14 +133,17 @@ export function AdminShell({ children, role }: { children: React.ReactNode; role
           >
             {open ? <CloseIcon /> : <MenuIcon />}
           </button>
-          <p className="font-semibold text-forest-text">Swadeshi Mahadev Products</p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-forest-text sm:text-base">Swadeshi Mahadev Products</p>
+            <p className="hidden text-[11px] font-medium uppercase tracking-[0.15em] text-ink-muted sm:block">{sectionNames[pathname] ?? "Admin"} · Workspace</p>
+          </div>
           <form action={logoutAction} className="ml-auto">
-            <button type="submit" className="min-h-10 rounded-full border border-line px-4 text-sm font-semibold text-forest-text hover:border-forest">
+            <button type="submit" className="min-h-10 rounded-full border border-line px-4 text-sm font-semibold text-forest-text transition-colors hover:border-forest hover:bg-khaki-soft">
               Log out
             </button>
           </form>
         </header>
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main id="main" className="mx-auto w-full max-w-[1680px] p-4 sm:p-6 xl:p-8">{children}</main>
       </div>
     </div>
   );

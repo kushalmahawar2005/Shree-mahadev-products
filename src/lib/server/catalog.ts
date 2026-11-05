@@ -219,7 +219,12 @@ export const variantKey = (handle: string, title: string) =>
 /** Insert or update one product (by handle) with its variants and collections. */
 export async function saveProduct(input: ProductInput, originalHandle?: string): Promise<string> {
   return tx(async (c) => {
-    const [existing] = await c.execute<Rows>("SELECT id FROM products WHERE handle = ?", [originalHandle ?? input.handle]);
+    let existing: Rows = [];
+    if (originalHandle) {
+      const [rows] = await c.execute<Rows>("SELECT id FROM products WHERE handle = ? FOR UPDATE", [originalHandle]);
+      existing = rows;
+    }
+    if (originalHandle && !existing[0]) throw new Error("Product not found; refresh and try again");
     const cols = [
       input.handle, input.title, input.titleHi || null, input.category, input.swatch || null, input.shortDescription,
       input.descriptionHtml || null, JSON.stringify(input.benefits), JSON.stringify(input.bestFor), input.howToUse || null,
@@ -250,19 +255,45 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
     }
 
     // Variants: update by key, insert new, delete the ones removed in the form.
+    const variantKeys = input.variants.map((v) => v.key || variantKey(input.handle, v.title));
+    let ownedKeys: Rows = [];
+    if (variantKeys.length) {
+      const [rows] = await c.query<Rows>("SELECT variant_key, product_id FROM product_variants WHERE variant_key IN (?) FOR UPDATE", [variantKeys]);
+      ownedKeys = rows;
+    }
+    if (ownedKeys.some((row) => Number(row.product_id) !== id)) {
+      throw new Error("A size identifier is already used by another product");
+    }
+    const skus = input.variants.map((v) => v.sku?.trim()).filter((sku): sku is string => !!sku);
+    if (skus.length) {
+      const [skuRows] = await c.query<Rows>("SELECT sku, product_id, variant_key FROM product_variants WHERE sku IN (?) FOR UPDATE", [skus]);
+      const targetBySku = new Map(input.variants.filter((v) => v.sku).map((v) => [v.sku!.trim().toLowerCase(), v.key || variantKey(input.handle, v.title)]));
+      if (skuRows.some((row) => Number(row.product_id) !== id)) {
+        throw new Error("That SKU is already used by another product");
+      }
+      if (skuRows.some((row) => String(row.variant_key) !== targetBySku.get(String(row.sku).trim().toLowerCase()))) {
+        throw new Error("A SKU is already assigned to a different size");
+      }
+    }
     const keep: string[] = [];
+    const existingKeys = new Set(ownedKeys.map((row) => String(row.variant_key)));
     for (const [i, v] of input.variants.entries()) {
       const key = v.key || variantKey(input.handle, v.title);
       keep.push(key);
-      await c.execute(
-        `INSERT INTO product_variants (product_id, variant_key, title, size_value, size_unit, sku, price, compare_at_price, stock_qty, available, weight_grams, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-         ON DUPLICATE KEY UPDATE product_id=VALUES(product_id), title=VALUES(title), size_value=VALUES(size_value), size_unit=VALUES(size_unit),
-           sku=VALUES(sku), price=VALUES(price), compare_at_price=VALUES(compare_at_price), stock_qty=VALUES(stock_qty),
-           available=VALUES(available), weight_grams=VALUES(weight_grams), sort_order=VALUES(sort_order)`,
-        [id, key, v.title, v.sizeValue, v.sizeUnit, v.sku || null, v.price, v.compareAtPrice || null, v.stock, v.available ? 1 : 0,
-         v.weightGrams || null, i],
-      );
+      const values = [v.title, v.sizeValue, v.sizeUnit, v.sku || null, v.price, v.compareAtPrice || null, v.stock, v.available ? 1 : 0, v.weightGrams || null, i];
+      if (existingKeys.has(key)) {
+        await c.execute(
+          `UPDATE product_variants SET title=?, size_value=?, size_unit=?, sku=?, price=?, compare_at_price=?, stock_qty=?, available=?, weight_grams=?, sort_order=?
+           WHERE variant_key=? AND product_id=?`,
+          [...values, key, id],
+        );
+      } else {
+        await c.execute(
+          `INSERT INTO product_variants (product_id,variant_key,title,size_value,size_unit,sku,price,compare_at_price,stock_qty,available,weight_grams,sort_order)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [id, key, ...values],
+        );
+      }
     }
     await c.query(
       keep.length ? "DELETE FROM product_variants WHERE product_id = ? AND variant_key NOT IN (?)" : "DELETE FROM product_variants WHERE product_id = ?",

@@ -111,7 +111,7 @@ export function ProductsTable({ rows, collections }: { rows: ProductRow[]; colle
       )}
       {msg && <p className={cn("mb-3 text-sm", msg.ok ? "text-forest" : "text-sale")}>{msg.text}</p>}
 
-      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+      <div className="hidden overflow-x-auto rounded-2xl border border-line bg-white lg:block">
         <table className="w-full min-w-[760px] text-left text-sm">
           <thead className="bg-khaki-soft/60 text-ink-muted">
             <tr>
@@ -158,6 +158,29 @@ export function ProductsTable({ rows, collections }: { rows: ProductRow[]; colle
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="space-y-3 lg:hidden">
+        {rows.map((r) => (
+          <article key={r.handle} className={cn("rounded-2xl border border-line bg-white p-3", sel.has(r.handle) && "border-forest bg-khaki-soft/30")}>
+            <div className="flex items-start gap-3">
+              <input type="checkbox" checked={sel.has(r.handle)} onChange={() => toggle(r.handle)} className="mt-1 size-5 shrink-0 accent-[var(--color-forest)]" aria-label={`Select ${r.title}`} />
+              <Link href={`/admin/products/edit?handle=${r.handle}`} className="flex min-w-0 flex-1 items-center gap-3">
+                <Image src={r.image} alt="" width={52} height={52} className="size-13 shrink-0 rounded-xl bg-khaki-soft object-cover" unoptimized={r.image.endsWith(".svg")} />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-forest-text">{r.title}</span>
+                  <span className="block truncate text-sm text-ink-muted">{r.titleHi || r.handle}</span>
+                </span>
+              </Link>
+              <span className={cn("shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold capitalize", STATUS_TONE[r.status])}>{r.status}</span>
+            </div>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-line pt-3 text-sm">
+              <div><dt className="text-xs text-ink-muted">Category</dt><dd className="capitalize">{r.category}</dd></div>
+              <div><dt className="text-xs text-ink-muted">Sizes</dt><dd>{r.variants}</dd></div>
+              <div><dt className="text-xs text-ink-muted">From</dt><dd>{r.from ? formatMoney(r.from) : "No price"}</dd></div>
+              <div><dt className="text-xs text-ink-muted">Stock</dt><dd>{r.stock === null ? "Not tracked" : r.stock}</dd></div>
+            </dl>
+          </article>
+        ))}
       </div>
     </div>
   );

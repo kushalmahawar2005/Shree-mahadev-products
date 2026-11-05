@@ -204,6 +204,7 @@ export type BookedShipment = {
   trackingUrl: string | null;
   charged: number | null;
   pickupGenerated: boolean;
+  expectedDelivery: string | null;
 };
 
 type Booking = {
@@ -212,6 +213,7 @@ type Booking = {
   courier_id?: string;
   courier_name?: string;
   order_status?: string;
+  edd?: string;
   label_url?: string;
   tracking_url?: string;
   tracking_short_url?: string;
@@ -228,8 +230,10 @@ export async function createShipment(i: CreateShipmentInput): Promise<BookedShip
       order_number: i.orderNumber,
       order_type: "b2c",
       payment_mode: i.paymentType,
-      order_amount: i.orderAmount,
       ...(i.paymentType === "cod" ? { order_collectable_amount: i.orderAmount } : {}),
+      // NimbusPost's declared total keeps the COD cap and shipping record aligned
+      // with the order total, including any tax already included in storefront prices.
+      order_amount: i.orderAmount,
       warehouse_id: await warehouseId(),
       shipping_address: {
         name: c.name,
@@ -244,7 +248,8 @@ export async function createShipment(i: CreateShipmentInput): Promise<BookedShip
       },
       billing_same_as_shipping: true,
       items: i.items.map((x) => ({ name: x.name.slice(0, 200), qty: x.qty, price: x.price, ...(x.sku ? { sku: x.sku } : {}) })),
-      package: { weight: i.weightGrams, length: i.dims.length, width: i.dims.breadth, height: i.dims.height },
+      // /serviceability accepts grams; /shipments expects package weight in kg.
+      package: { weight: Math.max(Math.round(i.weightGrams), 50) / 1000, length: i.dims.length, width: i.dims.breadth, height: i.dims.height },
       org_charges: { shipping_charges: i.shippingCharges, cod_charges: i.codCharges, discount_amount: i.discount },
       ...(i.courierId ? { courier_id: i.courierId } : {}),
       label_format: "a4-4up",
@@ -260,8 +265,9 @@ export async function createShipment(i: CreateShipmentInput): Promise<BookedShip
     status: b.order_status ?? "booked",
     labelUrl: b.label_url ?? null,
     trackingUrl: b.tracking_short_url ?? b.tracking_url ?? null,
-    charged: typeof b.price?.total === "number" ? Math.round(b.price.total) : null,
+    charged: typeof b.price?.total === "number" ? Math.round(b.price.total * 100) / 100 : null,
     pickupGenerated: !!b.pickup_generated,
+    expectedDelivery: b.edd ?? null,
   };
 }
 
@@ -269,8 +275,12 @@ export async function cancelShipment(awb: string, reason = "Cancelled by seller"
   await call("/shipments/cancel", { method: "POST", body: { awb, reason } });
 }
 
-export async function schedulePickup(providerOrderId: string): Promise<void> {
-  await call("/shipments/pickup", { method: "POST", body: { order_id: providerOrderId } });
+export async function schedulePickup(providerOrderId: string): Promise<boolean> {
+  const result = await call<{ courier_scheduled?: boolean }>("/shipments/pickup", {
+    method: "POST", body: { order_id: providerOrderId },
+  });
+  // NimbusPost can return HTTP 200 while the courier declines the pickup.
+  return result.courier_scheduled !== false;
 }
 
 /** Fresh label link (label URLs expire). */
