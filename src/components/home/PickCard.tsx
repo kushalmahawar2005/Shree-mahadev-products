@@ -200,7 +200,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
           <Link href={href} className="hover:text-forest hover:underline">
             {shortTitle(product.title)}
           </Link>
-          <span lang="hi" className="ml-1.5 text-sm font-medium text-ink-muted">
+          <span lang="hi" className="font-hindi ml-1.5 text-[15px] font-normal text-sale">
             · {product.titleHi}
           </span>
         </h3>

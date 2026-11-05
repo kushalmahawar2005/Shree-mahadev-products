@@ -90,7 +90,8 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
 
                 {/* copy */}
                 <span className={cn("relative z-10 flex h-full flex-col p-4 md:p-6", t.span === "wide" && t.images.length ? "max-w-[46%]" : "max-w-[60%]")}>
-                  <span className={cn("text-[11px] font-semibold tracking-[0.16em] uppercase", light ? "text-white/70" : "text-forest/60")} lang="hi">
+                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-none md:text-lg", light ? "text-[#e8c879]" : "text-sale")} lang="hi">
+                    <span aria-hidden className={cn("h-px w-5", light ? "bg-[#e8c879]/70" : "bg-sale/60")} />
                     {t.titleHi}
                   </span>
                   <span className={cn("mt-1 font-bold leading-tight", t.span === "hero" ? "text-3xl md:text-4xl" : "text-xl md:text-2xl", light ? "text-white" : "text-forest-text")}>

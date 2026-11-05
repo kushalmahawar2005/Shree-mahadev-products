@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Figtree, Mukta } from "next/font/google";
+import { Figtree, Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { StoreSettingsProvider } from "@/components/StoreSettingsProvider";
 import { getStoreSettings } from "@/lib/server/store-settings";
@@ -23,6 +23,15 @@ const figtree = Figtree({
   weight: ["400", "500", "600", "700", "800"],
   subsets: ["latin"],
   variable: "--font-figtree",
+  display: "swap",
+});
+
+/** Hindi accents (product + category names): elegant Devanagari serif. */
+const tiroHindi = Tiro_Devanagari_Hindi({
+  weight: ["400"],
+  style: ["normal", "italic"],
+  subsets: ["devanagari", "latin"],
+  variable: "--font-hindi",
   display: "swap",
 });
 
@@ -65,7 +74,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`}>
+    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable} ${tiroHindi.variable}`}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
