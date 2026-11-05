@@ -1,33 +1,28 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { Baby, Cookie, CookingPot, Droplets, Flame, LayoutGrid, Loader2, Package, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Loader2, SlidersHorizontal, X } from "lucide-react";
 import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
+import { Checkbox } from "@/components/shadcn/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/shadcn/sheet";
+import { Slider } from "@/components/shadcn/slider";
 import { shopByUse } from "@/data/site";
 import type { Product, ProductSort } from "@/lib/commerce/types";
+import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 
 const categories = [
-  { value: "", label: "All", icon: LayoutGrid },
-  { value: "oil", label: "Oils", icon: Droplets },
-  { value: "honey", label: "Honey", icon: Sparkles },
-  { value: "sweetener", label: "Sweeteners", icon: Package },
+  { value: "oil", label: "Wood-pressed oils" },
+  { value: "honey", label: "Raw honey" },
+  { value: "sweetener", label: "Natural sweeteners" },
 ];
 
-const USE_ICONS: Record<string, typeof Flame> = {
-  "daily-cooking": CookingPot,
-  "deep-frying": Flame,
-  "pickles-tadka": Cookie,
-  "hair-skin": Sparkles,
-  "baby-massage": Baby,
-};
-
 const sizes = [
-  { value: "all", label: "Any size" },
   { value: "small", label: "Up to 500 ml / g" },
   { value: "1l", label: "1 L / 1 kg" },
   { value: "family", label: "2 L" },
@@ -41,198 +36,251 @@ const sorts: { value: ProductSort; label: string }[] = [
   { value: "new", label: "Newest" },
 ];
 
-function sizeMatch(p: Product, size: string) {
+const list = (v: string | null) => (v ? v.split(",").filter(Boolean) : []);
+
+function sizeMatch(p: Product, sizesSel: string[]) {
+  if (!sizesSel.length) return true;
   const vs = p.variants.filter((v) => v.availableForSale);
-  switch (size) {
-    case "small":
-      return vs.some((v) => v.sizeValue <= 500);
-    case "1l":
-      return vs.some((v) => v.sizeValue === 1000);
-    case "family":
-      return vs.some((v) => v.sizeValue === 2000);
-    case "bulk":
-      return vs.some((v) => v.sizeValue >= 5000);
-    default:
-      return true;
-  }
+  return sizesSel.some((size) => {
+    switch (size) {
+      case "small":
+        return vs.some((v) => v.sizeValue <= 500);
+      case "1l":
+        return vs.some((v) => v.sizeValue === 1000);
+      case "family":
+        return vs.some((v) => v.sizeValue === 2000);
+      case "bulk":
+        return vs.some((v) => v.sizeValue >= 5000);
+      default:
+        return true;
+    }
+  });
 }
 
-/** Client-side filters + sort over the cached catalog. State lives in the URL. */
+/** Standard shop layout: filter sidebar (sheet on mobile) + toolbar + grid. All filter state lives in the URL. */
 export function ShopListing({ products }: { products: Product[] }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
   const reduce = useReducedMotion();
   const [pending, start] = useTransition();
+  const [sheet, setSheet] = useState(false);
 
-  const category = params.get("category") ?? "";
-  const size = params.get("size") ?? "";
-  const use = params.get("use") ?? "";
+  // `category` / `use` keep working as single values from old links; multi-select is comma-separated.
+  const cats = list(params.get("category"));
+  const uses = list(params.get("use"));
+  const sizeSel = list(params.get("size"));
   const sort = (params.get("sort") as ProductSort) ?? "best";
+  const maxPrice = Math.max(100, ...products.map((p) => p.priceRange.max.amount));
+  const priceMax = Number(params.get("max")) || maxPrice;
 
-  const set = (key: string, value: string) => {
+  const push = (next: URLSearchParams) => start(() => router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
+  const setKey = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
     else next.delete(key);
-    start(() => router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
+    push(next);
   };
+  const toggle = (key: string, current: string[], value: string) => {
+    const nextVals = current.includes(value) ? current.filter((v) => v !== value) : [...current, value];
+    setKey(key, nextVals.join(","));
+  };
+  const clearAll = () => push(new URLSearchParams(sort !== "best" ? { sort } : {}));
 
-  const count = (c: string) => products.filter((p) => !c || p.category === c).length;
-
-  const list = useMemo(() => {
-    const filtered = products.filter((p) => (!category || p.category === category) && (!use || p.tags.includes(use)) && sizeMatch(p, size));
+  const shown = useMemo(() => {
     const min = (p: Product) => p.priceRange.min.amount || Number.POSITIVE_INFINITY;
+    const filtered = products.filter(
+      (p) =>
+        (!cats.length || cats.includes(p.category)) &&
+        (!uses.length || uses.some((u) => p.tags.includes(u))) &&
+        sizeMatch(p, sizeSel) &&
+        (priceMax >= maxPrice || min(p) <= priceMax),
+    );
     const sorted = [...filtered];
     if (sort === "price-asc") sorted.sort((a, b) => min(a) - min(b));
     if (sort === "price-desc") sorted.sort((a, b) => b.priceRange.max.amount - a.priceRange.max.amount);
     if (sort === "new") sorted.reverse();
     return sorted;
-  }, [products, category, use, size, sort]);
+  }, [products, cats, uses, sizeSel, sort, priceMax, maxPrice]);
 
-  const active = [
-    category && { key: "category", label: categories.find((c) => c.value === category)?.label ?? category },
-    use && { key: "use", label: shopByUse.find((u) => u.tag === use)?.label ?? use },
-    size && { key: "size", label: sizes.find((s) => s.value === size)?.label ?? size },
-  ].filter(Boolean) as { key: string; label: string }[];
+  const chips = [
+    ...cats.map((c) => ({ key: "category", value: c, label: categories.find((x) => x.value === c)?.label ?? c, cur: cats })),
+    ...uses.map((u) => ({ key: "use", value: u, label: shopByUse.find((x) => x.tag === u)?.label ?? u, cur: uses })),
+    ...sizeSel.map((s) => ({ key: "size", value: s, label: sizes.find((x) => x.value === s)?.label ?? s, cur: sizeSel })),
+  ];
+  const filterCount = chips.length + (priceMax < maxPrice ? 1 : 0);
+  const countIn = (pred: (p: Product) => boolean) => products.filter(pred).length;
+
+  const filters = (
+    <Accordion type="multiple" defaultValue={["category", "use", "size", "price"]} className="w-full">
+      <FilterGroup value="category" title="Category">
+        {categories.map((c) => (
+          <Check key={c.value} label={c.label} count={countIn((p) => p.category === c.value)} checked={cats.includes(c.value)} onChange={() => toggle("category", cats, c.value)} />
+        ))}
+      </FilterGroup>
+      <FilterGroup value="use" title="Use">
+        {shopByUse.map((u) => (
+          <Check key={u.tag} label={u.label} hint={u.labelHi} count={countIn((p) => p.tags.includes(u.tag))} checked={uses.includes(u.tag)} onChange={() => toggle("use", uses, u.tag)} />
+        ))}
+      </FilterGroup>
+      <FilterGroup value="size" title="Pack size">
+        {sizes.map((s) => (
+          <Check key={s.value} label={s.label} count={countIn((p) => sizeMatch(p, [s.value]))} checked={sizeSel.includes(s.value)} onChange={() => toggle("size", sizeSel, s.value)} />
+        ))}
+      </FilterGroup>
+      <FilterGroup value="price" title="Price">
+        <div className="px-1 pt-2 pb-1">
+          <Slider
+            min={0}
+            max={maxPrice}
+            step={50}
+            defaultValue={[priceMax]}
+            onValueCommit={([v]) => setKey("max", v >= maxPrice ? "" : String(v))}
+            aria-label="Maximum price"
+            className="[&_[data-slot=slider-range]]:bg-forest [&_[data-slot=slider-thumb]]:border-forest"
+          />
+          <div className="mt-3 flex justify-between text-xs text-ink-muted">
+            <span>{formatMoney(0)}</span>
+            <span className="font-semibold text-forest-text">Up to {formatMoney(priceMax)}</span>
+          </div>
+        </div>
+      </FilterGroup>
+    </Accordion>
+  );
 
   return (
-    <div className="mt-8">
-      {/* Sticky filter bar */}
-      <div className="sticky top-[calc(var(--header-h,72px)+8px)] z-20 -mx-4 px-4 md:mx-0 md:px-0">
-        <div className="rounded-3xl border border-line bg-white/85 p-3 shadow-[0_14px_30px_-24px_rgba(7,47,27,0.5)] backdrop-blur-md md:p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            {/* Category rail */}
-            <div className="no-scrollbar -mx-1 overflow-x-auto px-1">
-              <div role="tablist" aria-label="Category" className="flex w-max gap-1 rounded-full bg-khaki-soft/70 p-1">
-                {categories.map((c) => {
-                  const on = category === c.value;
-                  const I = c.icon;
-                  return (
-                    <button
-                      key={c.value || "all"}
-                      role="tab"
-                      type="button"
-                      aria-selected={on}
-                      onClick={() => set("category", c.value)}
-                      className="relative inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
-                    >
-                      {on && <motion.span layoutId="shop-cat" className="absolute inset-0 rounded-full bg-forest" transition={{ type: "spring", stiffness: 400, damping: 34 }} />}
-                      <I className={cn("relative size-4", on ? "text-[#e8c879]" : "text-forest/70")} />
-                      <span className={cn("relative", on ? "text-white" : "text-forest-text")}>{c.label}</span>
-                      <span className={cn("relative text-xs tabular-nums", on ? "text-white/70" : "text-ink-muted")}>{count(c.value)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 lg:ml-auto">
-              <SlidersHorizontal className="hidden size-4 text-ink-muted sm:block" />
-              <Select value={size || "all"} onValueChange={(v) => set("size", v === "all" ? "" : v)}>
-                <SelectTrigger className="h-10 min-w-[150px] rounded-full border-line bg-white" aria-label="Size">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sizes.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sort} onValueChange={(v) => set("sort", v === "best" ? "" : v)}>
-                <SelectTrigger className="h-10 min-w-[170px] rounded-full border-line bg-white" aria-label="Sort">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sorts.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="mt-6 grid gap-8 lg:grid-cols-[260px_1fr]">
+      {/* Sidebar (desktop) */}
+      <aside className="hidden lg:block">
+        <div className="sticky top-[calc(var(--header-h,72px)+16px)] rounded-2xl border border-line bg-white p-5">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="font-bold text-forest-text">Filters</p>
+            {filterCount > 0 && (
+              <button type="button" onClick={clearAll} className="text-xs font-semibold text-forest underline-offset-2 hover:underline">
+                Clear all
+              </button>
+            )}
           </div>
+          {filters}
+        </div>
+      </aside>
 
-          {/* Use chips */}
-          <div className="no-scrollbar -mx-1 mt-3 overflow-x-auto px-1">
-            <div role="group" aria-label="Use" className="flex w-max gap-2">
-              {shopByUse.map((u) => {
-                const on = use === u.tag;
-                const I = USE_ICONS[u.tag] ?? CookingPot;
-                return (
-                  <button
-                    key={u.tag}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => set("use", on ? "" : u.tag)}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors",
-                      on ? "border-forest bg-forest/5 text-forest" : "border-line bg-white text-ink-muted hover:border-forest/40 hover:text-forest",
-                    )}
-                  >
-                    <I className="size-4" />
-                    {u.label}
-                    <span className="font-hindi text-[13px] text-sale" lang="hi">
-                      {u.labelHi}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+      <div className="min-w-0">
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-line pb-4">
+          <Sheet open={sheet} onOpenChange={setSheet}>
+            <SheetTrigger asChild>
+              <button type="button" className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text lg:hidden">
+                <SlidersHorizontal className="size-4" /> Filters
+                {filterCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-forest text-[11px] text-white">{filterCount}</span>}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[88vw] max-w-sm gap-0 overflow-y-auto bg-white p-0">
+              <SheetHeader className="border-b border-line px-5 py-4">
+                <SheetTitle>Filters</SheetTitle>
+                <SheetDescription className="text-xs">{shown.length} products match</SheetDescription>
+              </SheetHeader>
+              <div className="px-5 py-2">{filters}</div>
+              <div className="sticky bottom-0 flex gap-2 border-t border-line bg-white p-4">
+                <button type="button" onClick={clearAll} className="h-11 flex-1 rounded-full border border-line text-sm font-semibold text-forest-text">
+                  Clear
+                </button>
+                <button type="button" onClick={() => setSheet(false)} className="h-11 flex-[2] rounded-full bg-forest text-sm font-bold text-white">
+                  Show {shown.length} products
+                </button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          <p className="flex items-center gap-2 text-sm text-ink-muted" aria-live="polite">
+            {pending && <Loader2 className="size-3.5 animate-spin" />}
+            Showing <span className="font-semibold text-forest-text tabular-nums">{shown.length}</span> of {products.length} products
+          </p>
+
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden text-sm text-ink-muted sm:inline">Sort by</span>
+            <Select value={sort} onValueChange={(v) => setKey("sort", v === "best" ? "" : v)}>
+              <SelectTrigger className="h-10 min-w-[180px] rounded-full border-line bg-white" aria-label="Sort products">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {sorts.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-      </div>
 
-      {/* Result line + active filters */}
-      <div className="mt-6 flex flex-wrap items-center gap-2" aria-live="polite">
-        <p className="mr-2 flex items-center gap-2 text-sm text-ink-muted">
-          {pending && <Loader2 className="size-3.5 animate-spin" />}
-          <span className="font-semibold text-forest-text tabular-nums">{list.length}</span> {list.length === 1 ? "product" : "products"}
-        </p>
-        {active.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => set(f.key, "")}
-            className="inline-flex h-7 items-center gap-1 rounded-full bg-forest px-3 text-xs font-semibold text-white hover:bg-forest-mid"
-          >
-            {f.label} <X className="size-3" />
-          </button>
-        ))}
-        {active.length > 1 && (
-          <button type="button" onClick={() => start(() => router.replace(pathname, { scroll: false }))} className="text-xs font-semibold text-forest underline-offset-2 hover:underline">
-            Clear all
-          </button>
+        {chips.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {chips.map((c) => (
+              <button
+                key={c.key + c.value}
+                type="button"
+                onClick={() => toggle(c.key, c.cur, c.value)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-forest/20 bg-forest/5 px-3 text-xs font-semibold text-forest hover:bg-forest/10"
+              >
+                {c.label} <X className="size-3" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {shown.length ? (
+          <ul className="mt-5 grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-3">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {shown.map((p, i) => (
+                <motion.li
+                  key={p.handle}
+                  layout={!reduce}
+                  initial={reduce ? false : { opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <PickCard product={toPickProduct(p)} priority={i < 3} />
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        ) : (
+          <div className="mt-6 rounded-2xl border border-dashed border-line bg-white px-6 py-16 text-center">
+            <p className="font-semibold text-forest-text">Nothing matches these filters.</p>
+            <button type="button" onClick={clearAll} className="mt-3 text-sm font-semibold text-forest underline underline-offset-2">
+              Clear filters
+            </button>
+          </div>
         )}
       </div>
-
-      {list.length ? (
-        <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {list.map((p, i) => (
-              <motion.li
-                key={p.handle}
-                layout={!reduce}
-                initial={reduce ? false : { opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ duration: 0.35, delay: Math.min(i, 8) * 0.03, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <PickCard product={toPickProduct(p)} priority={i < 4} />
-              </motion.li>
-            ))}
-          </AnimatePresence>
-        </ul>
-      ) : (
-        <div className="mt-6 rounded-3xl border border-dashed border-line bg-white/60 px-6 py-16 text-center">
-          <p className="font-semibold text-forest-text">Nothing matches these filters.</p>
-          <button type="button" onClick={() => router.replace(pathname, { scroll: false })} className="mt-3 text-sm font-semibold text-forest underline underline-offset-2">
-            Clear filters
-          </button>
-        </div>
-      )}
     </div>
+  );
+}
+
+function FilterGroup({ value, title, children }: { value: string; title: string; children: React.ReactNode }) {
+  return (
+    <AccordionItem value={value} className="border-line">
+      <AccordionTrigger className="py-3.5 text-sm font-semibold text-forest-text hover:no-underline">{title}</AccordionTrigger>
+      <AccordionContent className="space-y-1 pb-4">{children}</AccordionContent>
+    </AccordionItem>
+  );
+}
+
+function Check({ label, hint, count, checked, onChange }: { label: string; hint?: string; count: number; checked: boolean; onChange: () => void }) {
+  return (
+    <label className={cn("flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-sm transition-colors hover:bg-khaki-soft/60", checked && "text-forest")}>
+      <Checkbox checked={checked} onCheckedChange={onChange} className="data-[state=checked]:border-forest data-[state=checked]:bg-forest" />
+      <span className="flex-1">
+        {label}
+        {hint && (
+          <span className="font-hindi ml-1.5 text-[13px] text-sale" lang="hi">
+            {hint}
+          </span>
+        )}
+      </span>
+      <span className="text-xs text-ink-muted tabular-nums">{count}</span>
+    </label>
   );
 }
