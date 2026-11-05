@@ -76,7 +76,7 @@ export function Header({
       <StickyHeader>
         {/* Two Brothers layout: thin announcement strip · white row (search · logo · account/cart) · text nav */}
         <div
-          className="relative w-full border-b border-line bg-[#fcf9f2] text-forest-text transition-[background-color,box-shadow] duration-300 group-data-[compact]/header:bg-[#fcf9f2]/90 group-data-[compact]/header:shadow-[0_10px_30px_-18px_rgba(7,47,27,0.45)] group-data-[compact]/header:backdrop-blur-md"
+          className="relative w-full border-b border-line bg-[#fcf9f2] text-forest-text transition-[background-color,box-shadow] duration-300 group-data-[compact]/header:bg-[#fcf9f2]/90 group-data-[compact]/header:shadow-[0_4px_14px_-10px_rgba(7,47,27,0.18)] group-data-[compact]/header:backdrop-blur-md"
           onMouseLeave={closeMega}
         >
           {/* Announcement strip (collapses once the page is scrolled) */}
