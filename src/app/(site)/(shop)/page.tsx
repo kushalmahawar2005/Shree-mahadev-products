@@ -109,7 +109,12 @@ export default async function HomePage() {
       videoUrl: r.videoUrl,
       caption: r.caption,
       instagramUrl: r.instagramUrl,
-      product: p ? { handle: p.handle, title: p.title } : null,
+      product: p
+        ? (() => {
+            const v = p.variants.find((x) => x.availableForSale);
+            return { handle: p.handle, title: p.title, image: p.images[0]?.url, price: v?.price.amount, variantId: v?.id, variantTitle: v?.title };
+          })()
+        : null,
     };
   });
 
