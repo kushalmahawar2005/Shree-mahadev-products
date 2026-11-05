@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ArrowRight, FlaskConical, Mail, MapPin, MessageCircle, Phone, ShieldCheck } from "lucide-react";
 import { DecoBg } from "@/components/ui/DecoBg";
 import Link from "next/link";
 import { footerNav, site, whatsappLink } from "@/data/site";
@@ -24,121 +25,64 @@ export async function Footer() {
     ...collections.filter((c) => c.inMenu).sort((a, b) => (a.menuOrder ?? 0) - (b.menuOrder ?? 0)).map((c) => ({ label: c.title, href: `/collections/${c.handle}` })),
   ];
   return (
-    <footer className="relative bg-white text-forest-text">
+    <footer className="relative bg-[#F5EDDE] text-forest-text">
       <div className="relative">
-        {/* Content on white; the illustration below is pulled up so its empty white sky sits under the content. */}
-        <div className="relative z-10 mx-auto grid max-w-[1180px] gap-10 px-4 pt-12 pb-8 sm:px-6 lg:grid-cols-[1fr_1.6fr_1fr] lg:gap-12 lg:px-8 lg:pt-14">
-          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
-            <Link
-              href="/"
-              className="inline-flex flex-col items-center gap-2 lg:items-start"
-            >
-              <Image
-                src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
-                alt=""
-                width={88}
-                height={88}
-                unoptimized
-                className="size-20 lg:size-22"
-              />
-              <span className="font-display text-xl leading-tight text-forest-text">
-                {site.name}
-              </span>
-            </Link>
-            <p className="mt-2 text-sm text-ink-muted" lang="hi">
-              स्वदेशी · Bijainagar, Rajasthan
-            </p>
-          </div>
-
-          <div className="text-center">
-            <p className="font-display text-xl text-forest-text md:text-2xl">
-              Slow-pressed, the old way
-            </p>
-            <p className="mx-auto mt-2 max-w-md text-[15px] text-forest-text/85">
-              Get new batches, offers and recipes straight on WhatsApp. No spam.
-            </p>
+        <div className="relative z-10 mx-auto max-w-[1240px] px-4 pt-12 sm:px-6 lg:px-8 lg:pt-16">
+          {/* WhatsApp CTA card */}
+          <div className="relative overflow-hidden rounded-[28px] bg-forest px-6 py-8 text-white md:flex md:items-center md:justify-between md:gap-8 md:px-10">
+            <span aria-hidden className="absolute -top-20 -right-10 size-64 rounded-full bg-[radial-gradient(circle,rgba(180,144,36,0.45),transparent_65%)]" />
+            <div className="relative">
+              <p className="font-hindi text-lg text-[#e8c879]" lang="hi">
+                स्वदेशी · धीमी घानी
+              </p>
+              <p className="text-2xl font-bold md:text-3xl">Slow-pressed, the old way</p>
+              <p className="mt-1.5 max-w-md text-sm text-white/75">New batches, offers and recipes straight on WhatsApp. No spam.</p>
+            </div>
             <a
-              href={whatsappLink(
-                "Hi, please add me to the Swadeshi Mahadev updates list.",
-              )}
+              href={whatsappLink("Hi, please add me to the Swadeshi Mahadev updates list.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="mx-auto mt-4 flex min-h-12 max-w-md items-center justify-between rounded-lg border border-forest-text/25 bg-white px-4 text-sm text-ink-muted transition-colors duration-200 hover:border-forest"
+              className="btn-shine relative mt-5 inline-flex h-12 shrink-0 items-center gap-2.5 overflow-hidden rounded-full bg-[#e8c879] px-6 text-sm font-bold text-forest-deep transition-colors hover:bg-white md:mt-0"
             >
-              Join on WhatsApp
-              <svg
-                viewBox="0 0 24 24"
-                className="size-5 text-forest"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden
-              >
-                <path
-                  d="M5 12h14M13 6l6 6-6 6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <MessageCircle className="size-5" /> Join on WhatsApp <ArrowRight className="size-4" />
             </a>
-
-            <div className="mt-8 grid grid-cols-3 gap-4 text-left sm:gap-6 xl:mt-6">
-              <FooterCol title="Shop" links={shopLinks} />
-              <FooterCol title="Learn" links={footerNav.learn} />
-              <FooterCol title="Help" links={footerNav.help} />
-            </div>
-
-            {socials.length > 0 && (
-              <ul className="mt-6 flex justify-center gap-5">
-                {socials.map((s) => (
-                  <li key={s.href}>
-                    <a
-                      href={s.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-semibold hover:underline"
-                    >
-                      {s.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
-          <address className="space-y-3 text-center text-sm not-italic text-forest-text/90 lg:text-left">
-            <p className="font-semibold">{site.name}</p>
-            <p>{address}</p>
-            <p>
-              Phone:{" "}
-              <a
-                href={`tel:${b.phone.replace(/[^\d+]/g, "")}`}
-                className="underline-offset-2 hover:underline"
-              >
-                {b.phone}
-              </a>{" "}
-              ({b.supportHours})
-            </p>
-            <p>
-              Email:{" "}
-              <a
-                href={`mailto:${b.email}`}
-                className="underline underline-offset-2"
-              >
-                {b.email}
-              </a>
-            </p>
-            <p>
-              <a
-                href={whatsappLink()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-forest underline underline-offset-2"
-              >
-                Chat on WhatsApp
-              </a>
-            </p>
-          </address>
+          {/* Columns */}
+          <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.4fr] lg:gap-8">
+            <div>
+              <Link href="/" className="inline-flex items-center gap-3">
+                <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={64} height={64} unoptimized className="size-16" />
+                <span className="text-lg leading-tight font-bold text-forest-text">{site.name}</span>
+              </Link>
+              <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-muted">Wood-pressed kachi ghani oils, raw honey and desi jaggery from our family ghani in Bijainagar, Rajasthan.</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-semibold">
+                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-2.5 py-1"><ShieldCheck className="size-3.5 text-forest" /> FSSAI licensed</span>
+                <Link href="/lab-reports" className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-2.5 py-1 hover:border-forest/40"><FlaskConical className="size-3.5 text-forest" /> Lab tested</Link>
+              </div>
+              {socials.length > 0 && (
+                <ul className="mt-5 flex gap-2">
+                  {socials.map((s) => (
+                    <li key={s.href}>
+                      <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-10 place-items-center rounded-full border border-line bg-white/70 text-forest transition-colors hover:bg-forest hover:text-white">
+                        <SocialIcon label={s.label} />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <FooterCol title="Shop" links={shopLinks} />
+            <FooterCol title="Learn" links={footerNav.learn} />
+            <FooterCol title="Help" links={footerNav.help} />
+            <address className="space-y-3 text-sm not-italic">
+              <h2 className="mb-1 font-body text-sm font-bold text-forest-text">Get in touch</h2>
+              <p className="flex gap-2.5 text-ink-muted"><MapPin className="mt-0.5 size-4 shrink-0 text-forest" />{address}</p>
+              <a href={`tel:${b.phone.replace(/[^\d+]/g, "")}`} className="flex gap-2.5 text-ink-muted hover:text-forest"><Phone className="mt-0.5 size-4 shrink-0 text-forest" /><span>{b.phone}<span className="block text-xs">{b.supportHours}</span></span></a>
+              <a href={`mailto:${b.email}`} className="flex gap-2.5 break-all text-ink-muted hover:text-forest"><Mail className="mt-0.5 size-4 shrink-0 text-forest" />{b.email}</a>
+              <a href={whatsappLink()} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-forest px-4 py-2 text-xs font-bold text-white hover:bg-forest-mid"><MessageCircle className="size-4" /> Chat on WhatsApp</a>
+            </address>
+          </div>
         </div>
 
         {/*
@@ -146,7 +90,7 @@ export async function Footer() {
           sky: on desktop it is pulled up under the content; on smaller screens it is cropped to the scene.
         */}
         <div
-          className="relative aspect-[2172/430] w-full lg:-mt-[12vw] lg:aspect-[2172/724]"
+          className="relative -mt-6 aspect-[2172/430] w-full lg:-mt-[8vw] lg:aspect-[2172/724] mix-blend-multiply"
           aria-hidden
         >
           <DecoBg
@@ -173,15 +117,12 @@ export async function Footer() {
             {payments.map((p) => (
               <li
                 key={p}
-                className="rounded-md border border-forest-deep/30 bg-white/30 px-2.5 py-1 text-xs font-semibold text-forest-deep"
+                className="rounded-md bg-white/80 px-2.5 py-1 text-[11px] font-bold tracking-wide text-forest-deep shadow-sm"
               >
                 {p}
               </li>
             ))}
           </ul>
-          {socials.length === 0 && (
-            <p className="text-forest-deep/70">TODO(client): social links</p>
-          )}
         </div>
       </div>
     </footer>
@@ -197,7 +138,7 @@ function FooterCol({
 }) {
   return (
     <div>
-      <h2 className="mb-2 font-body text-sm font-bold text-forest-text">
+      <h2 className="mb-3 font-body text-sm font-bold text-forest-text">
         {title}
       </h2>
       <ul>
@@ -205,7 +146,7 @@ function FooterCol({
           <li key={l.href}>
             <Link
               href={l.href}
-              className="inline-flex min-h-9 items-center text-[13px] xl:min-h-7 leading-tight text-forest-text/85 hover:text-forest hover:underline sm:text-sm"
+              className="group inline-flex min-h-8 items-center gap-1 text-sm leading-tight text-ink-muted transition-colors hover:text-forest"
             >
               {l.label}
             </Link>
@@ -219,4 +160,20 @@ function FooterCol({
 async function CopyrightYear() {
   "use cache";
   return <>{new Date().getFullYear()}</>;
+}
+
+function SocialIcon({ label }: { label: string }) {
+  const l = label.toLowerCase();
+  const d = l.includes("insta")
+    ? "M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm5 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm5.25-1.25a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"
+    : l.includes("face")
+      ? "M14 8h3V4h-3a4 4 0 0 0-4 4v2H8v4h2v8h4v-8h3l1-4h-4V8Z"
+      : l.includes("you")
+        ? "M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2 27 27 0 0 0 2 12a27 27 0 0 0 .4 4.8 2.6 2.6 0 0 0 1.8 1.8c1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8A27 27 0 0 0 22 12a27 27 0 0 0-.4-4.8ZM10 15V9l5.2 3L10 15Z"
+        : "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z";
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden>
+      <path d={d} />
+    </svg>
+  );
 }
