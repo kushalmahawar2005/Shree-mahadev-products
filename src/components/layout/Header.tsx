@@ -276,7 +276,7 @@ export function CartButton({ className }: { className?: string }) {
       )}
       aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}
     >
-      <span key={addedTick} className={cn("grid size-7 place-items-center", addedTick && "cart-bounce")}>
+      <span key={addedTick} data-cart-target="" className={cn("grid size-7 place-items-center", addedTick && "cart-bounce")}>
         <BagIcon className="size-[22px]" />
       </span>
       <span className="hidden text-[11px] leading-none font-semibold text-ink-muted tabular-nums lg:block">{total ?? "Cart"}</span>

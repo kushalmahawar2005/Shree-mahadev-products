@@ -74,7 +74,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           () => addToCartAction(variantId, quantity),
           () => {
             setAddedTick((t) => t + 1);
-            setOpen(true);
+            // Let the "fly to cart" animation land before the drawer slides in.
+            setTimeout(() => setOpen(true), 700);
           },
         ),
       update: (lineId, quantity) => run(() => updateCartLineAction(lineId, quantity)),

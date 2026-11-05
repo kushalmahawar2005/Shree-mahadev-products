@@ -26,15 +26,11 @@ export function TabbedCarousel({
   const reduce = useReducedMotion();
   const track = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ prev: false, next: true, progress: 0, pages: 1 });
-  const [arrowTop, setArrowTop] = useState<number | null>(null);
 
   const update = useCallback(() => {
     const el = track.current;
     if (!el) return;
     const max = el.scrollWidth - el.clientWidth;
-    // Centre the arrows on the product photo, not the whole card.
-    const media = el.querySelector<HTMLElement>("[data-card-media]");
-    if (media) setArrowTop(media.getBoundingClientRect().top - el.getBoundingClientRect().top + media.offsetHeight / 2);
     setEdge({
       prev: el.scrollLeft > 4,
       next: el.scrollLeft < max - 4,
@@ -71,7 +67,20 @@ export function TabbedCarousel({
     const gap = parseFloat(getComputedStyle(el).columnGap) || 0;
     el.scrollBy({ left: dir * (first.offsetWidth + gap), behavior: reduce ? "auto" : "smooth" });
   };
-  const canScroll = edge.prev || edge.next;
+  const [hold, setHold] = useState(false);
+
+  // Autoplay: one card every 5 s, back to the start at the end. Pauses on hover/touch/focus.
+  useEffect(() => {
+    if (reduce || hold) return;
+    const t = setInterval(() => {
+      const el = track.current;
+      if (!el) return;
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) el.scrollTo({ left: 0, behavior: "smooth" });
+      else go(1);
+    }, 5000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- go reads the live track ref
+  }, [reduce, hold, active]);
 
   const uid = useId();
   const tabId = (i: number) => `${uid}-tab-${i}`;
@@ -104,16 +113,16 @@ export function TabbedCarousel({
             );
           })}
         </div>
-        {/* 1024–1279px: arrows sit as a pair at the end of the tabs row */}
-        {canScroll && (
-          <div className="absolute right-0 hidden gap-2 lg:flex xl:hidden">
-            <Arrow dir="prev" disabled={!edge.prev} onClick={() => go(-1)} />
-            <Arrow dir="next" disabled={!edge.next} onClick={() => go(1)} />
-          </div>
-        )}
       </div>
 
-      <div className="relative mt-6 md:mt-8">
+      <div
+        className="relative mt-6 md:mt-8"
+        onMouseEnter={() => setHold(true)}
+        onMouseLeave={() => setHold(false)}
+        onTouchStart={() => setHold(true)}
+        onFocusCapture={() => setHold(true)}
+        onBlurCapture={() => setHold(false)}
+      >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={active}
@@ -146,13 +155,6 @@ export function TabbedCarousel({
           </motion.div>
         </AnimatePresence>
 
-        {/* ≥1280px: arrows outside the track, 24px from the first/last card, centred on the photo */}
-        {canScroll && (
-          <>
-            <Arrow dir="prev" side top={arrowTop} disabled={!edge.prev} onClick={() => go(-1)} />
-            <Arrow dir="next" side top={arrowTop} disabled={!edge.next} onClick={() => go(1)} />
-          </>
-        )}
       </div>
 
       <div className="mt-5 flex items-center justify-between gap-4">
@@ -185,36 +187,3 @@ export function TabbedCarousel({
   );
 }
 
-function Arrow({
-  dir,
-  side = false,
-  top = null,
-  disabled,
-  onClick,
-}: {
-  dir: "prev" | "next";
-  side?: boolean;
-  top?: number | null;
-  disabled: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-disabled={disabled}
-      aria-label={dir === "prev" ? "Previous products" : "Next products"}
-      style={side ? { top: top ?? "35%" } : undefined}
-      className={cn(
-        "size-11 place-items-center rounded-full border border-khaki bg-white text-forest transition-opacity duration-200 hover:border-forest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mustard disabled:pointer-events-none disabled:opacity-35",
-        side ? "absolute z-10 hidden -translate-y-1/2 xl:grid" : "grid",
-        side && (dir === "prev" ? "-left-[68px]" : "-right-[68px]"),
-      )}
-    >
-      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-        <path d={dir === "prev" ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
-  );
-}

@@ -17,9 +17,24 @@ export const topPicks = {
       viewAll: "/collections/cooking-oils",
     },
     {
+      label: "Wellness oils",
+      source: { collection: "wellness-oils" },
+      viewAll: "/collections/wellness-oils",
+    },
+    {
       label: "Raw honey",
       source: { collection: "raw-honey" },
       viewAll: "/collections/raw-honey",
+    },
+    {
+      label: "Natural sweeteners",
+      source: { collection: "natural-sweeteners" },
+      viewAll: "/collections/natural-sweeteners",
+    },
+    {
+      label: "Bulk tins",
+      source: { collection: "bulk-tins" },
+      viewAll: "/collections/bulk-tins",
     },
   ],
 } as const;
