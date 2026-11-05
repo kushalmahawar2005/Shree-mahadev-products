@@ -22,7 +22,7 @@ export type ReelItem = {
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 
 /** Reel card: 3D tilt + moving sheen (Aceternity-style), plays muted while on screen, progress line, shoppable glass bar. */
-function ReelCard({ reel, onOpen, index }: { reel: ReelItem; onOpen: () => void; index: number }) {
+function ReelCard({ reel, onOpen }: { reel: ReelItem; onOpen: () => void }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [progress, setProgress] = useState(0);
   const reduce = useReducedMotion();
@@ -294,7 +294,7 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
             >
-              <ReelCard reel={r} index={i} onOpen={() => setOpen(i)} />
+              <ReelCard reel={r} onOpen={() => setOpen(i)} />
             </motion.li>
           ))}
         </ul>
