@@ -142,13 +142,18 @@ const reviewText = [
   [4, "Good, delivery took 5 days", "Oil quality is very good. Delivery could be a little faster."],
   [5, "Family loved it", "Using mustard oil for achaar this season. Strong, pure flavour."],
   [3, "Okay", "Taste is fine but the bottle cap was a bit loose."],
+  [5, "Pure groundnut smell", "You can smell the peanuts the moment you open it. Puri and pakode came out crisp, not heavy."],
+  [5, "Honey crystallised, as promised", "Jamun honey is dark and tangy. It set a little in winter, which tells me it is not processed."],
+  [4, "Good for champi", "Using the coconut oil for my hair and my mother's knees. Light and absorbs well."],
+  [5, "Will switch fully", "Moved the whole family off refined oil. Food tastes like home again."],
+  [5, "Fast delivery to Jaipur", "Reached in 3 days, well packed in a box with bubble wrap. Mustard oil is sharp and fresh."],
 ];
 for (let i = 0; i < reviewText.length; i++) {
   const [rating, title, body] = reviewText[i];
   const c = customers[i];
   await db.execute(
     "INSERT INTO reviews (product_handle, name, city, rating, title, body, status, featured, source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'demo', NOW() - INTERVAL ? DAY)",
-    [pick(variants).handle, c.name, c.city, rating, title, body, i < 3 ? "approved" : "pending", i === 0 ? 1 : 0, i + 1],
+    [pick(variants).handle, c.name, c.city, rating, title, body, i === 4 ? "pending" : "approved", i === 4 ? 0 : 1, i + 1],
   );
 }
 

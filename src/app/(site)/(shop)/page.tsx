@@ -14,10 +14,10 @@ import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
 import { categoryTiles, proof, topPicks } from "@/data/home";
 import { ProofSection } from "@/components/home/ProofSection";
 import { ShopByUse } from "@/components/home/ShopByUse";
+import { ReviewsWall } from "@/components/home/ReviewsWall";
 import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import { getFeaturedReviews } from "@/lib/server/reviews";
-import { FeaturedReviewCards } from "@/components/reviews/ReviewList";
 import { FeaturedCollections, type CategoryTile } from "@/components/home/FeaturedCollections";
 
 /** Temporarily hidden sections (listed in HIDDEN.md). Flip to true to show again. */
@@ -152,7 +152,7 @@ export default async function HomePage() {
         products={all}
         fadeTo="#F5EDDE"
       />
-      <FeaturedReviewCards reviews={reviews} />
+      <ReviewsWall reviews={reviews} />
       {SHOW_BEYOND_OILS && <BeyondOils />}
       {/* Rasoi Kit card, last section before the footer. TODO(client): kit contents + price.
           Hidden for now: see HIDDEN.md. */}
