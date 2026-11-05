@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { Check, Loader2, Minus, Plus, ShoppingCart, Sparkles, Star } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { NotifyMe } from "@/components/product/NotifyMe";
-import { NumberTicker } from "@/components/shadcn/number-ticker";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { flyToCart } from "@/lib/fly-to-cart";
 import { cn } from "@/lib/utils/cn";
@@ -21,7 +20,7 @@ const BADGES: Record<string, string> = { bestseller: "Bestseller", new: "New" };
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed /, "");
 
 /**
- * Product card: photo, name, rating, USP, price (counts up on size change), size chips and
+ * Product card: photo, name, rating, USP, price, size chips and
  * add-to-cart. Once a size is in the cart the button becomes a − qty + stepper.
  */
 export function PickCard({ product, priority = false }: { product: PickProduct; priority?: boolean }) {
@@ -199,7 +198,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         {/* 4. One-line USP */}
         <p className="mt-1.5 line-clamp-2 min-h-[2.9em] text-[13px] leading-relaxed text-ink-muted">{product.shortDescription}</p>
 
-        {/* 5. Price: counts up when the size changes */}
+        {/* 5. Price */}
         {selected && (
           <div className="mt-auto pt-3" aria-live="polite">
             <p className="flex flex-wrap items-baseline gap-x-1.5">
@@ -209,7 +208,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 </span>
               )}
               <span className="text-[22px] leading-none font-extrabold text-forest tabular-nums">
-                ₹<NumberTicker key={selected.id} value={selected.price.amount} startValue={Math.round(selected.price.amount * 0.7)} className="text-forest" />
+                {formatMoney(selected.price)}
               </span>
               {per && <span className="text-xs text-ink-muted">· {per}</span>}
               <span className="text-[11px] font-medium text-ink-muted md:ml-auto">{selected.title}</span>
