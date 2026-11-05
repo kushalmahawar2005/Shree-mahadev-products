@@ -160,9 +160,8 @@ export function Header({
           {/* Text nav (desktop), separated by a thin rule like Two Brothers */}
           <nav aria-label="Main" className="hidden lg:block">
             <div className="mx-auto max-w-[1360px] px-8">
-              <ul className="flex items-center justify-center gap-3 border-t border-line py-1" onMouseLeave={() => setHovered(null)}>
-                {/* Desktop keeps it lean: logo already goes home; About/Contact live in the footer + mobile menu. */}
-                {nav.filter((item) => !["/", "/about", "/contact"].includes(item.href)).map((item) => {
+              <ul className="flex items-center justify-center gap-1 border-t border-line py-1" onMouseLeave={() => setHovered(null)}>
+                {nav.map((item) => {
                   const active = isActive(item.href);
                   return (
                     <li
@@ -193,7 +192,7 @@ export function Header({
                         aria-haspopup={item.menu ? "true" : undefined}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "relative inline-flex min-h-10 items-center gap-1.5 px-5 text-[15px] font-semibold text-forest-text transition-colors duration-200 hover:text-forest",
+                          "relative inline-flex min-h-10 items-center gap-1.5 px-4 text-[15px] font-semibold text-forest-text transition-colors duration-200 hover:text-forest",
                           item.icon === "bestseller" &&
                             "text-sale hover:text-sale",
                         )}
@@ -211,7 +210,7 @@ export function Header({
                         <span
                           aria-hidden
                           className={cn(
-                            "absolute inset-x-5 -bottom-1 h-0.5 origin-left rounded-full bg-mustard transition-transform duration-300",
+                            "absolute inset-x-4 -bottom-1 h-0.5 origin-left rounded-full bg-mustard transition-transform duration-300",
                             active || mega === item.menu
                               ? "scale-x-100"
                               : "scale-x-0",

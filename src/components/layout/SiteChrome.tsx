@@ -37,7 +37,7 @@ export async function SiteHeader() {
     ...(c.handle === "natural-sweeteners" ? { menu: "sweeteners" as const } : {}),
     ...(c.handle === "bestsellers" ? { icon: "bestseller" as const } : {}),
   }));
-  const nav = [baseNav[0], baseNav[1], ...collectionNav, { label: "Our Ghani", href: "/our-ghani" }, ...baseNav.slice(2)];
+  const nav = [baseNav[0], baseNav[1], ...collectionNav, ...baseNav.slice(2)];
   return (
     <>
       <Header
