@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 
 /** Accepts a bare ID or any YouTube URL (watch?v=, youtu.be/, shorts/, embed/). */
 export function youtubeIdFrom(input: string): string {
@@ -11,22 +11,19 @@ export function youtubeIdFrom(input: string): string {
   return m ? m[1] : "";
 }
 
-/** Click-to-load YouTube embed (no iframe cost until the user asks). Without an ID it shows a poster only. */
-export function BrandFilm({
-  youtube,
-  posterTitle,
-  posterSub,
-}: {
-  youtube: string;
-  posterTitle: string;
-  posterSub: string;
-}) {
+const FILM = { src: "/videos/ghani-film.mp4", poster: "/videos/ghani-film.jpg" };
+
+/**
+ * Brand film. If a YouTube link is set in admin it plays that (click-to-load iframe).
+ * Otherwise it plays our own ghani footage: muted loop preview, click for sound + controls.
+ */
+export function BrandFilm({ youtube, posterTitle, posterSub }: { youtube: string; posterTitle: string; posterSub: string }) {
   const [playing, setPlaying] = useState(false);
   const youtubeId = youtubeIdFrom(youtube);
 
-  if (playing && youtubeId) {
-    return (
-      <div className="aspect-video overflow-hidden rounded-xl bg-black">
+  if (youtubeId) {
+    return playing ? (
+      <div className="aspect-video overflow-hidden rounded-2xl bg-black">
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0`}
           title={posterTitle}
@@ -35,68 +32,100 @@ export function BrandFilm({
           className="size-full"
         />
       </div>
+    ) : (
+      <Poster title={posterTitle} sub={posterSub} onPlay={() => setPlaying(true)} img={`https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg`} />
     );
   }
+  return <OwnFilm title={posterTitle} sub={posterSub} />;
+}
+
+function OwnFilm({ title, sub }: { title: string; sub: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [full, setFull] = useState(false); // false = muted ambient loop, true = playing with sound
+  const [paused, setPaused] = useState(false);
+  const [muted, setMuted] = useState(true);
+
+  const start = () => {
+    const v = ref.current;
+    if (!v) return;
+    v.currentTime = 0;
+    v.muted = false;
+    setMuted(false);
+    v.play();
+    setPaused(false);
+    setFull(true);
+  };
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-xl bg-forest-deep text-white">
-      {/* Poster: ghani + seeds illustration. TODO(client): replace with a real still from the film. */}
-      <svg viewBox="0 0 800 450" className="absolute inset-0 size-full" aria-hidden preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <radialGradient id="film-glow" cx="70%" cy="40%" r="60%">
-            <stop offset="0" stopColor="#B49024" stopOpacity="0.45" />
-            <stop offset="1" stopColor="#072F1B" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        <rect width="800" height="450" fill="url(#film-glow)" />
-        <g fill="#D0B17A" opacity="0.18">
-          {Array.from({ length: 40 }, (_, i) => (
-            <ellipse key={i} cx={(i * 97) % 800} cy={330 + ((i * 53) % 120)} rx="9" ry="6" transform={`rotate(${(i * 37) % 180} ${(i * 97) % 800} ${330 + ((i * 53) % 120)})`} />
-          ))}
-        </g>
-        <g transform="translate(560 120)" fill="none" stroke="#D0B17A" strokeWidth="4" opacity="0.55">
-          <path d="M-70 200 L-50 40 L50 40 L70 200 Z" />
-          <path d="M-60 40 Q0 0 60 40" />
-          <path d="M0 -60 L0 120" />
-          <path d="M-120 -60 L120 -60" />
-        </g>
-      </svg>
+    <div className="group relative aspect-video overflow-hidden rounded-2xl bg-forest-deep shadow-[0_40px_70px_-40px_rgba(7,47,27,0.7)]">
+      <video
+        ref={ref}
+        className="absolute inset-0 size-full object-cover"
+        src={FILM.src}
+        poster={FILM.poster}
+        autoPlay
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        onPause={() => setPaused(true)}
+        onPlay={() => setPaused(false)}
+      />
 
-      {youtubeId && (
-        <>
-          <Image
-            src={`https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg`}
-            alt=""
-            fill
-            unoptimized
-            sizes="(min-width: 1024px) 1200px, 100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-forest-deep/70 via-transparent to-forest-deep/50" />
-        </>
-      )}
-      <div className="relative flex size-full flex-col justify-between p-5 md:p-8">
-        <div>
-          <p className="text-2xl font-bold text-khaki md:text-4xl">{posterTitle}</p>
-          <p className="mt-1 text-sm text-white/80 md:text-lg">{posterSub}</p>
-        </div>
-        {youtubeId ? (
+      {!full ? (
+        <button type="button" onClick={start} className="absolute inset-0 flex flex-col justify-end text-left" aria-label={`Play film: ${title}`}>
+          <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <span className="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur-md transition-transform duration-300 group-hover:scale-110 md:size-24">
+            <span className="absolute inset-0 animate-ping rounded-full bg-white/20" />
+            <Play className="relative ml-1 size-8 fill-white text-white md:size-10" />
+          </span>
+          <span className="relative p-5 md:p-8">
+            <span className="block text-2xl font-bold text-white md:text-4xl">{title}</span>
+            <span className="mt-1 block text-sm text-white/80 md:text-base">{sub}</span>
+          </span>
+        </button>
+      ) : (
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-black/60 to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
           <button
             type="button"
-            onClick={() => setPlaying(true)}
-            className="grid size-16 place-items-center self-center rounded-2xl bg-[#FF0000] transition-transform duration-200 hover:scale-105 md:size-20"
-            aria-label={`Play film: ${posterTitle}`}
+            onClick={() => (paused ? ref.current?.play() : ref.current?.pause())}
+            className="grid size-10 place-items-center rounded-full bg-white/20 text-white backdrop-blur hover:bg-white/30"
+            aria-label={paused ? "Play" : "Pause"}
           >
-            <svg viewBox="0 0 24 24" className="size-8 text-white" fill="currentColor" aria-hidden>
-              <path d="M8 5v14l11-7z" />
-            </svg>
+            {paused ? <Play className="ml-0.5 size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
           </button>
-        ) : (
-          <p className="self-start rounded-full bg-white/10 px-3 py-1 text-xs text-khaki">
-            Film coming soon
-          </p>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={() => {
+              const v = ref.current;
+              if (!v) return;
+              v.muted = !v.muted;
+              setMuted(v.muted);
+            }}
+            className="grid size-10 place-items-center rounded-full bg-white/20 text-white backdrop-blur hover:bg-white/30"
+            aria-label={muted ? "Unmute" : "Mute"}
+          >
+            {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+function Poster({ title, sub, img, onPlay }: { title: string; sub: string; img: string; onPlay: () => void }) {
+  return (
+    <button type="button" onClick={onPlay} className="group relative block aspect-video w-full overflow-hidden rounded-2xl bg-forest-deep text-left" aria-label={`Play film: ${title}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- remote YouTube thumbnail */}
+      <img src={img} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
+      <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+      <span className="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur-md transition-transform group-hover:scale-110">
+        <Play className="ml-1 size-8 fill-white text-white" />
+      </span>
+      <span className="absolute inset-x-0 bottom-0 p-5 md:p-8">
+        <span className="block text-2xl font-bold text-white md:text-4xl">{title}</span>
+        <span className="mt-1 block text-sm text-white/80">{sub}</span>
+      </span>
+    </button>
   );
 }

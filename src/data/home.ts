@@ -200,3 +200,23 @@ export const categoryTiles = [
     tone: { bg: "linear-gradient(140deg,#5a4a30 0%,#3a2f1f 100%)", ink: "light", glow: "radial-gradient(circle,rgba(208,177,122,.45),transparent 65%)" },
   },
 ] as const;
+
+/** Proof section: only documents issued to Mahadev Products (scans in /public/proof). */
+export const proof = {
+  fssaiNo: "12226047000007",
+  fssaiValidTill: "13 May 2031",
+  lab: "Jagdamba Laboratories, Jaipur",
+  // TODO(client): groundnut oil report; jaggery/honey reports issued to Mahadev Products.
+  reports: [
+    { slug: "yellow-mustard-oil", name: "Yellow Mustard", reportNo: "JLFD260401144" },
+    { slug: "black-mustard-oil", name: "Black Mustard", reportNo: "JLFD260401139" },
+    { slug: "sesame-oil", name: "Sesame", reportNo: "JLFD260401140" },
+    { slug: "black-sesame-oil", name: "Black Sesame", reportNo: "JLFD260611019" },
+    { slug: "coconut-oil", name: "Coconut", reportNo: "JLFD260401141" },
+    { slug: "flaxseed-oil", name: "Flaxseed", reportNo: "JLFD260611017" },
+    { slug: "sunflower-oil", name: "Sunflower", reportNo: "JLFD260401138" },
+    { slug: "almond-oil", name: "Almond", reportNo: "JLFD260401142" },
+    { slug: "walnut-oil", name: "Walnut", reportNo: "JLFD260401143" },
+    { slug: "castor-oil", name: "Castor", reportNo: "JLFD260611018" },
+  ],
+};

@@ -7,13 +7,13 @@ import {
   BeyondOils,
   BrandFilmSection,
   PromoStrip,
-  ProofCards,
   ShopByUseCarousel,
   Spotlight,
   TopPicks,
 } from "@/components/home/PicksSections";
 import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
-import { categoryTiles, topPicks } from "@/data/home";
+import { categoryTiles, proof, topPicks } from "@/data/home";
+import { ProofSection } from "@/components/home/ProofSection";
 import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import { getFeaturedReviews } from "@/lib/server/reviews";
@@ -129,7 +129,7 @@ export default async function HomePage() {
         <Reels title="Straight from the ghani" reels={reelItems} />
       )}
       <BrandFilmSection youtube={videos.youtube} />
-      <ProofCards />
+      <ProofSection reports={[...proof.reports]} fssaiNo={proof.fssaiNo} fssaiValidTill={proof.fssaiValidTill} lab={proof.lab} />
       <ShopByUseCarousel tabs={useTabs} />
       <Spotlight
         products={all}
