@@ -53,7 +53,7 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
 
         {/* Use picker: one pill rail, forest highlight slides between uses */}
         <div className="-mx-4 flex justify-start overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:justify-center md:px-0">
-          <div role="tablist" aria-label="Shop by use" className="flex w-max gap-1 rounded-full border border-line bg-white/80 p-1.5 shadow-[0_10px_30px_-22px_rgba(7,47,27,0.5)] backdrop-blur">
+          <div role="tablist" aria-label="Shop by use" className="flex w-max gap-0.5 rounded-full border border-line/80 bg-white/70 p-1 backdrop-blur">
             {tabs.map((t, i) => {
               const I = ICONS[t.key] ?? CookingPot;
               const on = i === active;
@@ -64,18 +64,18 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
                   type="button"
                   aria-selected={on}
                   onClick={() => setActive(i)}
-                  className="relative flex items-center gap-2.5 rounded-full py-2 pr-5 pl-2 text-left transition-colors"
+                  className="relative flex items-center gap-2 rounded-full px-4 py-2.5 text-left transition-colors outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
                 >
                   {on && (
                     <motion.span
                       layoutId="use-pill"
                       aria-hidden
-                      className="absolute inset-0 rounded-full bg-forest shadow-[0_8px_20px_-10px_rgba(7,47,27,0.8)]"
+                      className="absolute inset-0 rounded-full bg-forest"
                       transition={{ type: "spring", stiffness: 380, damping: 32 }}
                     />
                   )}
-                  <span className={cn("relative grid size-9 shrink-0 place-items-center rounded-full transition-colors", on ? "bg-white/15 text-[#e8c879]" : "bg-khaki-soft text-forest")}>
-                    <I className="size-[18px]" />
+                  <span className={cn("relative shrink-0 transition-colors", on ? "text-[#e8c879]" : "text-forest/70")}>
+                    <I className="size-[18px]" strokeWidth={1.75} />
                   </span>
                   <span className="relative leading-tight">
                     <span className={cn("block text-sm font-bold whitespace-nowrap transition-colors", on ? "text-white" : "text-forest-text")}>{t.label}</span>
