@@ -97,8 +97,8 @@ export function SearchBox({
           }
         }}
         className={cn(
-          "relative flex h-11 w-full items-center rounded-full border bg-khaki-soft/60 pr-1.5 pl-4 transition-[border-color,box-shadow,background-color] hover:bg-khaki-soft focus-within:border-forest focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(180,144,36,0.18)]",
-          open ? "border-forest bg-white" : "border-transparent",
+          "relative flex h-11 w-full items-center rounded-full border bg-white pr-1.5 pl-4 transition-[border-color,box-shadow,background-color] hover:border-forest/20 focus-within:border-forest focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(180,144,36,0.18)]",
+          open ? "border-forest bg-white" : "border-line",
         )}
       >
         <label htmlFor="header-search" className="sr-only">

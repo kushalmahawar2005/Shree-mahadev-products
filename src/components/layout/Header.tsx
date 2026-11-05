@@ -76,7 +76,7 @@ export function Header({
       <StickyHeader>
         {/* Two Brothers layout: thin announcement strip · white row (search · logo · account/cart) · text nav */}
         <div
-          className="relative w-full border-b border-line bg-white text-forest-text transition-[background-color,box-shadow] duration-300 group-data-[compact]/header:bg-white/85 group-data-[compact]/header:shadow-[0_10px_30px_-18px_rgba(7,47,27,0.45)] group-data-[compact]/header:backdrop-blur-md"
+          className="relative w-full border-b border-line bg-[#fcf9f2] text-forest-text transition-[background-color,box-shadow] duration-300 group-data-[compact]/header:bg-[#fcf9f2]/90 group-data-[compact]/header:shadow-[0_10px_30px_-18px_rgba(7,47,27,0.45)] group-data-[compact]/header:backdrop-blur-md"
           onMouseLeave={closeMega}
         >
           {/* Announcement strip (collapses once the page is scrolled) */}
@@ -140,7 +140,7 @@ export function Header({
               </Link>
               <Link
                 href="/bulk-orders"
-                className="mr-1 hidden h-10 items-center gap-2 rounded-full border border-forest/15 bg-khaki-soft/50 pr-4 pl-1.5 text-[13px] font-semibold text-forest-text transition-colors hover:border-forest/30 hover:bg-khaki-soft xl:inline-flex"
+                className="mr-1 hidden h-10 items-center gap-2 rounded-full border border-line bg-white pr-4 pl-1.5 text-[13px] font-semibold text-forest-text transition-colors hover:border-forest/30 hover:bg-khaki-soft xl:inline-flex"
               >
                 <span className="grid size-7 place-items-center rounded-full bg-forest text-white">
                   <Boxes className="size-4" strokeWidth={1.8} aria-hidden />
