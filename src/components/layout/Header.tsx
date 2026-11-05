@@ -4,12 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { BadgePercent, Boxes, Truck } from "lucide-react";
+import { formatMoney } from "@/lib/utils/money";
 import { StickyHeader } from "@/components/motion/StickyHeader";
 import { useCart } from "@/components/cart/CartProvider";
 import type { MenuGroup, NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
-import { AccountSmallIcon } from "@/components/ui/AccountSmallIcon";
-import { BagIcon, ChevronDown, MenuIcon, SearchIcon } from "./icons";
+import { BagIcon, ChevronDown, MenuIcon, SearchIcon, UserIcon } from "./icons";
 import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
 import { SearchBox } from "./SearchBox";
 import { MobileNav } from "./MobileNav";
@@ -37,6 +39,7 @@ export function Header({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mega, setMega] = useState<MenuGroup | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   const pathname = usePathname();
   const closeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -73,7 +76,7 @@ export function Header({
       <StickyHeader>
         {/* Two Brothers layout: thin announcement strip · white row (search · logo · account/cart) · text nav */}
         <div
-          className="relative w-full border-b border-line bg-white text-forest-text"
+          className="relative w-full border-b border-line bg-white text-forest-text transition-[background-color,box-shadow] duration-300 group-data-[compact]/header:bg-white/85 group-data-[compact]/header:shadow-[0_10px_30px_-18px_rgba(7,47,27,0.45)] group-data-[compact]/header:backdrop-blur-md"
           onMouseLeave={closeMega}
         >
           {/* Announcement strip (collapses once the page is scrolled) */}
@@ -106,15 +109,25 @@ export function Header({
               aria-label="Swadeshi Mahadev Products, home"
             >
               {/* TODO(client): vector (SVG) logo for sharper rendering */}
-              <Image
-                src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
-                alt=""
-                width={80}
-                height={80}
-                priority
-                unoptimized
-                className="size-14 transition-transform duration-300 group-data-[compact]/header:scale-[0.85] lg:size-[68px]"
-              />
+              {/* Stamp-in on load, gentle turn on hover (badge logo has a scalloped seal edge) */}
+              <motion.span
+                className="block transition-transform duration-300 group-data-[compact]/header:scale-[0.85]"
+                initial={{ scale: 0.7, rotate: -25, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                whileHover={{ rotate: 12, scale: 1.06 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 260, damping: 16 }}
+              >
+                <Image
+                  src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
+                  alt=""
+                  width={80}
+                  height={80}
+                  priority
+                  unoptimized
+                  className="size-14 lg:size-[68px]"
+                />
+              </motion.span>
             </Link>
 
             <div className="flex items-center justify-end gap-1 sm:gap-2 lg:gap-3">
@@ -126,12 +139,20 @@ export function Header({
                 <SearchIcon />
               </Link>
               <Link
-                href="/account"
-                className="hidden size-11 place-items-center rounded-full text-forest transition-colors duration-200 hover:bg-khaki-soft sm:grid"
-                aria-label="My account"
+                href="/bulk-orders"
+                className="mr-1 hidden h-10 items-center gap-2 rounded-full border border-forest/15 bg-khaki-soft/50 pr-4 pl-1.5 text-[13px] font-semibold text-forest-text transition-colors hover:border-forest/30 hover:bg-khaki-soft xl:inline-flex"
               >
-                <AccountSmallIcon size={28} className="size-7" />
+                <span className="grid size-7 place-items-center rounded-full bg-forest text-white">
+                  <Boxes className="size-4" strokeWidth={1.8} aria-hidden />
+                </span>
+                Bulk orders
               </Link>
+              <HeaderAction href="/track-order" label="Track" className="hidden lg:flex">
+                <Truck className="size-[22px]" strokeWidth={1.6} aria-hidden />
+              </HeaderAction>
+              <HeaderAction href="/account" label="Account" className="hidden sm:flex">
+                <UserIcon className="size-[22px]" />
+              </HeaderAction>
               <CartButton />
             </div>
           </div>
@@ -139,16 +160,28 @@ export function Header({
           {/* Text nav (desktop), separated by a thin rule like Two Brothers */}
           <nav aria-label="Main" className="hidden lg:block">
             <div className="mx-auto max-w-[1360px] px-8">
-              <ul className="flex items-center justify-center gap-1 border-t border-line">
-                {nav.map((item) => {
+              <ul className="flex items-center justify-center gap-3 border-t border-line py-1" onMouseLeave={() => setHovered(null)}>
+                {/* Desktop keeps it lean: logo already goes home; About/Contact live in the footer + mobile menu. */}
+                {nav.filter((item) => !["/", "/about", "/contact"].includes(item.href)).map((item) => {
                   const active = isActive(item.href);
                   return (
                     <li
                       key={item.href}
-                      onMouseEnter={() =>
-                        item.menu ? openMega(item.menu) : closeMega()
-                      }
+                      className="relative"
+                      onMouseEnter={() => {
+                        setHovered(item.href);
+                        if (item.menu) openMega(item.menu);
+                        else closeMega();
+                      }}
                     >
+                      {hovered === item.href && (
+                        <motion.span
+                          layoutId="nav-hover"
+                          aria-hidden
+                          className="absolute inset-0 rounded-full bg-khaki-soft"
+                          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                        />
+                      )}
                       <Link
                         href={item.href}
                         onFocus={() =>
@@ -160,12 +193,12 @@ export function Header({
                         aria-haspopup={item.menu ? "true" : undefined}
                         aria-current={active ? "page" : undefined}
                         className={cn(
-                          "relative inline-flex min-h-11 items-center gap-1.5 px-4 text-[15px] font-semibold tracking-wide text-forest-text transition-colors duration-200 hover:text-forest",
+                          "relative inline-flex min-h-10 items-center gap-1.5 px-5 text-[15px] font-semibold text-forest-text transition-colors duration-200 hover:text-forest",
                           item.icon === "bestseller" &&
                             "text-sale hover:text-sale",
                         )}
                       >
-                        {item.icon === "bestseller" && <PercentIcon />}
+                        {item.icon === "bestseller" && <BadgePercent className="size-[18px]" strokeWidth={1.8} aria-hidden />}
                         {item.label}
                         {item.menu && (
                           <ChevronDown
@@ -178,7 +211,7 @@ export function Header({
                         <span
                           aria-hidden
                           className={cn(
-                            "absolute inset-x-4 bottom-0 h-0.5 origin-left rounded-full bg-mustard transition-transform duration-300",
+                            "absolute inset-x-5 -bottom-1 h-0.5 origin-left rounded-full bg-mustard transition-transform duration-300",
                             active || mega === item.menu
                               ? "scale-x-100"
                               : "scale-x-0",
@@ -192,7 +225,7 @@ export function Header({
             </div>
           </nav>
 
-          <div onMouseEnter={keepMega}>
+          <div onMouseEnter={keepMega} className="absolute inset-x-0 top-full z-30">
             <MegaMenu
               open={mega}
               data={menus}
@@ -213,42 +246,52 @@ export function Header({
   );
 }
 
-function PercentIcon() {
+/** Icon with a small caption under it on desktop (fills the header like big Indian D2C stores). */
+function HeaderAction({ href, label, className, children }: { href: string; label: string; className?: string; children: React.ReactNode }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      aria-hidden
+    <Link
+      href={href}
+      aria-label={label}
+      className={cn(
+        "group/act min-w-11 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-forest transition-colors hover:bg-khaki-soft",
+        className,
+      )}
     >
-      <path d="M19 5L5 19" strokeLinecap="round" />
-      <circle cx="7" cy="7" r="2.5" />
-      <circle cx="17" cy="17" r="2.5" />
-    </svg>
+      <span className="grid size-7 place-items-center transition-transform duration-200 group-hover/act:-translate-y-0.5">{children}</span>
+      <span className="hidden text-[11px] leading-none font-semibold text-ink-muted lg:block">{label}</span>
+    </Link>
   );
 }
 
 export function CartButton({ className }: { className?: string }) {
   const { cart, open, addedTick } = useCart();
   const count = cart?.totalQuantity ?? 0;
+  const total = count ? formatMoney(cart?.subtotal.amount ?? 0) : null;
   return (
     <button
       type="button"
       onClick={open}
       className={cn(
-        "relative grid size-11 place-items-center rounded-full text-forest transition-colors duration-200 hover:bg-khaki-soft",
+        "relative flex min-w-11 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-forest transition-colors duration-200 hover:bg-khaki-soft",
         className,
       )}
       aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}
     >
-      <span key={addedTick} className={addedTick ? "cart-bounce" : undefined}>
-        <BagIcon />
+      <span key={addedTick} className={cn("grid size-7 place-items-center", addedTick && "cart-bounce")}>
+        <BagIcon className="size-[22px]" />
       </span>
-      <span className="absolute top-0.5 right-0 grid min-w-5 place-items-center rounded-full bg-forest px-1 text-[11px] leading-5 font-bold text-white">
-        {count}
-      </span>
+      <span className="hidden text-[11px] leading-none font-semibold text-ink-muted tabular-nums lg:block">{total ?? "Cart"}</span>
+      {count > 0 && (
+        <motion.span
+          key={count}
+          initial={{ scale: 0.4 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 500, damping: 18 }}
+          className="absolute -top-0.5 right-0.5 grid min-w-5 place-items-center rounded-full bg-mustard px-1 text-[11px] leading-5 font-bold text-forest-deep ring-2 ring-white"
+        >
+          {count}
+        </motion.span>
+      )}
     </button>
   );
 }
