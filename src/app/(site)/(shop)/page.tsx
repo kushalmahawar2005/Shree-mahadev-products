@@ -92,7 +92,15 @@ export default async function HomePage() {
     getStoreSettings(),
     getFeaturedReviews(),
   ]);
-  const reelItems: ReelItem[] = videos.reels.map((r) => {
+  // Until reels are uploaded in admin, show clips from our own ghani footage.
+  const fallbackReels = [
+    { id: -1, videoUrl: "/videos/reels/ghani-1.mp4", caption: "Fresh coconut going into the ghani", productHandle: "coconut-oil", instagramUrl: null },
+    { id: -2, videoUrl: "/videos/reels/ghani-2.mp4", caption: "Slow pressing, no heat", productHandle: null, instagramUrl: null },
+    { id: -3, videoUrl: "/videos/reels/oil-pour.mp4", caption: "Golden oil, straight from the press", productHandle: "yellow-mustard-oil", instagramUrl: null },
+    { id: -4, videoUrl: "/videos/reels/ghani-3.mp4", caption: "Settled, filtered, bottled by hand", productHandle: null, instagramUrl: null },
+  ];
+  const reelSource = videos.reels.length ? videos.reels : fallbackReels;
+  const reelItems: ReelItem[] = reelSource.map((r) => {
     const p = r.productHandle
       ? all.find((x) => x.handle === r.productHandle)
       : undefined;
@@ -129,12 +137,12 @@ export default async function HomePage() {
       <TopPicks tabs={pickTabs} />
       <PromoStrip />
       <FeaturedCollections tiles={tiles} />
-      {reelItems.length > 0 && (
-        <Reels title="Straight from the ghani" reels={reelItems} />
-      )}
       <BrandFilmSection youtube={videos.youtube} />
       <ProofSection reports={[...proof.reports]} fssaiNo={proof.fssaiNo} fssaiValidTill={proof.fssaiValidTill} lab={proof.lab} />
       <ShopByUse tabs={useTabs} />
+      {reelItems.length > 0 && (
+        <Reels title="Straight from the ghani" reels={reelItems} />
+      )}
       <Spotlight
         products={all}
         fadeTo="#F5EDDE"

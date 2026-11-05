@@ -31,7 +31,7 @@ function Preview({ reel, onOpen }: { reel: ReelItem; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group relative block aspect-[9/16] w-full overflow-hidden rounded-2xl bg-forest-deep text-left"
+      className="group relative block aspect-[9/16] w-full overflow-hidden rounded-3xl bg-forest-deep text-left ring-1 ring-black/5 transition-shadow duration-500 hover:shadow-[0_24px_40px_-24px_rgba(7,47,27,0.7)]"
       aria-label={reel.caption ? `Play: ${reel.caption}` : "Play video"}
     >
       <video
@@ -42,12 +42,12 @@ function Preview({ reel, onOpen }: { reel: ReelItem; onOpen: () => void }) {
         loop
         playsInline
         preload="none"
-        className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+        className="size-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
       />
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-10">
         {reel.caption && <span className="line-clamp-2 text-sm font-semibold text-white">{reel.caption}</span>}
       </span>
-      <span className="absolute right-2 top-2 grid size-9 place-items-center rounded-full bg-black/40 text-white" aria-hidden>
+      <span className="absolute top-3 right-3 grid size-9 place-items-center rounded-full bg-white/20 text-white ring-1 ring-white/30 backdrop-blur-md transition-transform group-hover:scale-110" aria-hidden>
         <svg viewBox="0 0 24 24" className="size-4" fill="currentColor">
           <path d="M8 5v14l11-7z" />
         </svg>
@@ -76,10 +76,20 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
   }, [open, reels.length]);
 
   return (
-    <section className="bg-[#F5EDDE] pt-12 md:pt-16">
-      <div className="mx-auto max-w-[1200px] px-4 md:px-6">
-        <h2 className="text-center text-3xl text-forest md:text-[44px]">{title}</h2>
-        <ul className="no-scrollbar mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:mt-8 md:gap-4">
+    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] py-12 md:py-16">
+      <div className="relative mx-auto max-w-[1200px] px-4 md:px-6">
+        <div className="flex flex-col items-center gap-2 text-center">
+          <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
+            <span className="relative flex size-2">
+              <span className="absolute inset-0 animate-ping rounded-full bg-mustard/70" />
+              <span className="relative size-2 rounded-full bg-mustard" />
+            </span>
+            Reels
+          </p>
+          <h2 className="text-3xl md:text-[44px]">{title}</h2>
+          <p className="text-ink-muted">Real moments from our ghani. Tap to watch.</p>
+        </div>
+        <ul className={`no-scrollbar mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:mt-8 md:gap-4 ${reels.length <= 5 ? "lg:justify-center" : ""}`}>
           {reels.map((r, i) => (
             <li key={r.id} className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[23%] lg:w-[18.5%]">
               <Preview reel={r} onOpen={() => setOpen(i)} />
