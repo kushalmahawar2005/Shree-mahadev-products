@@ -75,7 +75,7 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en-IN" className={`${figtree.variable} ${mukta.variable} ${tiroHindi.variable}`}>
-      <body className="flex min-h-dvh flex-col">
+      <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
         <a
           href="#main"
           className="sr-only z-[60] rounded-full bg-forest px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"

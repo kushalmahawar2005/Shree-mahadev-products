@@ -1,22 +1,33 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
-import { Pill } from "@/components/ui/primitives";
+import { useMemo, useTransition } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { Baby, Cookie, CookingPot, Droplets, Flame, LayoutGrid, Loader2, Package, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { PickCard } from "@/components/home/PickCard";
+import { toPickProduct } from "@/components/home/pickProduct";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
 import { shopByUse } from "@/data/site";
 import type { Product, ProductSort } from "@/lib/commerce/types";
-import { ProductCard } from "./ProductCard";
-import { toCardProduct } from "./cardProduct";
+import { cn } from "@/lib/utils/cn";
 
 const categories = [
-  { value: "", label: "All" },
-  { value: "oil", label: "Oils" },
-  { value: "honey", label: "Honey" },
-  { value: "sweetener", label: "Sweeteners" },
+  { value: "", label: "All", icon: LayoutGrid },
+  { value: "oil", label: "Oils", icon: Droplets },
+  { value: "honey", label: "Honey", icon: Sparkles },
+  { value: "sweetener", label: "Sweeteners", icon: Package },
 ];
 
+const USE_ICONS: Record<string, typeof Flame> = {
+  "daily-cooking": CookingPot,
+  "deep-frying": Flame,
+  "pickles-tadka": Cookie,
+  "hair-skin": Sparkles,
+  "baby-massage": Baby,
+};
+
 const sizes = [
-  { value: "", label: "Any size" },
+  { value: "all", label: "Any size" },
   { value: "small", label: "Up to 500 ml / g" },
   { value: "1l", label: "1 L / 1 kg" },
   { value: "family", label: "2 L" },
@@ -51,6 +62,8 @@ export function ShopListing({ products }: { products: Product[] }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const reduce = useReducedMotion();
+  const [pending, start] = useTransition();
 
   const category = params.get("category") ?? "";
   const size = params.get("size") ?? "";
@@ -61,14 +74,13 @@ export function ShopListing({ products }: { products: Product[] }) {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
     else next.delete(key);
-    router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
+    start(() => router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
   };
 
+  const count = (c: string) => products.filter((p) => !c || p.category === c).length;
+
   const list = useMemo(() => {
-    const filtered = products.filter(
-      (p) =>
-        (!category || p.category === category) && (!use || p.tags.includes(use)) && sizeMatch(p, size),
-    );
+    const filtered = products.filter((p) => (!category || p.category === category) && (!use || p.tags.includes(use)) && sizeMatch(p, size));
     const min = (p: Product) => p.priceRange.min.amount || Number.POSITIVE_INFINITY;
     const sorted = [...filtered];
     if (sort === "price-asc") sorted.sort((a, b) => min(a) - min(b));
@@ -77,80 +89,150 @@ export function ShopListing({ products }: { products: Product[] }) {
     return sorted;
   }, [products, category, use, size, sort]);
 
+  const active = [
+    category && { key: "category", label: categories.find((c) => c.value === category)?.label ?? category },
+    use && { key: "use", label: shopByUse.find((u) => u.tag === use)?.label ?? use },
+    size && { key: "size", label: sizes.find((s) => s.value === size)?.label ?? size },
+  ].filter(Boolean) as { key: string; label: string }[];
+
   return (
     <div className="mt-8">
-      <div className="space-y-4 border-y border-line py-5">
-        <FilterRow label="Category">
-          {categories.map((c) => (
-            <Pill key={c.value} active={category === c.value} onClick={() => set("category", c.value)}>
-              {c.label}
-            </Pill>
-          ))}
-        </FilterRow>
-        <FilterRow label="Use">
-          <Pill active={!use} onClick={() => set("use", "")}>
-            Any use
-          </Pill>
-          {shopByUse.map((u) => (
-            <Pill key={u.tag} active={use === u.tag} onClick={() => set("use", u.tag)}>
-              {u.label}
-            </Pill>
-          ))}
-        </FilterRow>
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <label className="flex items-center gap-3 text-sm font-semibold text-forest-text">
-            Size
-            <select
-              value={size}
-              onChange={(e) => set("size", e.target.value)}
-              className="min-h-11 rounded-full border border-line bg-white px-4 font-normal text-ink"
-            >
-              {sizes.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex items-center gap-3 text-sm font-semibold text-forest-text">
-            Sort
-            <select
-              value={sort}
-              onChange={(e) => set("sort", e.target.value === "best" ? "" : e.target.value)}
-              className="min-h-11 rounded-full border border-line bg-white px-4 font-normal text-ink"
-            >
-              {sorts.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
+      {/* Sticky filter bar */}
+      <div className="sticky top-[calc(var(--header-h,72px)+8px)] z-20 -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="rounded-3xl border border-line bg-white/85 p-3 shadow-[0_14px_30px_-24px_rgba(7,47,27,0.5)] backdrop-blur-md md:p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            {/* Category rail */}
+            <div className="no-scrollbar -mx-1 overflow-x-auto px-1">
+              <div role="tablist" aria-label="Category" className="flex w-max gap-1 rounded-full bg-khaki-soft/70 p-1">
+                {categories.map((c) => {
+                  const on = category === c.value;
+                  const I = c.icon;
+                  return (
+                    <button
+                      key={c.value || "all"}
+                      role="tab"
+                      type="button"
+                      aria-selected={on}
+                      onClick={() => set("category", c.value)}
+                      className="relative inline-flex h-9 items-center gap-1.5 rounded-full px-4 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
+                    >
+                      {on && <motion.span layoutId="shop-cat" className="absolute inset-0 rounded-full bg-forest" transition={{ type: "spring", stiffness: 400, damping: 34 }} />}
+                      <I className={cn("relative size-4", on ? "text-[#e8c879]" : "text-forest/70")} />
+                      <span className={cn("relative", on ? "text-white" : "text-forest-text")}>{c.label}</span>
+                      <span className={cn("relative text-xs tabular-nums", on ? "text-white/70" : "text-ink-muted")}>{count(c.value)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 lg:ml-auto">
+              <SlidersHorizontal className="hidden size-4 text-ink-muted sm:block" />
+              <Select value={size || "all"} onValueChange={(v) => set("size", v === "all" ? "" : v)}>
+                <SelectTrigger className="h-10 min-w-[150px] rounded-full border-line bg-white" aria-label="Size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sizes.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sort} onValueChange={(v) => set("sort", v === "best" ? "" : v)}>
+                <SelectTrigger className="h-10 min-w-[170px] rounded-full border-line bg-white" aria-label="Sort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sorts.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Use chips */}
+          <div className="no-scrollbar -mx-1 mt-3 overflow-x-auto px-1">
+            <div role="group" aria-label="Use" className="flex w-max gap-2">
+              {shopByUse.map((u) => {
+                const on = use === u.tag;
+                const I = USE_ICONS[u.tag] ?? CookingPot;
+                return (
+                  <button
+                    key={u.tag}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => set("use", on ? "" : u.tag)}
+                    className={cn(
+                      "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-medium transition-colors",
+                      on ? "border-forest bg-forest/5 text-forest" : "border-line bg-white text-ink-muted hover:border-forest/40 hover:text-forest",
+                    )}
+                  >
+                    <I className="size-4" />
+                    {u.label}
+                    <span className="font-hindi text-[13px] text-sale" lang="hi">
+                      {u.labelHi}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
-      <p className="mt-6 text-sm text-ink-muted" aria-live="polite">
-        {list.length} {list.length === 1 ? "product" : "products"}
-      </p>
+      {/* Result line + active filters */}
+      <div className="mt-6 flex flex-wrap items-center gap-2" aria-live="polite">
+        <p className="mr-2 flex items-center gap-2 text-sm text-ink-muted">
+          {pending && <Loader2 className="size-3.5 animate-spin" />}
+          <span className="font-semibold text-forest-text tabular-nums">{list.length}</span> {list.length === 1 ? "product" : "products"}
+        </p>
+        {active.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => set(f.key, "")}
+            className="inline-flex h-7 items-center gap-1 rounded-full bg-forest px-3 text-xs font-semibold text-white hover:bg-forest-mid"
+          >
+            {f.label} <X className="size-3" />
+          </button>
+        ))}
+        {active.length > 1 && (
+          <button type="button" onClick={() => start(() => router.replace(pathname, { scroll: false }))} className="text-xs font-semibold text-forest underline-offset-2 hover:underline">
+            Clear all
+          </button>
+        )}
+      </div>
+
       {list.length ? (
-        <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-          {list.map((p, i) => (
-            <li key={p.handle}>
-              <ProductCard product={toCardProduct(p)} priority={i < 4} />
-            </li>
-          ))}
+        <ul className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {list.map((p, i) => (
+              <motion.li
+                key={p.handle}
+                layout={!reduce}
+                initial={reduce ? false : { opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.35, delay: Math.min(i, 8) * 0.03, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <PickCard product={toPickProduct(p)} priority={i < 4} />
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
       ) : (
-        <p className="py-16 text-center text-ink-muted">Nothing matches these filters.</p>
+        <div className="mt-6 rounded-3xl border border-dashed border-line bg-white/60 px-6 py-16 text-center">
+          <p className="font-semibold text-forest-text">Nothing matches these filters.</p>
+          <button type="button" onClick={() => router.replace(pathname, { scroll: false })} className="mt-3 text-sm font-semibold text-forest underline underline-offset-2">
+            Clear filters
+          </button>
+        </div>
       )}
-    </div>
-  );
-}
-
-function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div role="group" aria-label={label} className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
-      {children}
     </div>
   );
 }
