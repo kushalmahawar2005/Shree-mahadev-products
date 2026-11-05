@@ -13,13 +13,12 @@ import {
   TopPicks,
 } from "@/components/home/PicksSections";
 import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
-import { topPicks } from "@/data/home";
+import { categoryTiles, topPicks } from "@/data/home";
 import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import { getFeaturedReviews } from "@/lib/server/reviews";
 import { FeaturedReviewCards } from "@/components/reviews/ReviewList";
-import { FeaturedCollections } from "@/components/home/FeaturedCollections";
-import { getCollections } from "@/lib/commerce";
+import { FeaturedCollections, type CategoryTile } from "@/components/home/FeaturedCollections";
 
 /** Temporarily hidden sections (listed in HIDDEN.md). Flip to true to show again. */
 const SHOW_RASOI_KIT = false;
@@ -30,9 +29,8 @@ const SHOW_BEYOND_OILS = false;
  * Top Picks → promo strip → brand film → proof → shop by use → spotlight + endorsements → beyond.
  */
 export default async function HomePage() {
-  const [all, collections, ...pickLists] = await Promise.all([
+  const [all, ...pickLists] = await Promise.all([
     getProducts(),
-    getCollections(),
     ...topPicks.tabs.map((t) =>
       getProducts({ collection: t.source.collection }),
     ),
@@ -103,12 +101,30 @@ export default async function HomePage() {
     };
   });
 
+  // Six client categories: products + photos come from the matching collection; empty = coming soon.
+  const inCollection = (h: string) => all.filter((p) => ((p as typeof p & { collections?: string[] }).collections ?? []).includes(h));
+  const tiles: CategoryTile[] = categoryTiles.map((c) => {
+    const items = c.collection ? inCollection(c.collection) : [];
+    return {
+      key: c.key,
+      title: c.title,
+      titleHi: c.titleHi,
+      blurb: c.blurb,
+      unit: c.unit,
+      span: c.span,
+      tone: c.tone,
+      href: items.length ? `/collections/${c.collection}` : undefined,
+      count: items.length || undefined,
+      images: items.map((p) => p.images[0]?.url).filter((u): u is string => !!u).slice(0, 3),
+    };
+  });
+
   return (
     <>
       <Hero />
       <TopPicks tabs={pickTabs} />
       <PromoStrip />
-      <FeaturedCollections collections={collections.filter((collection) => collection.showHomepage)} />
+      <FeaturedCollections tiles={tiles} />
       {reelItems.length > 0 && (
         <Reels title="Straight from the ghani" reels={reelItems} />
       )}

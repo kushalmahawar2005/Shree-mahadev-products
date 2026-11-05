@@ -165,3 +165,38 @@ export const beyondSlides = [
     sub: "5L & 15L tins for kitchens",
   },
 ] as const;
+
+/** Homepage "Shop by category": the client's six categories (WhatsApp, 2026-11-05).
+ *  `collection` = store collection handle; empty means no products yet → "Coming soon". */
+export const categoryTiles = [
+  {
+    key: "oils", title: "Wood-pressed oils", titleHi: "लकड़ी घानी तेल", unit: "oils", collection: "wood-pressed-oils", span: "hero",
+    blurb: "Mustard, groundnut, sesame, coconut and more, slow-pressed in our wooden ghani.",
+    tone: { bg: "linear-gradient(140deg,#0c3c24 0%,#145a36 100%)", ink: "light", glow: "radial-gradient(circle,rgba(180,144,36,.65),transparent 65%)" },
+  },
+  {
+    key: "honey", title: "Raw honey", titleHi: "कच्चा शहद", unit: "honeys", collection: "raw-honey", span: "wide",
+    blurb: "Unheated, unfiltered honey from forest flowers.",
+    tone: { bg: "linear-gradient(140deg,#f4d98a 0%,#d9a43a 100%)", ink: "dark", glow: "radial-gradient(circle,rgba(255,255,255,.7),transparent 65%)" },
+  },
+  {
+    key: "jaggery", title: "Natural jaggery", titleHi: "देसी गुड़", unit: "items", collection: "natural-sweeteners", span: "small",
+    blurb: "Jaggery powder, desi khand and blocks.",
+    tone: { bg: "linear-gradient(140deg,#7a4a1f 0%,#55310f 100%)", ink: "light", glow: "radial-gradient(circle,rgba(208,177,122,.55),transparent 65%)" },
+  },
+  {
+    key: "hair", title: "Hair oils", titleHi: "बालों का तेल", unit: "oils", collection: "", span: "small",
+    blurb: "Traditional blends for strong, nourished hair.",
+    tone: { bg: "linear-gradient(140deg,#efe4cc 0%,#d6bb87 100%)", ink: "dark", glow: "radial-gradient(circle,rgba(12,60,36,.25),transparent 65%)" },
+  },
+  {
+    key: "seeds", title: "Seeds", titleHi: "बीज", unit: "seeds", collection: "", span: "wide",
+    blurb: "The same clean seeds we press, for your kitchen.",
+    tone: { bg: "linear-gradient(140deg,#fbf6ec 0%,#eadbb9 100%)", ink: "dark", glow: "radial-gradient(circle,rgba(180,144,36,.35),transparent 65%)" },
+  },
+  {
+    key: "cake", title: "Oil cake (khal)", titleHi: "खल", unit: "items", collection: "", span: "wide",
+    blurb: "Nutritious oil cake for cattle and farms.",
+    tone: { bg: "linear-gradient(140deg,#5a4a30 0%,#3a2f1f 100%)", ink: "light", glow: "radial-gradient(circle,rgba(208,177,122,.45),transparent 65%)" },
+  },
+] as const;
