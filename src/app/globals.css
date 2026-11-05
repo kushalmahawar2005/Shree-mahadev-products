@@ -426,3 +426,6 @@ html[data-admin-theme="dark"] {
     }
   }
 }
+/* Hero carousel: active dot fills over the autoplay interval */
+@keyframes hero-progress { from { width: 0%; } to { width: 100%; } }
+.hero-progress { animation: hero-progress linear forwards; }

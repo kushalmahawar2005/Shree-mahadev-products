@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils/cn";
 
 const AUTOPLAY_MS = 5000;
 
-/** Banner carousel: scroll-snap track (swipe on touch), autoplay, pill dots. */
+/** Banner carousel: scroll-snap track (swipe on touch), autoplay with filling progress dots, slow Ken Burns zoom. */
 export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
@@ -56,7 +56,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             href={s.href}
             aria-label={s.alt}
             tabIndex={i === index ? 0 : -1}
-            className="relative block w-full shrink-0 snap-center"
+            className="relative block w-full shrink-0 snap-center overflow-hidden"
             style={{ aspectRatio: `${HERO_WIDTH} / ${HERO_HEIGHT}` }}
           >
             <picture>
@@ -69,7 +69,11 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                 priority={i === 0}
                 fetchPriority={i === 0 ? "high" : "auto"}
                 sizes="(min-width: 1400px) 1360px, 100vw"
-                className="size-full object-cover"
+                className={cn(
+                  "size-full object-cover transition-transform ease-linear",
+                  // Ken Burns: the visible slide slowly zooms in; others reset instantly.
+                  i === index ? "scale-[1.06] duration-[7000ms]" : "scale-100 duration-0",
+                )}
               />
             </picture>
           </Link>
@@ -77,7 +81,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
       </div>
 
       {slides.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/45 px-3 py-2 backdrop-blur-sm sm:bottom-5">
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 sm:bottom-6">
           {slides.map((s, i) => (
             <button
               key={s.src}
@@ -86,10 +90,19 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
               aria-label={`Go to slide ${i + 1}`}
               aria-current={i === index}
               className={cn(
-                "h-2 rounded-full transition-all duration-300",
-                i === index ? "w-8 bg-mustard" : "w-2 bg-white/90 hover:bg-white",
+                "relative h-1.5 overflow-hidden rounded-full shadow-[0_1px_4px_rgba(0,0,0,0.35)] transition-all duration-500",
+                i === index ? "w-12 bg-white/40" : "w-1.5 bg-white/80 hover:bg-white",
               )}
-            />
+            >
+              {/* Fills over the autoplay interval; pauses with the carousel */}
+              {i === index && (
+                <span
+                  key={index}
+                  className="hero-progress absolute inset-y-0 left-0 rounded-full bg-mustard"
+                  style={{ animationDuration: `${AUTOPLAY_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
+                />
+              )}
+            </button>
           ))}
         </div>
       )}
