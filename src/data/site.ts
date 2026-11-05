@@ -124,9 +124,9 @@ export const footerNav = {
 };
 
 export const shopByUse = [
-  { label: "Daily cooking", tag: "daily-cooking", note: "Sabzi, dal, roti" },
-  { label: "Deep frying", tag: "deep-frying", note: "Puri, pakode, namkeen" },
-  { label: "Pickles & tadka", tag: "pickles-tadka", note: "Achaar, chhaunk" },
-  { label: "Hair & skin", tag: "hair-skin", note: "Champi, body oil" },
-  { label: "Baby massage", tag: "baby-massage", note: "Gentle malish" },
+  { label: "Daily cooking", labelHi: "रोज़ का खाना", tag: "daily-cooking", note: "Sabzi, dal, roti", tip: "Groundnut and yellow mustard are easy everyday oils. Use a little; kachi ghani oil is full of flavour." },
+  { label: "Deep frying", labelHi: "तलना", tag: "deep-frying", note: "Puri, pakode, namkeen", tip: "Groundnut oil handles high heat well. Heat it fully before frying and don't reuse it too many times." },
+  { label: "Pickles & tadka", labelHi: "अचार और छौंक", tag: "pickles-tadka", note: "Achaar, chhaunk", tip: "Black mustard oil gives achaar its sharp kick. Heat till it just smokes, then cool before pouring." },
+  { label: "Hair & skin", labelHi: "बाल और त्वचा", tag: "hair-skin", note: "Champi, body oil", tip: "Warm a few spoons of coconut or sesame oil and massage into the scalp an hour before washing." },
+  { label: "Baby massage", labelHi: "बच्चों की मालिश", tag: "baby-massage", note: "Gentle malish", tip: "Use gentle oils like coconut or almond. Do a small patch test first and keep it away from the eyes." },
 ] as const;

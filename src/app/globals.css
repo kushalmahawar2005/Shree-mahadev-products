@@ -65,7 +65,7 @@ html {
 }
 
 body {
-  @apply bg-white font-body text-base text-ink antialiased;
+  @apply bg-[#F5EDDE] font-body text-base text-ink antialiased;
   line-height: 1.6;
 }
 

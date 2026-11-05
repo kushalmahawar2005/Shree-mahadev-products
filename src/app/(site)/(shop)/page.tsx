@@ -7,13 +7,13 @@ import {
   BeyondOils,
   BrandFilmSection,
   PromoStrip,
-  ShopByUseCarousel,
   Spotlight,
   TopPicks,
 } from "@/components/home/PicksSections";
 import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
 import { categoryTiles, proof, topPicks } from "@/data/home";
 import { ProofSection } from "@/components/home/ProofSection";
+import { ShopByUse } from "@/components/home/ShopByUse";
 import { shopByUse } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import { getFeaturedReviews } from "@/lib/server/reviews";
@@ -56,7 +56,11 @@ export default async function HomePage() {
     );
 
   const useTabs = shopByUse.map((u) => ({
+    key: u.tag,
     label: u.label,
+    labelHi: u.labelHi,
+    note: u.note,
+    tip: u.tip,
     viewAll: `/shop?use=${u.tag}`,
     products: buyableFirst(all.filter((p) => p.tags.includes(u.tag))).map(
       toPickProduct,
@@ -130,10 +134,10 @@ export default async function HomePage() {
       )}
       <BrandFilmSection youtube={videos.youtube} />
       <ProofSection reports={[...proof.reports]} fssaiNo={proof.fssaiNo} fssaiValidTill={proof.fssaiValidTill} lab={proof.lab} />
-      <ShopByUseCarousel tabs={useTabs} />
+      <ShopByUse tabs={useTabs} />
       <Spotlight
         products={all}
-        fadeTo={SHOW_BEYOND_OILS ? "#FCF2E5" : "#FFFFFF"}
+        fadeTo="#F5EDDE"
       />
       <FeaturedReviewCards reviews={reviews} />
       {SHOW_BEYOND_OILS && <BeyondOils />}

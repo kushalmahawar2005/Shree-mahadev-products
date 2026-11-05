@@ -58,7 +58,7 @@ export function RasoiKit({
   return (
     <section
       aria-labelledby="rasoi-kit-heading"
-      className="bg-[#FEF1DC] px-4 py-14 md:py-20"
+      className="bg-[#F5EDDE] px-4 py-14 md:py-20"
     >
       <div className="mx-auto grid max-w-6xl overflow-hidden rounded-3xl bg-forest-deep text-white md:grid-cols-2">
         {/* Visual: the three bottles on a warm panel, framed by the hand-painted ghani + kadhai */}

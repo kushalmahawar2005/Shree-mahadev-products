@@ -138,7 +138,7 @@ export function PromoStrip() {
 
 export function BrandFilmSection({ youtube }: { youtube: string }) {
   return (
-    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-[#FEF1DC] pt-12 pb-[22vw] sm:pb-[12vw] md:pt-16">
+    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-[#F5EDDE] pt-12 pb-[22vw] sm:pb-[12vw] md:pt-16">
       {/* Hand-painted landscape (dunes, hills, khejri tree, mustard field) anchored to the bottom; its empty sky blends into the section colour. */}
       <div
         aria-hidden
@@ -172,7 +172,7 @@ export function BrandFilmSection({ youtube }: { youtube: string }) {
 
 export function ProofCards() {
   return (
-    <section className="bg-[#FEF1DC] pb-14 md:pb-20">
+    <section className="bg-[#F5EDDE] pb-14 md:pb-20">
       <Wrap>
         <Reveal>
           <h2 className="pt-6 text-center text-3xl text-forest md:pt-8 md:text-[40px]">
@@ -184,7 +184,7 @@ export function ProofCards() {
             <StaggerItem key={c.seal}>
               <Link
                 href={c.href}
-                className="flex h-full flex-col items-center rounded-lg bg-white p-6 text-center transition-colors duration-200 hover:bg-[#FBF8F2] md:p-7"
+                className="flex h-full flex-col items-center rounded-lg bg-white p-6 text-center transition-colors duration-200 hover:bg-[#F5EDDE] md:p-7"
               >
                 {c.image ? (
                   <Image
@@ -231,7 +231,7 @@ function Seal({ label, sub }: { label: string; sub: string }) {
 
 export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
   return (
-    <section className="relative overflow-hidden bg-[#FEF1DC] pt-2 pb-12 md:pt-4 md:pb-16">
+    <section className="relative overflow-hidden bg-[#F5EDDE] pt-2 pb-12 md:pt-4 md:pb-16">
       <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <div>
           <Reveal>
@@ -263,7 +263,7 @@ export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
 
 export function Spotlight({
   products,
-  fadeTo = "#FCF2E5",
+  fadeTo = "#F5EDDE",
 }: {
   products: Pick<Product, "handle" | "images">[];
   /** Colour of the section below, so the watercolour melts into it. */
@@ -271,7 +271,7 @@ export function Spotlight({
 }) {
   const byHandle = new Map(products.map((p) => [p.handle, p]));
   return (
-    <section className="relative overflow-hidden bg-[#FEF1DC] pt-12 md:pt-16">
+    <section className="relative overflow-hidden bg-[#F5EDDE] pt-12 md:pt-16">
       {/* Soft watercolor dunes + sun rays (hand-painted). Purely decorative. */}
       <DecoBg
         src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735965/swadeshi-mahadev/static/images/deco/spotlight-bg.webp"
@@ -460,7 +460,7 @@ function UserGlyph() {
 
 export function BeyondOils() {
   return (
-    <section className="grid bg-[#FCF2E5] md:grid-cols-[minmax(0,2fr)_minmax(0,5fr)]">
+    <section className="grid bg-[#F5EDDE] md:grid-cols-[minmax(0,2fr)_minmax(0,5fr)]">
       <div className="relative flex items-center justify-center overflow-hidden px-6 pt-10 pb-28 md:py-0 md:pb-16">
         {/* Hand-painted mustard plants, dry grass and a low sun along the bottom edge. */}
         <Image

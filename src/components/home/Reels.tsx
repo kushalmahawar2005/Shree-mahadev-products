@@ -76,7 +76,7 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
   }, [open, reels.length]);
 
   return (
-    <section className="bg-[#FEF1DC] pt-12 md:pt-16">
+    <section className="bg-[#F5EDDE] pt-12 md:pt-16">
       <div className="mx-auto max-w-[1200px] px-4 md:px-6">
         <h2 className="text-center text-3xl text-forest md:text-[44px]">{title}</h2>
         <ul className="no-scrollbar mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 md:mt-8 md:gap-4">

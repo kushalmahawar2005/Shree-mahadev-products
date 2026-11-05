@@ -71,7 +71,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
   ] as const;
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] py-14 md:py-20">
+    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] pt-14 pb-10 md:pt-20 md:pb-12">
       <div className="relative mx-auto max-w-[1200px] px-4 md:px-8">
         <div className="mb-10 flex flex-col items-center gap-2 text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
