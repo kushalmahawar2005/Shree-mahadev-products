@@ -62,7 +62,7 @@ function ReelCard({ reel, onOpen }: { reel: ReelItem; onOpen: () => void }) {
       <button
         type="button"
         onClick={onOpen}
-        className="relative block aspect-[9/16] w-full overflow-hidden rounded-[28px] bg-forest-deep text-left shadow-[0_30px_50px_-30px_rgba(7,47,27,0.65)] ring-1 ring-black/5"
+        className="relative isolate block aspect-[9/16] w-full overflow-hidden rounded-[28px] bg-forest-deep text-left ring-1 ring-black/5 [mask-image:radial-gradient(white,black)]"
         aria-label={reel.caption ? `Watch: ${reel.caption}` : "Watch video"}
       >
         <video
