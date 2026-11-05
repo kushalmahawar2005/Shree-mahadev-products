@@ -1,60 +1,116 @@
-import Link from "next/link";
 import { connection } from "next/server";
-import { PageHeader, Card, Table } from "@/components/admin/ui";
+import { Download } from "lucide-react";
+import { DateRangeControl } from "@/components/admin/dashboard/DashboardControls";
+import { KpiTile, ReportView } from "@/components/admin/ReportView";
 import { requireRole } from "@/lib/server/admin-auth";
 import { resolveRange } from "@/lib/server/dashboard";
 import { getReports } from "@/lib/server/reports";
 import { formatMoney } from "@/lib/utils/money";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata = { title: "Reports" };
 export const instant = false;
 
-const reports = [
-  ["sales", "Sales over time"], ["products", "Product and size"], ["places", "State and city"],
-  ["payments", "Payment and COD RTO"], ["customers", "New vs returning"], ["coupons", "Coupon performance"],
-  ["carts", "Abandoned-cart recovery"], ["utm", "Revenue by UTM"], ["inventory", "Inventory value"],
+const REPORTS = [
+  ["sales", "Sales over time"],
+  ["products", "Product & size"],
+  ["places", "State & city"],
+  ["payments", "Payment & COD RTO"],
+  ["customers", "New vs returning"],
+  ["coupons", "Coupons"],
+  ["carts", "Cart recovery"],
+  ["utm", "Revenue by UTM"],
+  ["inventory", "Inventory value"],
 ] as const;
 
-function value(value: unknown, key: string) {
-  if (["revenue", "discount", "value"].includes(key) && value !== null) return formatMoney(Number(value));
-  return String(value ?? "—");
-}
+const MONEY = new Set(["revenue", "discount", "discounts", "value"]);
+const HEAD: Record<string, string> = { orders_count: "Orders", utm_source: "Source", rto: "RTO" };
+const head = (k: string) => HEAD[k] ?? k.replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase());
+const cell = (v: unknown, k: string) => (v === null || v === undefined || v === "" ? "-" : MONEY.has(k) ? formatMoney(Number(v)) : String(v));
+const isNum = (v: unknown) => v !== null && v !== "" && !Number.isNaN(Number(v));
+const sum = (rows: unknown[], k: string) => rows.reduce<number>((s, r) => s + Number((r as Record<string, unknown>)[k] ?? 0), 0);
+const change = (now: number, prev: number) => (prev ? Math.round(((now - prev) / prev) * 100) : null);
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireRole("owner", "manager");
   await connection();
   const sp = await searchParams;
-  const str = (key: string) => typeof sp[key] === "string" ? sp[key] as string : undefined;
+  const str = (key: string) => (typeof sp[key] === "string" ? (sp[key] as string) : undefined);
   const range = resolveRange(str("range"), str("from"), str("to"));
-  const previousRange = { ...range, from: range.prevFrom, to: range.prevTo, label: `${range.prevFrom} → ${range.prevTo}` };
-  const [data, previous] = await Promise.all([getReports(range), getReports(previousRange)]);
-  const selected = reports.some(([id]) => id === str("report")) ? str("report")! : "sales";
+  const prevRange = { ...range, from: range.prevFrom, to: range.prevTo, label: `${range.prevFrom} → ${range.prevTo}` };
+  const [data, previous] = await Promise.all([getReports(range), getReports(prevRange)]);
+  const selected = REPORTS.some(([id]) => id === str("report")) ? str("report")! : "sales";
   const rows = data[selected as keyof typeof data];
-  const items = Array.isArray(rows) ? rows as Record<string, unknown>[] : [];
-  const headers = items.length ? Object.keys(items[0]) : [];
-  const query = (report: string) => `/admin/reports?report=${report}&range=${range.preset}${range.preset === "custom" ? `&from=${range.from}&to=${range.to}` : ""}`;
+  const items = Array.isArray(rows) ? (rows as Record<string, unknown>[]) : [];
+  const cols = items.length ? Object.keys(items[0]) : [];
+  const rangeQs = `range=${range.preset}${range.preset === "custom" ? `&from=${range.from}&to=${range.to}` : ""}`;
+
+  const revenue = sum(data.sales, "revenue");
+  const orders = sum(data.sales, "orders");
+  const prevRevenue = sum(previous.sales, "revenue");
+  const prevOrders = sum(previous.sales, "orders");
+
   return (
-    <>
-      <PageHeader title="Reports" intro={`${range.label} · compare with ${range.days} previous days`} />
-      <div className="flex flex-wrap gap-2">
-        {reports.map(([id, label]) => <Link key={id} href={query(id)} className={`rounded-full border px-4 py-2 text-sm font-semibold ${selected === id ? "border-forest bg-forest text-white" : "border-line bg-white"}`}>{label}</Link>)}
-        <Link href={`/admin/reports/export?report=${selected}&range=${range.preset}${range.preset === "custom" ? `&from=${range.from}&to=${range.to}` : ""}`} className="ml-auto rounded-full border border-forest px-4 py-2 text-sm font-semibold text-forest">Download CSV</Link>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-forest-text sm:text-3xl">Reports</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {range.label} · compared with the {range.days} days before
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <DateRangeControl preset={range.preset} from={range.from} to={range.to} />
+          <a
+            href={`/admin/reports/export?report=${selected}&${rangeQs}`}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-forest-fg hover:bg-khaki-soft"
+          >
+            <Download className="size-4" />
+            CSV
+          </a>
+        </div>
       </div>
-      <form action="/admin/reports" className="mt-4 flex flex-wrap items-end gap-2">
-        <input type="hidden" name="range" value="custom" />
-        <label className="text-sm"><span className="mb-1 block font-semibold">From</span><input type="date" name="from" defaultValue={range.from} className="min-h-10 rounded-xl border border-line px-3" /></label>
-        <label className="text-sm"><span className="mb-1 block font-semibold">To</span><input type="date" name="to" defaultValue={range.to} className="min-h-10 rounded-xl border border-line px-3" /></label>
-        <button className="min-h-10 rounded-full border border-forest px-4 text-sm font-semibold text-forest">Apply dates</button>
-      </form>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Card><p className="text-sm text-ink-muted">Revenue</p><p className="mt-1 text-2xl font-bold">{formatMoney(data.sales.reduce((sum, row) => sum + Number((row as Record<string, unknown>).revenue ?? 0), 0))}</p><p className="text-xs text-ink-muted">Previous: {formatMoney(previous.sales.reduce((sum, row) => sum + Number((row as Record<string, unknown>).revenue ?? 0), 0))}</p></Card>
-        <Card><p className="text-sm text-ink-muted">Orders</p><p className="mt-1 text-2xl font-bold">{data.sales.reduce((sum, row) => sum + Number((row as Record<string, unknown>).orders ?? 0), 0)}</p><p className="text-xs text-ink-muted">Previous period compared</p></Card>
-        <Card><p className="text-sm text-ink-muted">Inventory value</p><p className="mt-1 text-2xl font-bold">{formatMoney(data.inventory.reduce((sum, row) => sum + Number((row as Record<string, unknown>).value ?? 0), 0))}</p><p className="text-xs text-ink-muted">Tracked stock only</p></Card>
-      </div>
-      <Card className="mt-6">
-        {selected === "carts" && items[0] && <p className="mb-4 text-sm text-ink-muted">Carts: {value(items[0].carts, "carts")} · Converted: {value(items[0].converted, "converted")} · Recovered: {value(items[0].recovered, "recovered")} · Cart value: {value(items[0].value, "value")}</p>}
-        {!items.length ? <p className="text-sm text-ink-muted">No data for this period.</p> : <Table head={headers}>{items.map((row, index) => <tr key={index}>{headers.map((header) => <td key={header}>{value(row[header], header)}</td>)}</tr>)}</Table>}
-      </Card>
-    </>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4" aria-label="Summary">
+        <KpiTile icon="revenue" label="Revenue" value={revenue} money change={change(revenue, prevRevenue)} note="No sales in the previous period" />
+        <KpiTile icon="orders" label="Orders" value={orders} change={change(orders, prevOrders)} note="No orders in the previous period" />
+        <KpiTile
+          icon="aov"
+          label="Average order"
+          value={orders ? revenue / orders : 0}
+          money
+          change={orders && prevOrders ? change(revenue / orders, prevRevenue / prevOrders) : null}
+          note="Revenue ÷ orders"
+        />
+        <KpiTile icon="stock" label="Inventory value" value={sum(data.inventory, "value")} money change={null} note="Tracked stock, at selling price" />
+      </section>
+
+      <ReportView reports={REPORTS} selected={selected} rangeQs={rangeQs} rows={items}>
+        <div className="max-h-[480px] overflow-auto" data-lenis-prevent="">
+          <table className="w-full min-w-[520px] text-sm">
+            <thead className="sticky top-0 bg-surface">
+              <tr className="border-b border-line text-xs text-ink-muted">
+                {cols.map((k, i) => (
+                  <th key={k} className={cn("px-4 py-2.5 font-medium sm:px-5", i && isNum(items[0][k]) ? "text-right" : "text-left")}>
+                    {head(k)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row, r) => (
+                <tr key={r} className="border-b border-line last:border-0 hover:bg-subtle">
+                  {cols.map((k, i) => (
+                    <td key={k} className={cn("px-4 py-2.5 sm:px-5", i && isNum(row[k]) ? "text-right tabular-nums" : "text-ink", MONEY.has(k) && "font-semibold text-ink")}>
+                      {cell(row[k], k)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ReportView>
+    </div>
   );
 }

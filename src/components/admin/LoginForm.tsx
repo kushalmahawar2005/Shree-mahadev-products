@@ -4,7 +4,7 @@ import { LoginFields } from "./LoginFields";
 export async function LoginForm({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const n = (await searchParams).next;
   return (
-    <div className="relative w-full max-w-[400px] rounded-3xl bg-white p-7 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)] sm:p-9">
+    <div className="relative w-full max-w-[400px] rounded-3xl bg-surface p-7 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)] sm:p-9">
       <div className="flex flex-col items-center text-center">
         <Image
           src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"

@@ -202,3 +202,23 @@ export async function getCustomerById(id: number) {
     })),
   };
 }
+
+/** Store-wide numbers for the customers list header. */
+export async function customerStats() {
+  const [[r]] = await db().query<Rows>(
+    `SELECT COUNT(*) AS total,
+       SUM(COALESCE(o.placed_orders,0) >= 1) AS buyers,
+       SUM(COALESCE(o.placed_orders,0) >= 2) AS repeat_buyers,
+       COALESCE(SUM(o.lifetime_value),0) AS revenue,
+       SUM(c.created_at > NOW() - INTERVAL 30 DAY) AS new_30d
+     FROM customers c ${statsJoin}`,
+    [PLACED, PLACED, PLACED, PLACED],
+  );
+  return {
+    total: Number(r.total),
+    buyers: Number(r.buyers ?? 0),
+    repeat: Number(r.repeat_buyers ?? 0),
+    revenue: Number(r.revenue),
+    new30d: Number(r.new_30d ?? 0),
+  };
+}

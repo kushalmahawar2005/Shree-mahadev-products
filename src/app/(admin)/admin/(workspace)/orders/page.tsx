@@ -36,7 +36,7 @@ export default function OrdersPage({ searchParams }: PageProps<"/admin/orders">)
 }
 
 function OrdersLoading() {
-  return <div className="space-y-4" aria-label="Loading orders"><div className="h-12 animate-pulse rounded-xl bg-white" /><div className="h-64 animate-pulse rounded-2xl bg-white" /></div>;
+  return <div className="space-y-4" aria-label="Loading orders"><div className="h-12 animate-pulse rounded-xl bg-surface" /><div className="h-64 animate-pulse rounded-2xl bg-surface" /></div>;
 }
 
 async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/orders">["searchParams"] }) {
@@ -70,15 +70,15 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
       <div className="mb-5 space-y-3">
         <nav aria-label="Filter orders" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {FILTERS.map((item) => (
-            <Link key={item.id} href={href({ f: item.id, page: 1 })} aria-current={filter === item.id ? "page" : undefined} className={cn("inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors", filter === item.id ? "border-forest bg-forest text-white shadow-sm" : "border-line bg-white text-ink-muted hover:border-forest/40 hover:text-forest")}>
-              {item.label}<span className={cn("rounded-md px-1.5 py-0.5 text-[10px] tabular-nums", filter === item.id ? "bg-white/15 text-white" : "bg-khaki-soft text-forest")}>{counts[item.id]}</span>
+            <Link key={item.id} href={href({ f: item.id, page: 1 })} aria-current={filter === item.id ? "page" : undefined} className={cn("inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors", filter === item.id ? "border-forest bg-forest text-white shadow-sm" : "border-line bg-surface text-ink-muted hover:border-forest/40 hover:text-forest-fg")}>
+              {item.label}<span className={cn("rounded-md px-1.5 py-0.5 text-[10px] tabular-nums", filter === item.id ? "bg-white/15 text-white" : "bg-khaki-soft text-forest-fg")}>{counts[item.id]}</span>
             </Link>
           ))}
         </nav>
-        <div className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
+        <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <form action="/admin/orders" className="flex min-w-0 flex-1 gap-2">
             <input type="hidden" name="f" value={filter} />
-            <input name="q" defaultValue={query} placeholder="Order no., phone or customer name" aria-label="Search orders" className="min-h-10 min-w-0 flex-1 rounded-xl border border-line bg-[#fcfbf8] px-3.5 text-sm outline-none transition focus:border-forest focus:ring-2 focus:ring-forest/10 sm:max-w-md" />
+            <input name="q" defaultValue={query} placeholder="Order no., phone or customer name" aria-label="Search orders" className="min-h-10 min-w-0 flex-1 rounded-xl border border-line bg-subtle px-3.5 text-sm outline-none transition focus:border-forest focus:ring-2 focus:ring-forest/10 sm:max-w-md" />
             <button className="min-h-10 shrink-0 rounded-xl bg-forest px-4 text-sm font-semibold text-white transition hover:bg-forest-deep">Search</button>
             {query && <Link href={href({ q: "", page: 1 })} className="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3 text-sm font-medium text-ink-muted hover:bg-khaki-soft">Clear</Link>}
           </form>
@@ -91,11 +91,11 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
 
       {result.orders.length ? (
         <>
-          <div className="hidden overflow-hidden rounded-2xl border border-line bg-white shadow-sm md:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-line bg-surface shadow-sm md:block">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[1100px] table-fixed text-left text-sm">
                 <colgroup><col className="w-[4%]" /><col className="w-[9%]" /><col className="w-[12%]" /><col className="w-[17%]" /><col className="w-[26%]" /><col className="w-[12%]" /><col className="w-[8%]" /><col className="w-[12%]" /></colgroup>
-                <thead className="border-b border-line bg-[#f8f6ef] text-[11px] uppercase tracking-[0.12em] text-ink-muted">
+                <thead className="border-b border-line bg-subtle text-[11px] uppercase tracking-[0.12em] text-ink-muted">
                   <tr><th className="px-3 py-3 text-center font-bold">PDF</th><th className="px-3 py-3 font-bold">Order</th><th className="px-3 py-3 font-bold">Placed</th><th className="px-3 py-3 font-bold">Customer</th><th className="px-3 py-3 font-bold">Items</th><th className="px-3 py-3 font-bold">Payment</th><th className="px-3 py-3 text-right font-bold">Total</th><th className="px-3 py-3 text-right font-bold">Status</th></tr>
                 </thead>
                 <tbody className="divide-y divide-line/80">
@@ -104,7 +104,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
               </table>
             </div>
           </div>
-          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white shadow-sm md:hidden">
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-sm md:hidden">
             {result.orders.map((order) => {
               const label = ORDER_LABEL[order.status as keyof typeof ORDER_LABEL];
               return (
@@ -125,11 +125,11 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
           <Pagination page={result.page} pages={totalPages} total={result.total} perPage={result.perPage} href={href} />
         </>
       ) : (
-        <div className="rounded-2xl border border-line bg-white px-5 py-12 text-center shadow-sm">
-          <span aria-hidden className="mx-auto grid size-12 place-items-center rounded-full bg-khaki-soft text-xl text-forest">✓</span>
+        <div className="rounded-2xl border border-line bg-surface px-5 py-12 text-center shadow-sm">
+          <span aria-hidden className="mx-auto grid size-12 place-items-center rounded-full bg-khaki-soft text-xl text-forest-fg">✓</span>
           <p className="mt-3 font-semibold text-forest-text">{query ? "No matching orders" : filter === "needs_action" ? "You're all caught up" : "No orders in this view"}</p>
           <p className="mt-1 text-sm text-ink-muted">{query ? "Try another order number, customer name or phone." : "Choose another status filter to see more orders."}</p>
-          <Link href={href({ f: "all", q: "", page: 1 })} className="mt-4 inline-flex min-h-10 items-center rounded-xl border border-line px-4 text-sm font-semibold text-forest hover:bg-khaki-soft">View all orders</Link>
+          <Link href={href({ f: "all", q: "", page: 1 })} className="mt-4 inline-flex min-h-10 items-center rounded-xl border border-line px-4 text-sm font-semibold text-forest-fg hover:bg-khaki-soft">View all orders</Link>
         </div>
       )}
     </>
@@ -139,9 +139,9 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
 function OrderRow({ order }: { order: Awaited<ReturnType<typeof listOrders>>["orders"][number] }) {
   const label = ORDER_LABEL[order.status as keyof typeof ORDER_LABEL];
   return (
-    <tr className="group transition-colors hover:bg-[#fcfbf7]">
+    <tr className="group transition-colors hover:bg-subtle">
       <td className="px-2 py-3 text-center"><label className="grid min-h-11 min-w-11 place-items-center" aria-label={`Select invoice for ${order.orderNo}`}><input className="invoice-order-checkbox size-5 accent-[var(--color-forest)] disabled:cursor-not-allowed disabled:opacity-35" type="checkbox" value={order.id} disabled={!INVOICE_STATUSES.has(order.status)} aria-label={`Select invoice for ${order.orderNo}${INVOICE_STATUSES.has(order.status) ? "" : " (available after payment or COD placement)"}`} /></label></td>
-      <td className="px-3 py-3"><Link href={`/admin/orders/view?id=${order.id}`} className="font-bold text-forest underline decoration-forest/25 underline-offset-4 group-hover:decoration-forest">{order.orderNo}</Link></td>
+      <td className="px-3 py-3"><Link href={`/admin/orders/view?id=${order.id}`} className="font-bold text-forest-fg underline decoration-forest/25 underline-offset-4 group-hover:decoration-forest">{order.orderNo}</Link></td>
       <td className="whitespace-nowrap px-3 py-3 text-xs text-ink-muted">{dateLabel(order.createdAt)}</td>
       <td className="px-3 py-3"><span className="block truncate font-semibold text-ink">{order.address.name}</span><span className="mt-0.5 block truncate text-xs text-ink-muted">{order.address.phone}</span><span className="block truncate text-xs text-ink-muted">{order.address.city} · {order.address.pincode}</span></td>
       <td className="px-3 py-3"><span className="block line-clamp-2 text-[13px] leading-relaxed text-ink">{itemsLabel(order.items)}</span><span className="mt-0.5 block text-[11px] text-ink-muted">{order.items.reduce((sum, item) => sum + item.quantity, 0)} units</span></td>
@@ -154,15 +154,15 @@ function OrderRow({ order }: { order: Awaited<ReturnType<typeof listOrders>>["or
 
 function Pagination({ page, pages, total, perPage, href }: { page: number; pages: number; total: number; perPage: number; href: (changes: { f?: OrderFilter; q?: string; page?: number }) => string }) {
   return pages > 1 ? (
-    <nav className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm" aria-label="Pagination">
+    <nav className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-sm" aria-label="Pagination">
       <span className="text-xs text-ink-muted">Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total} orders · Page {page} of {pages}</span>
-      <div className="flex gap-2">{page > 1 && <Link href={href({ page: page - 1 })} className="inline-flex min-h-10 items-center rounded-lg border border-line px-4 font-semibold text-forest hover:bg-khaki-soft">← Newer</Link>}{page < pages && <Link href={href({ page: page + 1 })} className="inline-flex min-h-10 items-center rounded-lg border border-line px-4 font-semibold text-forest hover:bg-khaki-soft">Older →</Link>}</div>
+      <div className="flex gap-2">{page > 1 && <Link href={href({ page: page - 1 })} className="inline-flex min-h-10 items-center rounded-lg border border-line px-4 font-semibold text-forest-fg hover:bg-khaki-soft">← Newer</Link>}{page < pages && <Link href={href({ page: page + 1 })} className="inline-flex min-h-10 items-center rounded-lg border border-line px-4 font-semibold text-forest-fg hover:bg-khaki-soft">Older →</Link>}</div>
     </nav>
   ) : null;
 }
 
 function DataError() {
-  return <div role="alert" className="rounded-2xl border border-red-200 bg-white p-5"><p className="font-semibold text-red-800">Orders could not be loaded.</p><p className="mt-1 text-sm text-ink-muted">Check the database connection and refresh this page.</p></div>;
+  return <div role="alert" className="rounded-2xl border border-red-200 bg-surface p-5"><p className="font-semibold text-red-800">Orders could not be loaded.</p><p className="mt-1 text-sm text-ink-muted">Check the database connection and refresh this page.</p></div>;
 }
 
 function itemsLabel(items: { quantity: number; productTitle: string; variantTitle: string }[]) {

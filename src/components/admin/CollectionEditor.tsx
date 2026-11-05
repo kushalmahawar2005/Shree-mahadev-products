@@ -1,95 +1,344 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
-import { Card, Field, PageHeader, inputCls } from "@/components/admin/ui";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Reorder, useDragControls } from "motion/react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  ExternalLink,
+  FileText,
+  GripVertical,
+  Home,
+  ImageIcon,
+  Loader2,
+  Menu,
+  Package,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
 import { DropZone } from "@/components/admin/media/DropZone";
+import { Switch } from "@/components/shadcn/switch";
 import { saveCollectionAction } from "@/lib/collection-actions";
+import { formatMoney } from "@/lib/utils/money";
+import { cn } from "@/lib/utils/cn";
 
-type Product = { handle: string; title: string; titleHi?: string };
-type Data = { handle: string; title: string; description: string; imageUrl: string; seoTitle: string; seoDescription: string; inMenu: boolean; menuOrder: number; showHomepage: boolean; products: string[] };
+export type CollectionProduct = { handle: string; title: string; titleHi?: string; image: string; swatch?: string | null; status: string; from: number };
+type Data = {
+  handle: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  seoTitle: string;
+  seoDescription: string;
+  inMenu: boolean;
+  menuOrder: number;
+  showHomepage: boolean;
+  products: string[];
+};
+
 const slug = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const input =
+  "h-10 w-full rounded-xl border border-line bg-surface px-3.5 text-sm text-ink outline-none transition placeholder:text-ink-muted/70 focus:border-forest focus:ring-2 focus:ring-forest/15";
+const area = cn(input, "h-auto py-2.5 leading-relaxed");
 
-export function CollectionEditor({ initial, allProducts }: { initial: Data; allProducts: Product[] }) {
+function Section({ icon: Icon, title, hint, aside, children }: { icon: typeof Menu; title: string; hint?: string; aside?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+      <div className="mb-4 flex items-start gap-2.5">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-khaki-soft text-forest-fg">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-bold text-forest-text">{title}</h2>
+          {hint && <p className="text-xs text-ink-muted">{hint}</p>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Thumb({ p, size = 40 }: { p: CollectionProduct; size?: number }) {
+  return (
+    <span className="relative shrink-0" style={{ width: size, height: size }}>
+      <span className="block size-full overflow-hidden rounded-lg bg-subtle ring-1 ring-line">
+        <Image src={p.image} alt="" width={size} height={size} className="size-full object-cover" unoptimized={p.image.endsWith(".svg")} />
+      </span>
+      {p.swatch && <span aria-hidden className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-surface" style={{ background: p.swatch }} />}
+    </span>
+  );
+}
+
+export function CollectionEditor({ initial, allProducts }: { initial: Data; allProducts: CollectionProduct[] }) {
   const router = useRouter();
   const [data, setData] = useState(initial);
   const [selected, setSelected] = useState(initial.products);
+  const [saved, setSaved] = useState({ data: initial, selected: initial.products });
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [dragged, setDragged] = useState<string | null>(null);
-  const patch = (key: keyof Data, value: Data[keyof Data]) => setData((current) => ({ ...current, [key]: value }));
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [q, setQ] = useState("");
+  const patch = <K extends keyof Data>(key: K, value: Data[K]) => setData((cur) => ({ ...cur, [key]: value }));
 
-  const save = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); setBusy(true); setError(""); setMessage("");
+  const dirty = JSON.stringify(data) !== JSON.stringify(saved.data) || selected.join() !== saved.selected.join();
+  useEffect(() => {
+    if (!dirty) return;
+    const onLeave = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [dirty]);
+
+  async function save() {
+    if (data.title.trim().length < 3) return setMsg({ ok: false, text: "Name needs at least 3 characters" });
+    if (!slug(data.handle)) return setMsg({ ok: false, text: "Add a URL handle" });
+    setBusy(true);
+    setMsg(null);
     try {
-      const result = await saveCollectionAction({ ...data, products: selected }, initial.handle);
-      setMessage("Collection saved. Storefront pages and menus are refreshed.");
+      const result = await saveCollectionAction({ ...data, handle: slug(data.handle), products: selected }, initial.handle);
+      setSaved({ data, selected });
+      setMsg({ ok: true, text: "Saved. Store pages and menus are refreshed." });
       if (result.handle !== initial.handle) router.replace(`/admin/categories/${result.handle}`);
       router.refresh();
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not save collection"); }
-    finally { setBusy(false); }
-  };
-  const toggle = (handle: string) => setSelected((current) => current.includes(handle) ? current.filter((item) => item !== handle) : [...current, handle]);
-  const move = (index: number, offset: number) => setSelected((current) => {
-    const to = index + offset; if (to < 0 || to >= current.length) return current;
-    const next = [...current]; [next[index], next[to]] = [next[to], next[index]]; return next;
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : "Could not save collection" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void save();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   });
-  const moveDragged = (target: string) => {
-    if (!dragged || dragged === target) return;
-    setSelected((current) => { const next = [...current]; const from = next.indexOf(dragged); const to = next.indexOf(target); const [item] = next.splice(from, 1); next.splice(to, 0, item); return next; });
-    setDragged(null);
-  };
 
-  const orderedProducts = selected.map((handle) => allProducts.find((product) => product.handle === handle)).filter((p): p is Product => !!p);
-  const remaining = allProducts.filter((p) => !selected.includes(p.handle));
+  const byHandle = new Map(allProducts.map((p) => [p.handle, p]));
+  const remaining = allProducts.filter((p) => !selected.includes(p.handle) && (!q || `${p.title} ${p.titleHi ?? ""}`.toLowerCase().includes(q.toLowerCase())));
+  const seoTitle = data.seoTitle || data.title;
+  const seoDesc = data.seoDescription || data.description.slice(0, 160);
 
-  return <>
-    <PageHeader title={`Edit ${initial.title}`} intro={`/collections/${initial.handle}`} />
-    <form onSubmit={save} className="space-y-5">
-      {(error || message) && <p role={error ? "alert" : "status"} className={`rounded-xl px-4 py-3 text-sm ${error ? "bg-sale/10 text-sale" : "bg-forest/10 text-forest"}`}>{error || message}</p>}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)] [&>*]:min-w-0">
-        <Card title="Collection details">
-          <div className="space-y-4">
-            <Field label="Name"><input className={inputCls} value={data.title} onChange={(e) => patch("title", e.target.value)} required minLength={3} maxLength={160} /></Field>
-            <Field label="URL handle"><input className={inputCls} value={data.handle} onChange={(e) => patch("handle", slug(e.target.value))} required maxLength={80} /><span className="text-xs text-ink-muted">/collections/{slug(data.handle)}</span></Field>
-            <Field label="Description"><textarea className={`${inputCls} py-3`} rows={5} value={data.description} onChange={(e) => patch("description", e.target.value)} maxLength={5000} /></Field>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="SEO title"><input className={inputCls} value={data.seoTitle} onChange={(e) => patch("seoTitle", e.target.value)} maxLength={160} /></Field>
-              <Field label="SEO description"><textarea className={`${inputCls} py-3`} rows={3} value={data.seoDescription} onChange={(e) => patch("seoDescription", e.target.value)} maxLength={320} /></Field>
-            </div>
+  return (
+    <div className="space-y-5">
+      {/* Sticky header */}
+      <div className="sticky top-16 z-20 -mx-4 border-b border-line bg-canvas/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 xl:-mx-8 xl:px-8">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/admin/categories" aria-label="All collections" className="grid size-9 shrink-0 place-items-center rounded-full border border-line bg-surface text-forest-text hover:border-forest/50">
+            <ArrowLeft className="size-4" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl font-bold tracking-tight text-forest-text sm:text-2xl">{data.title || "Untitled collection"}</h1>
+            <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
+              /collections/{slug(data.handle) || "…"} · {selected.length} product{selected.length === 1 ? "" : "s"}
+              {dirty && <span className="font-semibold text-sale">· Unsaved changes</span>}
+            </p>
           </div>
-        </Card>
-
-        <div className="space-y-5">
-          <Card title="Collection image">
-            <Field label="Cloudinary image URL"><input className={inputCls} type="url" value={data.imageUrl} onChange={(e) => patch("imageUrl", e.target.value)} placeholder="Upload an image below" /></Field>
-            {data.imageUrl && <Image src={data.imageUrl} alt={`${data.title} collection preview`} width={1200} height={675} unoptimized className="mt-3 aspect-[16/9] w-full rounded-xl object-cover" />}
-            <div className="mt-4"><DropZone folder="collections" multiple={false} label="Upload collection image" hint="Images upload directly to Cloudinary" compact onUploaded={(images) => patch("imageUrl", images[0]?.url ?? "")} /></div>
-          </Card>
-          <Card title="Visibility">
-            <div className="space-y-3">
-              <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line px-3"><input type="checkbox" className="size-5 accent-[var(--color-forest)]" checked={data.inMenu} onChange={(e) => patch("inMenu", e.target.checked)} /><span className="font-medium text-forest-text">Show in header and footer menus</span></label>
-              <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line px-3"><input type="checkbox" className="size-5 accent-[var(--color-forest)]" checked={data.showHomepage} onChange={(e) => patch("showHomepage", e.target.checked)} /><span className="font-medium text-forest-text">Feature on homepage</span></label>
-              <Field label="Menu order"><input className={inputCls} type="number" min={0} max={10000} value={data.menuOrder} onChange={(e) => patch("menuOrder", Math.max(0, Number(e.target.value) || 0))} /><span className="text-xs text-ink-muted">Use the Collections page arrows or drag to reorder the full list.</span></Field>
-            </div>
-          </Card>
+          <Link href={`/collections/${initial.handle}`} target="_blank" className="hidden h-10 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-sm font-semibold text-forest-text hover:border-forest/50 sm:inline-flex">
+            <ExternalLink className="size-4" /> View on store
+          </Link>
+          {dirty && (
+            <button type="button" disabled={busy} onClick={() => (setData(saved.data), setSelected(saved.selected), setMsg(null))} className="h-10 rounded-full px-3 text-sm font-semibold text-ink-muted hover:bg-khaki-soft">
+              Discard
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy || !dirty}
+            onClick={() => void save()}
+            title="⌘S"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-forest px-5 text-sm font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+            {busy ? "Saving…" : "Save"}
+          </button>
         </div>
+        {msg && (
+          <p className={cn("mt-2 flex items-center gap-1.5 text-sm", msg.ok ? "text-forest-fg" : "text-red-700")} role="status">
+            {msg.ok ? <Check className="size-4" /> : <AlertCircle className="size-4" />} {msg.text}
+          </p>
+        )}
       </div>
 
-      <Card title={`Products in this collection (${selected.length})`}>
-        <p className="mb-3 text-sm text-ink-muted">Select products, then drag or use the arrow controls to choose their display order.</p>
-        <ol className="space-y-2">
-          {orderedProducts.map((product, index) => <li key={product.handle} draggable onDragStart={() => setDragged(product.handle)} onDragOver={(e) => e.preventDefault()} onDrop={() => moveDragged(product.handle)} className="grid min-h-14 grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-line bg-khaki-soft/50 p-2 sm:grid-cols-[1fr_auto_auto]">
-            <div className="flex min-h-11 items-center gap-3 px-2"><span aria-hidden className="text-ink-muted">⠿</span><span className="min-w-0"><span className="block truncate font-medium text-forest-text">{product.title}</span><span className="block text-xs text-ink-muted">{product.handle}</span></span></div>
-            <div className="flex items-center gap-2"><button type="button" onClick={() => move(index, -1)} disabled={index === 0} aria-label={`Move ${product.title} up`} className="grid size-11 place-items-center rounded-full border border-line text-forest disabled:opacity-40">↑</button><button type="button" onClick={() => move(index, 1)} disabled={index === orderedProducts.length - 1} aria-label={`Move ${product.title} down`} className="grid size-11 place-items-center rounded-full border border-line text-forest disabled:opacity-40">↓</button></div>
-            <button type="button" onClick={() => toggle(product.handle)} className="min-h-11 rounded-full px-4 text-sm font-semibold text-sale hover:bg-sale/10">Remove</button>
-          </li>)}
-        </ol>
-        {remaining.length > 0 && <div className="mt-5 border-t border-line pt-4"><p className="mb-2 font-semibold text-forest-text">Add products</p><ul className="grid gap-1 sm:grid-cols-2">{remaining.map((product) => <li key={product.handle}><label className="flex min-h-11 items-center gap-3 rounded-lg px-2 hover:bg-khaki-soft"><input type="checkbox" checked={false} onChange={() => toggle(product.handle)} className="size-5 accent-[var(--color-forest)]" /><span>{product.title}</span></label></li>)}</ul></div>}
-      </Card>
-      <div className="sticky bottom-3 z-10 flex justify-end rounded-2xl border border-line bg-white/95 p-3 shadow-lg backdrop-blur"><button disabled={busy} className="min-h-12 rounded-full bg-forest px-7 font-semibold text-white disabled:opacity-50">{busy ? "Saving…" : "Save collection"}</button></div>
-    </form>
-  </>;
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-w-0 space-y-5">
+          <Section
+            icon={Package}
+            title="Products"
+            hint="Drag to set the order shoppers see on the collection page."
+            aside={<span className="text-xs text-ink-muted">{selected.length} added</span>}
+          >
+            {selected.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink-muted">No products yet. Add some from the list below.</p>
+            ) : (
+              <Reorder.Group axis="y" values={selected} onReorder={setSelected} className="space-y-2">
+                {selected.map((h, i) => {
+                  const p = byHandle.get(h);
+                  return p ? <SelectedRow key={h} p={p} index={i} onRemove={() => setSelected((cur) => cur.filter((x) => x !== h))} /> : null;
+                })}
+              </Reorder.Group>
+            )}
+
+            <div className="mt-5 border-t border-line pt-5">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-forest-text">Add products</p>
+                <div className="relative w-full sm:w-64">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted" />
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search products" aria-label="Search products to add" className={cn(input, "h-9 rounded-full pl-9")} />
+                </div>
+              </div>
+              {remaining.length === 0 ? (
+                <p className="text-sm text-ink-muted">{q ? "No matching products." : "Every product is already in this collection."}</p>
+              ) : (
+                <ul className="grid gap-2 sm:grid-cols-2">
+                  {remaining.map((p) => (
+                    <li key={p.handle}>
+                      <button
+                        type="button"
+                        onClick={() => setSelected((cur) => [...cur, p.handle])}
+                        className="group flex w-full items-center gap-3 rounded-xl border border-line px-3 py-2 text-left transition-colors hover:border-forest/50 hover:bg-forest/5"
+                      >
+                        <Thumb p={p} size={36} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-ink">{p.title}</span>
+                          <span className="block text-xs text-ink-muted">
+                            {p.from ? `From ${formatMoney(p.from)}` : "No price"}
+                            {p.status !== "active" && ` · ${p.status}`}
+                          </span>
+                        </span>
+                        <span className="grid size-7 shrink-0 place-items-center rounded-full border border-line text-forest-fg transition-colors group-hover:border-forest group-hover:bg-forest group-hover:text-white">
+                          <Plus className="size-3.5" />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Section>
+
+          <Section icon={FileText} title="Details">
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm">
+                  <span className="mb-1.5 block font-semibold text-forest-text">Name</span>
+                  <input className={input} value={data.title} onChange={(e) => patch("title", e.target.value)} maxLength={160} />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1.5 block font-semibold text-forest-text">URL handle</span>
+                  <div className="flex h-10 items-center overflow-hidden rounded-xl border border-line bg-surface focus-within:border-forest focus-within:ring-2 focus-within:ring-forest/15">
+                    <span className="border-r border-line bg-subtle px-2.5 text-xs leading-10 text-ink-muted">/collections/</span>
+                    <input className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-sm text-ink outline-none" value={data.handle} onChange={(e) => patch("handle", slug(e.target.value))} maxLength={80} />
+                  </div>
+                </label>
+              </div>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-semibold text-forest-text">Description</span>
+                <textarea className={area} rows={4} value={data.description} onChange={(e) => patch("description", e.target.value)} maxLength={5000} placeholder="Shown at the top of the collection page." />
+              </label>
+            </div>
+          </Section>
+
+          <Section icon={Search} title="Search engine listing" hint="Leave blank to use the name and description.">
+            <div className="mb-4 rounded-xl border border-line bg-subtle p-4">
+              <p className="truncate text-xs text-ink-muted">swadeshimahadevproducts.com › collections › {slug(data.handle) || "…"}</p>
+              <p className="mt-0.5 truncate text-lg leading-snug text-[#1a0dab] dark:text-[#8ab4f8]">{seoTitle || "Collection name"}</p>
+              <p className="line-clamp-2 text-sm text-ink-muted">{seoDesc || "Description appears here."}</p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1.5 flex justify-between font-semibold text-forest-text">
+                  Page title <span className={cn("text-[11px] font-normal tabular-nums", seoTitle.length > 60 ? "text-sale" : "text-ink-muted")}>{seoTitle.length}/60</span>
+                </span>
+                <input className={input} value={data.seoTitle} onChange={(e) => patch("seoTitle", e.target.value)} maxLength={160} placeholder={data.title} />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 flex justify-between font-semibold text-forest-text">
+                  Meta description <span className={cn("text-[11px] font-normal tabular-nums", seoDesc.length > 160 ? "text-sale" : "text-ink-muted")}>{seoDesc.length}/160</span>
+                </span>
+                <textarea className={area} rows={3} value={data.seoDescription} onChange={(e) => patch("seoDescription", e.target.value)} maxLength={320} />
+              </label>
+            </div>
+          </Section>
+        </div>
+
+        <aside className="min-w-0 space-y-5 xl:sticky xl:top-36">
+          <Section icon={Menu} title="Visibility">
+            <div className="space-y-2">
+              <ToggleRow icon={Menu} label="Store menu" desc="Link in the header and footer" checked={data.inMenu} onChange={(v) => patch("inMenu", v)} />
+              <ToggleRow icon={Home} label="Homepage" desc="Feature as a homepage section" checked={data.showHomepage} onChange={(v) => patch("showHomepage", v)} />
+            </div>
+          </Section>
+
+          <Section icon={ImageIcon} title="Image" hint="Used on category tiles and the collection banner.">
+            {data.imageUrl ? (
+              <div className="relative overflow-hidden rounded-xl ring-1 ring-line">
+                <Image src={data.imageUrl} alt={`${data.title} collection`} width={1200} height={675} className="aspect-[16/9] w-full object-cover" />
+                <button type="button" onClick={() => patch("imageUrl", "")} aria-label="Remove image" className="absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-surface/90 text-red-700">
+                  <X className="size-4" />
+                </button>
+              </div>
+            ) : (
+              <DropZone folder="collections" multiple={false} label="Upload image" hint="Wide images work best" compact onUploaded={(images) => patch("imageUrl", images[0]?.url ?? "")} />
+            )}
+          </Section>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function SelectedRow({ p, index, onRemove }: { p: CollectionProduct; index: number; onRemove: () => void }) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item
+      value={p.handle}
+      dragListener={false}
+      dragControls={controls}
+      whileDrag={{ scale: 1.01, boxShadow: "0 12px 32px -12px rgba(0,0,0,.35)", zIndex: 10 }}
+      className="relative flex items-center gap-3 rounded-xl border border-line bg-surface px-2 py-2"
+    >
+      <button
+        type="button"
+        onPointerDown={(e) => controls.start(e)}
+        aria-label={`Drag to reorder ${p.title}`}
+        className="grid size-8 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-ink-muted hover:bg-khaki-soft hover:text-forest-fg active:cursor-grabbing"
+      >
+        <GripVertical className="size-4" />
+      </button>
+      <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-ink-muted">{index + 1}</span>
+      <Thumb p={p} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-ink">{p.title}</span>
+        <span className="block text-xs text-ink-muted">
+          {p.from ? `From ${formatMoney(p.from)}` : "No price"}
+          {p.status !== "active" && <span className="font-semibold text-sale"> · {p.status}, hidden on store</span>}
+        </span>
+      </span>
+      <button type="button" onClick={onRemove} aria-label={`Remove ${p.title}`} className="grid size-8 shrink-0 place-items-center rounded-full text-ink-muted transition-colors hover:bg-red-50 hover:text-red-700">
+        <X className="size-4" />
+      </button>
+    </Reorder.Item>
+  );
+}
+
+function ToggleRow({ icon: Icon, label, desc, checked, onChange }: { icon: typeof Menu; label: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className={cn("flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors", checked ? "border-forest/40 bg-forest/5" : "border-line")}>
+      <Icon className={cn("size-4 shrink-0", checked ? "text-forest-fg" : "text-ink-muted")} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-ink">{label}</span>
+        <span className="block text-xs text-ink-muted">{desc}</span>
+      </span>
+      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-forest" />
+    </label>
+  );
 }

@@ -154,7 +154,7 @@ export function InquiriesWorkspace({
                   <h2 className="font-semibold text-forest-text">
                     {STAGE[status].label}
                   </h2>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs text-ink-muted">
+                  <span className="rounded-full bg-surface px-2.5 py-1 text-xs text-ink-muted">
                     {rows.length}
                   </span>
                 </header>
@@ -215,7 +215,7 @@ export function InquiriesWorkspace({
                   onChange={(event) =>
                     move(inquiry.id, event.target.value as InquiryStatus)
                   }
-                  className="min-h-11 rounded-xl border border-line bg-white px-3"
+                  className="min-h-11 rounded-xl border border-line bg-surface px-3"
                 >
                   {INQUIRY_STATUSES.map((status) => (
                     <option key={status} value={status}>
@@ -227,7 +227,7 @@ export function InquiriesWorkspace({
               <td className="whitespace-nowrap">{inquiry.followUpAt || "—"}</td>
               <td>
                 <details>
-                  <summary className="min-h-11 cursor-pointer py-2 font-semibold text-forest">
+                  <summary className="min-h-11 cursor-pointer py-2 font-semibold text-forest-fg">
                     Open lead
                   </summary>
                   <div className="min-w-64 space-y-4 py-2">
@@ -271,7 +271,7 @@ function InquiryCard({
       onDragStart={(event) =>
         event.dataTransfer.setData("text/plain", String(inquiry.id))
       }
-      className="rounded-2xl border border-line bg-white p-4 shadow-sm"
+      className="rounded-2xl border border-line bg-surface p-4 shadow-sm"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -290,7 +290,7 @@ function InquiryCard({
         {inquiry.product} · {inquiry.quantity}
       </p>
       {inquiry.quoteAmount !== null && (
-        <p className="mt-1 text-sm font-semibold text-forest">
+        <p className="mt-1 text-sm font-semibold text-forest-fg">
           Quote {formatMoney(inquiry.quoteAmount)}
         </p>
       )}
@@ -302,7 +302,7 @@ function InquiryCard({
       <div className="mt-3 flex flex-wrap gap-2">
         <a
           href={`tel:+91${inquiry.phone}`}
-          className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-sm font-semibold text-forest"
+          className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-sm font-semibold text-forest-fg"
         >
           Call
         </a>
@@ -310,12 +310,12 @@ function InquiryCard({
           href={`https://wa.me/91${inquiry.phone}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-sm font-semibold text-forest"
+          className="inline-flex min-h-11 items-center rounded-full border border-line px-3 text-sm font-semibold text-forest-fg"
         >
           WhatsApp
         </a>
         <details className="w-full">
-          <summary className="min-h-11 cursor-pointer rounded-full border border-line px-4 py-2 text-center text-sm font-semibold text-forest">
+          <summary className="min-h-11 cursor-pointer rounded-full border border-line px-4 py-2 text-center text-sm font-semibold text-forest-fg">
             Lead details
           </summary>
           <div className="mt-3 space-y-4 border-t border-line pt-3">
@@ -457,7 +457,7 @@ function LeadDetails({
           type="button"
           disabled={pending || !note.trim()}
           onClick={saveNote}
-          className="mt-2 min-h-11 rounded-full border border-forest px-4 text-sm font-semibold text-forest disabled:opacity-50"
+          className="mt-2 min-h-11 rounded-full border border-forest px-4 text-sm font-semibold text-forest-fg disabled:opacity-50"
         >
           Add note
         </button>
@@ -553,7 +553,7 @@ function ManualOrderForm({
     );
   return (
     <details className="rounded-2xl border border-forest/20 p-3">
-      <summary className="min-h-11 cursor-pointer py-2 font-semibold text-forest">
+      <summary className="min-h-11 cursor-pointer py-2 font-semibold text-forest-fg">
         Create manual order
       </summary>
       <div className="mt-3 space-y-3">
@@ -586,7 +586,7 @@ function ManualOrderForm({
                     ),
                   );
                 }}
-                className="min-h-11 min-w-0 rounded-xl border border-line bg-white px-3"
+                className="min-h-11 min-w-0 rounded-xl border border-line bg-surface px-3"
               >
                 {variants.map((variant) => (
                   <option key={variant.variantKey} value={variant.variantKey}>

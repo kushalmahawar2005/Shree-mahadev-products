@@ -1,9 +1,7 @@
-import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ProductImageManager } from "@/components/admin/media/ProductImageManager";
 import { ProductForm } from "@/components/admin/ProductForm";
-import { PageHeader } from "@/components/admin/ui";
 import { loadCollections, loadProducts, type ProductInput } from "@/lib/server/catalog";
 import { getProductImages } from "@/lib/server/media";
 
@@ -87,22 +85,6 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
 
   return (
     <>
-      <PageHeader
-        title={p ? p.title : "Add product"}
-        intro={p ? p.titleHi : "Add photos, fill the details and sizes, then create."}
-        action={
-          <div className="flex gap-3">
-            <Link href="/admin/products" className="text-forest underline">
-              ← All products
-            </Link>
-            {p && (
-              <Link href={`/products/${p.handle}`} target="_blank" className="text-forest underline">
-                View on store ↗
-              </Link>
-            )}
-          </div>
-        }
-      />
       <ProductForm
         key={p?.handle ?? "new"}
         initial={initial}

@@ -77,7 +77,7 @@ export function DropZone({
           busy && "cursor-wait opacity-70",
         )}
       >
-        <svg aria-hidden viewBox="0 0 24 24" className="size-7 text-forest" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <svg aria-hidden viewBox="0 0 24 24" className="size-7 text-forest-fg" fill="none" stroke="currentColor" strokeWidth="1.8">
           <path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span className="font-semibold text-forest-text">{busy ? "Uploading…" : label}</span>

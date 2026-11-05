@@ -3,148 +3,288 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  Boxes,
+  ChevronsUpDown,
+  Clapperboard,
+  ExternalLink,
+  FolderTree,
+  History,
+  ImageIcon,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  Megaphone,
+  MessageSquare,
+  Package,
+  Search,
+  Settings,
+  ShoppingBag,
+  ShoppingCart,
+  Star,
+  TicketPercent,
+  Truck,
+  UserCog,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
 import { logoutAction } from "@/lib/admin-login-actions";
-import { useState } from "react";
-import { cn } from "@/lib/utils/cn";
-import { CloseIcon, MenuIcon } from "@/components/layout/icons";
+import { Avatar, AvatarFallback } from "@/components/shadcn/avatar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/shadcn/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/shadcn/dropdown-menu";
+import { Separator } from "@/components/shadcn/separator";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+} from "@/components/shadcn/sidebar";
+import { CommandMenu, openCommandMenu } from "./CommandMenu";
+import { ThemeToggle } from "./ThemeToggle";
 
-const nav = [
-  { label: "Dashboard", href: "/admin" },
-  { label: "Orders", href: "/admin/orders" },
-  { label: "Products", href: "/admin/products" },
-  { label: "Inventory", href: "/admin/inventory" },
-  { label: "Collections", href: "/admin/categories" },
-  { label: "Abandoned carts", href: "/admin/abandoned-carts" },
-  { label: "Customers", href: "/admin/customers" },
-  { label: "Coupons", href: "/admin/discounts" },
-  { label: "Reviews", href: "/admin/reviews" },
-  { label: "Bulk inquiries", href: "/admin/inquiries" },
-  { label: "Marketing", href: "/admin/marketing" },
-  { label: "Messages", href: "/admin/messages" },
-  { label: "Shipping ops", href: "/admin/shipping" },
-  { label: "Reports", href: "/admin/reports" },
-  { label: "Hero banners", href: "/admin/banners" },
-  { label: "Videos", href: "/admin/videos" },
-  { label: "Settings", href: "/admin/settings" },
-  { label: "Admin users", href: "/admin/settings/users" },
-  { label: "Activity log", href: "/admin/activity" },
+export type AdminRole = "owner" | "manager" | "staff";
+export type AdminNavItem = { label: string; href: string; section: string; icon: LucideIcon };
+
+export const ADMIN_NAV: AdminNavItem[] = [
+  { label: "Dashboard", href: "/admin", section: "Overview", icon: LayoutDashboard },
+  { label: "Orders", href: "/admin/orders", section: "Sales", icon: ShoppingBag },
+  { label: "Products", href: "/admin/products", section: "Catalog", icon: Package },
+  { label: "Inventory", href: "/admin/inventory", section: "Catalog", icon: Boxes },
+  { label: "Collections", href: "/admin/categories", section: "Catalog", icon: FolderTree },
+  { label: "Abandoned carts", href: "/admin/abandoned-carts", section: "Customers", icon: ShoppingCart },
+  { label: "Customers", href: "/admin/customers", section: "Customers", icon: Users },
+  { label: "Coupons", href: "/admin/discounts", section: "Growth", icon: TicketPercent },
+  { label: "Reviews", href: "/admin/reviews", section: "Growth", icon: Star },
+  { label: "Bulk inquiries", href: "/admin/inquiries", section: "Growth", icon: Inbox },
+  { label: "Marketing", href: "/admin/marketing", section: "Growth", icon: Megaphone },
+  { label: "Messages", href: "/admin/messages", section: "Operations", icon: MessageSquare },
+  { label: "Shipping ops", href: "/admin/shipping", section: "Operations", icon: Truck },
+  { label: "Reports", href: "/admin/reports", section: "Operations", icon: BarChart3 },
+  { label: "Hero banners", href: "/admin/banners", section: "Storefront", icon: ImageIcon },
+  { label: "Videos", href: "/admin/videos", section: "Storefront", icon: Clapperboard },
+  { label: "Settings", href: "/admin/settings", section: "Settings", icon: Settings },
+  { label: "Admin users", href: "/admin/settings/users", section: "Settings", icon: UserCog },
+  { label: "Activity log", href: "/admin/activity", section: "Settings", icon: History },
 ];
 
-const sectionNames: Record<string, string> = {
-  "/admin": "Overview",
-  "/admin/orders": "Sales",
-  "/admin/products": "Catalog",
-  "/admin/inventory": "Catalog",
-  "/admin/categories": "Catalog",
-  "/admin/abandoned-carts": "Customers",
-  "/admin/customers": "Customers",
-  "/admin/discounts": "Growth",
-  "/admin/reviews": "Growth",
-  "/admin/inquiries": "Growth",
-  "/admin/marketing": "Growth",
-  "/admin/messages": "Operations",
-  "/admin/shipping": "Operations",
-  "/admin/reports": "Operations",
-  "/admin/banners": "Storefront",
-  "/admin/videos": "Storefront",
-  "/admin/settings": "Settings",
-  "/admin/settings/users": "Settings",
-  "/admin/activity": "Settings",
-};
+const OWNER_ONLY = ["/admin/settings", "/admin/settings/users", "/admin/activity"];
+const STAFF_PAGES = ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"];
 
-export function AdminShell({ children, role }: { children: React.ReactNode; role: "owner" | "manager" | "staff" }) {
+export function navForRole(role: AdminRole) {
+  return ADMIN_NAV.filter((n) =>
+    role === "owner" ? true : role === "manager" ? !OWNER_ONLY.includes(n.href) : STAFF_PAGES.includes(n.href),
+  );
+}
+
+const isActive = (pathname: string, href: string) =>
+  href === "/admin" || href === "/admin/settings" ? pathname === href : pathname.startsWith(href);
+
+const ROLE_LABEL: Record<AdminRole, string> = { owner: "Owner", manager: "Manager", staff: "Staff" };
+
+export function AdminShell({
+  children,
+  role,
+  username,
+}: {
+  children: React.ReactNode;
+  role: AdminRole;
+  username: string;
+}) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
-  const [lastPath, setLastPath] = useState(pathname);
-  if (pathname !== lastPath) {
-    setLastPath(pathname);
-    setOpen(false);
-  }
   // The login page has no admin chrome.
   if (pathname === "/admin/login") return <>{children}</>;
-  const active = (href: string) =>
-    href === "/admin" || href === "/admin/settings"
-      ? pathname === href
-      : pathname.startsWith(href);
 
-  const allowedNav = nav.filter((n) =>
-    role === "owner"
-      ? true
-      : role === "manager"
-        ? !["/admin/settings", "/admin/settings/users", "/admin/activity"].includes(n.href)
-        : ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"].includes(n.href),
-  );
-  const sidebar = (
-    <nav aria-label="Admin" className="flex h-full min-h-0 flex-col px-3 pb-4 pt-5">
-      <Link href="/admin" className="mb-7 flex items-center gap-3 px-2">
-        <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={46} height={46} unoptimized className="size-11 rounded-full bg-white/10 object-contain ring-1 ring-white/10" />
-        <span className="leading-tight font-semibold tracking-wide text-white">
-          Mahadev
-          <span className="mt-1 block text-xs font-medium uppercase tracking-[0.16em] text-white/50">Admin workspace</span>
-        </span>
-      </Link>
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-        {[...new Set(allowedNav.map((n) => sectionNames[n.href] ?? "More"))].map((section) => (
-          <div key={section}>
-            <p className="mb-1.5 px-4 text-[10px] font-bold uppercase tracking-[0.18em] text-white/40">{section}</p>
-            <div className="space-y-1">
-              {allowedNav.filter((n) => (sectionNames[n.href] ?? "More") === section).map((n) => (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  aria-current={active(n.href) ? "page" : undefined}
-                  className={cn(
-                    "flex min-h-10 items-center rounded-xl border border-transparent px-4 text-[14px] font-medium text-white/70 transition-colors hover:bg-white/[0.08] hover:text-white",
-                    active(n.href) && "border-white/10 bg-white/[0.13] font-semibold text-white shadow-sm",
-                  )}
-                >
-                  {n.label}
-                  {active(n.href) && <span aria-hidden className="ml-auto size-1.5 rounded-full bg-mustard" />}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      <Link href="/" target="_blank" className="mt-4 flex min-h-11 shrink-0 items-center rounded-xl border border-white/10 px-4 text-sm font-medium text-white/65 transition-colors hover:border-white/20 hover:bg-white/[0.06] hover:text-white">
-        View storefront <span className="ml-auto">↗</span>
-      </Link>
-    </nav>
-  );
+  const items = navForRole(role);
+  const sections = [...new Set(items.map((n) => n.section))];
+  const current = [...items].reverse().find((n) => isActive(pathname, n.href));
+  const initials = username.slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex min-h-dvh bg-[#f7f6f1] text-ink">
-      <aside className="sticky top-0 hidden h-dvh w-[250px] shrink-0 bg-[#082f20] lg:block">{sidebar}</aside>
+    <SidebarProvider>
+      <Sidebar collapsible="icon" className="border-sidebar-border">
+        <SidebarHeader className="px-3 pt-4">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent">
+                <Link href="/admin">
+                  <Image
+                    src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
+                    alt=""
+                    width={36}
+                    height={36}
+                    unoptimized
+                    className="size-9 shrink-0 rounded-full bg-white/10 object-contain ring-1 ring-white/15"
+                  />
+                  <span className="grid leading-tight">
+                    <span className="truncate font-semibold text-white">Mahadev</span>
+                    <span className="truncate text-xs text-sidebar-foreground/70">Admin workspace</span>
+                  </span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
 
-      {open && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/50" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-[#082f20] shadow-2xl">{sidebar}</aside>
-        </div>
-      )}
+        <SidebarContent className="px-1 [mask-image:linear-gradient(to_bottom,transparent,black_12px,black_calc(100%-24px),transparent)]">
+          {sections.map((section) => (
+            <SidebarGroup key={section} className="py-1.5">
+              <SidebarGroupLabel className="text-[11px] font-semibold tracking-wide text-sidebar-foreground/45">
+                {section}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {items
+                    .filter((n) => n.section === section)
+                    .map((n) => {
+                      const active = isActive(pathname, n.href);
+                      return (
+                        <SidebarMenuItem key={n.href}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={active}
+                            tooltip={n.label}
+                            className="h-9 text-[14px] font-medium text-sidebar-foreground transition-colors data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-white"
+                          >
+                            <Link href={n.href} aria-current={active ? "page" : undefined}>
+                              <n.icon className={active ? "text-sidebar-primary" : "opacity-80"} />
+                              <span>{n.label}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      );
+                    })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+        </SidebarContent>
 
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex h-[68px] items-center gap-3 border-b border-line/80 bg-white/95 px-4 shadow-[0_3px_14px_-12px_rgba(0,0,0,.3)] backdrop-blur sm:px-7">
-          <button
-            type="button"
-            aria-label="Open menu"
-            className="-ml-2 grid size-11 place-items-center rounded-full hover:bg-khaki-soft lg:hidden"
-            onClick={() => setOpen(true)}
-          >
-            {open ? <CloseIcon /> : <MenuIcon />}
-          </button>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-forest-text sm:text-base">Swadeshi Mahadev Products</p>
-            <p className="hidden text-[11px] font-medium uppercase tracking-[0.15em] text-ink-muted sm:block">{sectionNames[pathname] ?? "Admin"} · Workspace</p>
-          </div>
-          <form action={logoutAction} className="ml-auto">
-            <button type="submit" className="min-h-10 rounded-full border border-line px-4 text-sm font-semibold text-forest-text transition-colors hover:border-forest hover:bg-khaki-soft">
-              Log out
+        <SidebarFooter className="px-3 pb-4">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="View storefront" className="text-sidebar-foreground">
+                <Link href="/" target="_blank">
+                  <ExternalLink />
+                  <span>View storefront</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+
+      <SidebarInset className="min-w-0 bg-canvas">
+        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b border-line bg-surface/85 px-3 backdrop-blur-md sm:px-5">
+          <SidebarTrigger className="-ml-1 size-9 text-forest-text" />
+          <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-5" />
+          <Breadcrumb className="min-w-0">
+            <BreadcrumbList className="flex-nowrap">
+              {current && current.section !== current.label && (
+                <>
+                  <BreadcrumbItem className="hidden md:inline-flex">{current.section}</BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                </>
+              )}
+              <BreadcrumbItem>
+                <BreadcrumbPage className="truncate font-semibold text-forest-text">
+                  {current?.label ?? "Admin"}
+                </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openCommandMenu}
+              className="hidden h-10 w-64 items-center gap-2 rounded-full border border-line bg-subtle px-4 text-sm text-ink-muted transition-colors hover:border-forest/40 hover:text-ink md:flex"
+            >
+              <Search className="size-4" />
+              Search or jump to…
+              <kbd className="ml-auto rounded-md border border-line bg-surface px-1.5 py-0.5 font-sans text-[11px] font-semibold">
+                ⌘K
+              </kbd>
             </button>
-          </form>
+            <button
+              type="button"
+              onClick={openCommandMenu}
+              aria-label="Search"
+              className="grid size-10 place-items-center rounded-full border border-line text-forest-text hover:bg-khaki-soft md:hidden"
+            >
+              <Search className="size-4" />
+            </button>
+            <ThemeToggle />
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 rounded-full border border-line py-1 pl-1 pr-2.5 transition-colors hover:bg-khaki-soft focus-visible:outline-2 focus-visible:outline-mustard">
+                <Avatar className="size-8">
+                  <AvatarFallback className="bg-forest text-xs font-bold text-white">{initials}</AvatarFallback>
+                </Avatar>
+                <span className="hidden text-left leading-tight sm:grid">
+                  <span className="max-w-28 truncate text-sm font-semibold text-forest-text">{username}</span>
+                  <span className="text-[11px] text-ink-muted">{ROLE_LABEL[role]}</span>
+                </span>
+                <ChevronsUpDown className="hidden size-3.5 text-ink-muted sm:block" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <span className="block font-semibold text-forest-text">{username}</span>
+                  <span className="text-xs text-ink-muted">{ROLE_LABEL[role]} · Swadeshi Mahadev</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/" target="_blank">
+                    <ExternalLink /> View storefront
+                  </Link>
+                </DropdownMenuItem>
+                {role === "owner" && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/settings">
+                      <Settings /> Settings
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <form action={logoutAction}>
+                  <DropdownMenuItem asChild variant="destructive">
+                    <button type="submit" className="w-full">
+                      <LogOut /> Log out
+                    </button>
+                  </DropdownMenuItem>
+                </form>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </header>
-        <main id="main" className="mx-auto w-full max-w-[1680px] p-4 sm:p-6 xl:p-8">{children}</main>
-      </div>
-    </div>
+        <main id="main" className="mx-auto w-full max-w-[1680px] p-4 sm:p-6 xl:p-8">
+          {children}
+        </main>
+      </SidebarInset>
+      <CommandMenu items={items} />
+    </SidebarProvider>
   );
 }

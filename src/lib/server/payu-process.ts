@@ -58,20 +58,43 @@ export async function reconcilePayments(olderThanMin = 15, limit = 50) {
   );
   const result = { checked: rows.length, paid: 0, failed: 0, still: 0 };
   for (const r of rows) {
-    const v = await verifyPaymentWithPayu(r.txnid);
-    if (v?.status === "success" && v.amount === r.amount) {
-      await markPaid(r.id, r.order_id, { mihpayid: v.mihpayid, mode: "reconciled" });
-      await notifyOrder(r.order_id, "payment_received");
-      await queueOrderWhatsApp(r.order_id, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
-      result.paid++;
-    } else if (v && ["failure", "failed", "userCancelled", "dropped", "bounced"].includes(v.status)) {
-      await markPaymentFailed(r.id, r.order_id, `PayU: ${v.status}`);
-      result.failed++;
-    } else if (v?.status === "Not Found") {
-      // Customer never reached PayU (closed the tab) and it's old: mark the attempt failed.
-      await markPaymentFailed(r.id, r.order_id, "No payment found at PayU");
-      result.failed++;
-    } else result.still++; // includes PayU unreachable (v === null): try again next run
+    const outcome = await reconcileOne({ id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount });
+    result[outcome === "pending" ? "still" : outcome]++;
   }
   return result;
+}
+
+/** Ask PayU about one attempt and apply the answer. "pending" also covers PayU being unreachable. */
+async function reconcileOne(r: { id: number; orderId: number; txnid: string; amount: number }): Promise<"paid" | "failed" | "pending"> {
+  const v = await verifyPaymentWithPayu(r.txnid);
+  if (v?.status === "success" && v.amount === r.amount) {
+    await markPaid(r.id, r.orderId, { mihpayid: v.mihpayid, mode: "reconciled" });
+    await notifyOrder(r.orderId, "payment_received");
+    await queueOrderWhatsApp(r.orderId, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
+    return "paid";
+  }
+  if (v && ["failure", "failed", "userCancelled", "dropped", "bounced"].includes(v.status)) {
+    await markPaymentFailed(r.id, r.orderId, `PayU: ${v.status}`);
+    return "failed";
+  }
+  if (v?.status === "Not Found") {
+    // Customer never reached PayU (closed the tab): mark the attempt failed.
+    await markPaymentFailed(r.id, r.orderId, "No payment found at PayU");
+    return "failed";
+  }
+  return "pending";
+}
+
+/**
+ * Admin "Check with PayU" on one order: verifies its latest open attempt right now
+ * (no age limit), using the same rules as the scheduled reconcile.
+ */
+export async function verifyOrderPayment(orderId: number): Promise<"paid" | "failed" | "pending" | "none"> {
+  const [rows] = await db().query<RowDataPacket[]>(
+    "SELECT id, order_id, txnid, amount FROM payments WHERE order_id = ? AND status IN ('initiated','pending') ORDER BY id DESC LIMIT 1",
+    [orderId],
+  );
+  const r = rows[0];
+  if (!r) return "none";
+  return reconcileOne({ id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount });
 }

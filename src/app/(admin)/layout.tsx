@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Figtree, Mukta } from "next/font/google";
 import "../globals.css";
+import { adminThemeScript } from "@/components/admin/theme-script";
 
 /** Clean geometric sans (close to Cowberry's look). Mukta covers Devanagari. */
 const figtree = Figtree({
@@ -25,8 +26,11 @@ export const metadata: Metadata = {
 
 export default function AdminRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`}>
-      <body className="min-h-dvh bg-khaki-soft/50" suppressHydrationWarning>
+    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: adminThemeScript }} />
+      </head>
+      <body className="min-h-dvh bg-canvas text-ink" suppressHydrationWarning>
         {children}
       </body>
     </html>

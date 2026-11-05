@@ -4,6 +4,8 @@ import { legacyRedirects } from "./src/data/redirects";
 import { securityHeaders } from "./src/lib/security-headers";
 
 const nextConfig: NextConfig = {
+  // Dev-only badge: keep it off the admin sidebar (bottom-left).
+  devIndicators: { position: "bottom-right" },
   // A separate QA runtime can coexist with the user's normal local dev server.
   distDir: process.env.NEXT_BUILD_DIR || ".next",
   cacheComponents: true,

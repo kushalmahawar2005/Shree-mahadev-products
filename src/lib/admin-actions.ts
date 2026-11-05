@@ -102,6 +102,19 @@ export async function ndrAction(awb: string, action: "reattempt" | "change_addre
   await applyNdrAction(awb, action, details);
 }
 
+// ───────────── Payments (PayU) ─────────────
+
+/** "Check with PayU": verify the order's latest open payment attempt right now. */
+export async function verifyPaymentAction(orderId: number) {
+  await requireAdmin();
+  const id = zz.number().int().positive().parse(orderId);
+  const { verifyOrderPayment } = await import("@/lib/server/payu-process");
+  const outcome = await verifyOrderPayment(id);
+  revalidatePath("/admin/orders");
+  revalidatePath("/admin");
+  return outcome;
+}
+
 // ───────────── Order emails ─────────────
 
 const EmailKindSchema = zz.enum(["order_placed", "payment_received", "shipped", "delivered", "cancelled", "refund", "store_new_order"]);

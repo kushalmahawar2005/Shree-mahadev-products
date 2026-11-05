@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ChevronLeft, ChevronRight, Clapperboard, Film, Trash2 } from "lucide-react";
+import { Switch } from "@/components/shadcn/switch";
+import { ConfirmAction } from "../order/ConfirmAction";
 import { cldVideo, cldVideoPoster } from "@/lib/image-loader";
 import {
   addReelsAction,
@@ -13,7 +16,7 @@ import type { Reel } from "@/lib/server/videos";
 import { DropZone } from "./DropZone";
 import { Sortable } from "./Sortable";
 
-const input = "min-h-10 w-full rounded-xl border border-line bg-white px-3 text-sm focus:border-forest focus:outline-none";
+const input = "min-h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm focus:border-forest focus:outline-none";
 
 export function ReelManager({
   initial,
@@ -43,11 +46,11 @@ export function ReelManager({
 
   return (
     <div className="space-y-8">
-      {msg && <p className={msg.ok ? "text-sm text-forest" : "text-sm text-sale"}>{msg.text}</p>}
+      {msg && <p className={msg.ok ? "text-sm text-forest-fg" : "text-sm text-sale"}>{msg.text}</p>}
 
-      <section className="rounded-2xl border border-line bg-white p-4 md:p-5">
-        <h2 className="text-lg font-semibold text-forest-text">Brand film (YouTube)</h2>
-        <p className="mb-3 text-sm text-ink-muted">Shown in the &ldquo;We Are Pressers&rdquo; section. Paste any YouTube link. Leave empty to show the poster.</p>
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-[0_1px_2px_rgba(0,0,0,.04)] md:p-5">
+        <h2 className="flex items-center gap-3 font-bold text-forest-text"><span className="grid size-9 place-items-center rounded-xl bg-khaki-soft text-forest-fg"><Film className="size-4" /></span>Brand film (YouTube)</h2>
+        <p className="mt-1 mb-3 text-xs text-ink-muted">Shown in the &ldquo;We Are Pressers&rdquo; section. Paste any YouTube link. Leave empty to show the poster.</p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input value={film} onChange={(e) => setFilm(e.target.value)} placeholder="https://youtu.be/…" className={input} />
           <button
@@ -63,7 +66,7 @@ export function ReelManager({
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-forest-text">Reels</h2>
+          <h2 className="flex items-center gap-3 font-bold text-forest-text"><span className="grid size-9 place-items-center rounded-xl bg-khaki-soft text-forest-fg"><Clapperboard className="size-4" /></span>Reels</h2>
           <p className="text-sm text-ink-muted">
             Download your Instagram reels (MP4) and drop them here. Vertical 9:16 works best. They play muted on the homepage; tapping opens them with sound.
           </p>
@@ -87,7 +90,7 @@ export function ReelManager({
                 run(() => reorderReelsAction(next.map((r) => r.id)));
               }}
               render={(r, i, move) => (
-                <div className="overflow-hidden rounded-2xl border border-line bg-white">
+                <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,.04)]">
                   <video
                     src={cldVideo(r.videoUrl, 480)}
                     poster={cldVideoPoster(r.videoUrl, 360)}
@@ -127,32 +130,34 @@ export function ReelManager({
                       onBlur={(e) => e.target.value !== (r.instagramUrl ?? "") && run(() => updateReelAction(r.id, { instagramUrl: e.target.value }))}
                       className={input}
                     />
-                    <div className="flex items-center justify-between gap-1">
-                      <label className="flex min-h-9 items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
+                    <div className="flex items-center justify-between gap-1 border-t border-line pt-2">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-ink-muted">
+                        <Switch
                           checked={r.active}
-                          onChange={(e) => run(() => updateReelAction(r.id, { active: e.target.checked }))}
-                          className="size-4 accent-[var(--color-forest)]"
+                          onCheckedChange={(on) => run(() => updateReelAction(r.id, { active: on }))}
+                          className="data-[state=checked]:bg-forest"
                         />
-                        Live
+                        {r.active ? "Live" : "Hidden"}
                       </label>
-                      <div className="flex gap-1">
-                        <button type="button" onClick={() => move(-1)} disabled={i === 0} className="size-9 rounded-lg border border-line disabled:opacity-30" aria-label="Move left">
-                          ←
+                      <div className="flex">
+                        <button type="button" onClick={() => move(-1)} disabled={i === 0} className="grid size-8 place-items-center rounded-full text-ink-muted hover:bg-khaki-soft disabled:opacity-30" aria-label="Move left">
+                          <ChevronLeft className="size-4" />
                         </button>
-                        <button type="button" onClick={() => move(1)} disabled={i === reels.length - 1} className="size-9 rounded-lg border border-line disabled:opacity-30" aria-label="Move right">
-                          →
+                        <button type="button" onClick={() => move(1)} disabled={i === reels.length - 1} className="grid size-8 place-items-center rounded-full text-ink-muted hover:bg-khaki-soft disabled:opacity-30" aria-label="Move right">
+                          <ChevronRight className="size-4" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm("Delete this video?")) run(() => deleteReelAction(r.id));
-                          }}
-                          className="min-h-9 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
+                        <ConfirmAction
+                          trigger={
+                            <button type="button" className="grid size-8 place-items-center rounded-full text-ink-muted hover:bg-alert-soft hover:text-alert" aria-label="Delete video">
+                              <Trash2 className="size-4" />
+                            </button>
+                          }
+                          title="Delete this video?"
+                          description="It is removed from the homepage reels. This cannot be undone."
+                          confirmLabel="Delete video"
+                          destructive
+                          onConfirm={() => run(() => deleteReelAction(r.id))}
+                        />
                       </div>
                     </div>
                   </div>

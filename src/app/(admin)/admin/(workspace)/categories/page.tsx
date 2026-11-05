@@ -1,13 +1,27 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { CollectionWorkspace } from "@/components/admin/CollectionWorkspace";
-import { PageHeader } from "@/components/admin/ui";
+import { Skeleton } from "@/components/shadcn/skeleton";
 import { listAdminCollections } from "@/lib/server/collections";
 
 export const metadata = { title: "Collections" };
 
 export default function CollectionsPage() {
-  return <Suspense fallback={<><PageHeader title="Collections" intro="Manage collection pages, menus, and products." /><p className="text-ink-muted">Loading collections…</p></>}><Content /></Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6" aria-label="Loading collections">
+          <Skeleton className="h-10 w-64 bg-surface" />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-20 rounded-2xl bg-surface" />)}
+          </div>
+          <Skeleton className="h-96 rounded-2xl bg-surface" />
+        </div>
+      }
+    >
+      <Content />
+    </Suspense>
+  );
 }
 
 async function Content() {

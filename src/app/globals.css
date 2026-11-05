@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/* shadcn `dark:` variants follow the admin theme attribute (storefront has no dark mode). */
+@custom-variant dark (&:where([data-admin-theme="dark"], [data-admin-theme="dark"] *));
 
 @theme {
   /* ── Original brand colors (logo + live site, exact). Do not change. ── */
@@ -16,6 +20,17 @@
   --color-ink-muted: #5c5a52;
   --color-sale: #8a5a0b;
   --color-line: #e7dfcf;
+
+  /* ── Admin surface tokens (light values; dark values under [data-admin-theme="dark"]) ── */
+  --color-surface: #ffffff;        /* cards, inputs, tables */
+  --color-canvas: #f7f6f1;         /* admin page background */
+  --color-subtle: #faf9f5;         /* nested panels, table stripes */
+  --color-forest-fg: #0c3c24;      /* forest used as text/link colour */
+  --color-warm: #fffaf0;           /* attention panels */
+  --color-warm-strong: #f6ead0;    /* attention chips */
+  --color-warm-line: #eee2c8;
+  --color-alert: #a54324;
+  --color-alert-soft: #fff0e8;
 
   /* ── Fonts (set by next/font in layout.tsx) ── */
   --font-display: var(--font-body);
@@ -227,7 +242,6 @@ html.lenis body {
   }
 }
 
-
 /* Glossy light sweep across primary buttons (left → right every few seconds). */
 @keyframes btn-shine {
   0% { transform: translateX(-160%) skewX(-20deg); }
@@ -265,3 +279,124 @@ html.lenis body {
 @media (prefers-reduced-motion: reduce) {
   .reflection-animation { animation: none; display: none; }
 }
+
+/* ── Admin dark theme ──────────────────────────────────────────────
+   Set by the inline script in (admin)/layout.tsx from localStorage
+   ("smp_admin_theme": light | dark | system). Only the admin root
+   html carries this attribute, so the storefront is never affected. */
+html[data-admin-theme="dark"] {
+  color-scheme: dark;
+  --color-surface: #141c18;
+  --color-canvas: #0c120f;
+  --color-subtle: #18221d;
+  --color-line: #27352d;
+  --color-khaki-soft: #1c2721;
+  --color-ink: #e8e6de;
+  --color-ink-muted: #a4a297;
+  --color-forest: #237a4b;
+  --color-forest-mid: #2a8f58;
+  --color-forest-text: #e4ede6;
+  --color-forest-fg: #86d0a3;
+  --color-sale: #e2b75c;
+  --color-warm: #1d1a12;
+  --color-warm-strong: #2c2414;
+  --color-warm-line: #3a301b;
+  --color-alert: #f2a283;
+  --color-alert-soft: #2e1812;
+  --color-red-50: #2c1312;
+  --color-red-100: #3a1715;
+  --color-red-200: #5a2420;
+  --color-red-700: #f6a7a1;
+  --color-red-800: #fbc5c0;
+}
+
+html[data-admin-theme="dark"] body {
+  background-color: var(--color-canvas);
+}
+
+/* Circular reveal when switching admin theme (View Transitions API). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* ── shadcn/ui tokens, mapped onto the brand + admin surface tokens ──
+   They reference the --color-* theme vars, so the admin dark override
+   above flows through automatically. */
+:root {
+  --background: var(--color-canvas);
+  --foreground: var(--color-ink);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-ink);
+  --popover: var(--color-surface);
+  --popover-foreground: var(--color-ink);
+  --primary: var(--color-forest);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-khaki-soft);
+  --secondary-foreground: var(--color-forest-text);
+  --muted: var(--color-subtle);
+  --muted-foreground: var(--color-ink-muted);
+  --accent: var(--color-khaki-soft);
+  --accent-foreground: var(--color-forest-text);
+  --destructive: #b42318;
+  --border: var(--color-line);
+  --input: var(--color-line);
+  --ring: var(--color-mustard);
+  --chart-1: var(--color-forest-fg);
+  --chart-2: var(--color-mustard);
+  --chart-3: #6b8f71;
+  --chart-4: #c9952e;
+  --chart-5: var(--color-ink-muted);
+
+  /* Admin sidebar: deep forest in both themes. */
+  --sidebar: #082f20;
+  --sidebar-foreground: rgb(255 255 255 / 0.72);
+  --sidebar-primary: var(--color-mustard);
+  --sidebar-primary-foreground: #082f20;
+  --sidebar-accent: rgb(255 255 255 / 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.09);
+  --sidebar-ring: var(--color-mustard);
+}
+
+html[data-admin-theme="dark"] {
+  --destructive: #f87171;
+  --sidebar: #0a1510;
+  --sidebar-border: rgb(255 255 255 / 0.07);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+

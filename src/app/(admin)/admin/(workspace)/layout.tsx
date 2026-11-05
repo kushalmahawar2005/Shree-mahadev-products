@@ -21,19 +21,19 @@ async function AuthenticatedAdminWorkspace({ children }: { children: React.React
   const admin = await requireAdmin();
   const role =
     admin.role === "manager" || admin.role === "staff" ? admin.role : "owner";
-  return <AdminShell role={role}>{children}</AdminShell>;
+  return <AdminShell role={role} username={admin.username}>{children}</AdminShell>;
 }
 
 function AdminWorkspaceLoading() {
   return (
-    <div className="flex min-h-dvh bg-[#f7f6f1]" aria-label="Loading admin workspace">
-      <div className="hidden w-[250px] shrink-0 animate-pulse bg-[#082f20] lg:block" />
+    <div className="flex min-h-dvh bg-canvas" aria-label="Loading admin workspace">
+      <div className="hidden w-64 shrink-0 animate-pulse bg-sidebar md:block" />
       <div className="min-w-0 flex-1">
-        <div className="h-[68px] animate-pulse border-b border-line bg-white" />
+        <div className="h-16 animate-pulse border-b border-line bg-surface" />
         <div className="space-y-4 p-5 sm:p-8">
-          <div className="h-9 w-56 animate-pulse rounded-lg bg-white" />
-          <div className="h-24 animate-pulse rounded-2xl bg-white" />
-          <div className="h-80 animate-pulse rounded-2xl bg-white" />
+          <div className="h-9 w-56 animate-pulse rounded-lg bg-surface" />
+          <div className="h-24 animate-pulse rounded-2xl bg-surface" />
+          <div className="h-80 animate-pulse rounded-2xl bg-surface" />
         </div>
       </div>
     </div>

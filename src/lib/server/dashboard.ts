@@ -122,11 +122,15 @@ async function kpis(from: string, to: string) {
     [PLACED, from, to],
   );
   const [[ac]] = await db().query<Rows>(
-    `SELECT COUNT(*) AS carts, COALESCE(SUM(subtotal),0) AS value, COALESCE(SUM(status='converted'),0) AS converted,
-       COALESCE(SUM(status='converted' AND reminder_count>0),0) AS recovered,
-       COALESCE(SUM(status='active' AND reached_checkout=1 AND last_activity_at < NOW() - INTERVAL 30 MINUTE),0) AS abandoned_checkouts
-     FROM carts WHERE item_count > 0 AND DATE(created_at) BETWEEN ? AND ?`,
-    [from, to],
+    // A cart only counts as converted when its order is a placed sale (same rule as
+    // "Orders placed"), so cancelled/unpaid test orders can't inflate conversion.
+    `SELECT COUNT(*) AS carts, COALESCE(SUM(c.subtotal),0) AS value,
+       COALESCE(SUM(c.status='converted' AND o.status IN (?)),0) AS converted,
+       COALESCE(SUM(c.status='converted' AND o.status IN (?) AND c.reminder_count>0),0) AS recovered,
+       COALESCE(SUM(c.status='active' AND c.reached_checkout=1 AND c.last_activity_at < NOW() - INTERVAL 30 MINUTE),0) AS abandoned_checkouts
+     FROM carts c LEFT JOIN orders o ON o.id = c.order_id
+     WHERE c.item_count > 0 AND DATE(c.created_at) BETWEEN ? AND ?`,
+    [PLACED, PLACED, from, to],
   );
   const orders = Number(o.orders),
     gross = Number(o.gross),
@@ -175,6 +179,17 @@ export async function getDashboard(range: Range) {
       .slice(0, 10);
     return { date: d, ...(byDay.get(d) ?? { orders: 0, gross: 0 }) };
   });
+  const [prevDaily] = await db().query<Rows>(
+    `SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS d, SUM(total) AS gross
+     FROM orders WHERE status IN (?) AND DATE(created_at) BETWEEN ? AND ? GROUP BY d`,
+    [PLACED, range.prevFrom, range.prevTo],
+  );
+  const prevByDay = new Map(prevDaily.map((r) => [r.d as string, Number(r.gross)]));
+  // Previous period aligned day-by-day with the current one (for the comparison line).
+  const seriesWithPrev = series.map((point, i) => {
+    const d = new Date(Date.parse(`${range.prevFrom}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10);
+    return { ...point, prevGross: prevByDay.get(d) ?? 0 };
+  });
   const [topProducts] = await db().query<Rows>(
     `SELECT i.product_handle AS handle, i.product_title AS title, SUM(i.quantity) AS units, SUM(i.line_total) AS revenue
      FROM order_items i JOIN orders o ON o.id = i.order_id WHERE o.status IN (?) AND DATE(o.created_at) BETWEEN ? AND ?
@@ -196,7 +211,7 @@ export async function getDashboard(range: Range) {
   return {
     cur,
     prev,
-    series,
+    series: seriesWithPrev,
     topProducts: topProducts.map((r) => ({
       handle: r.handle as string,
       title: r.title as string,

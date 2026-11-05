@@ -1,6 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import {
+  CircleCheck,
+  CircleX,
+  ExternalLink,
+  Loader2,
+  MapPin,
+  PackageCheck,
+  Printer,
+  RefreshCw,
+  Truck,
+  Undo2,
+} from "lucide-react";
 import {
   bookShipmentAction,
   cancelShipmentAction,
@@ -15,9 +28,33 @@ import type { OrderStatus } from "@/lib/server/orders";
 import type { CourierQuote, Shipment } from "@/lib/server/shipments";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
+import { ConfirmAction } from "./order/ConfirmAction";
+import { CopyButton } from "./order/CopyButton";
 
-const num = "min-h-10 w-full rounded-xl border border-line px-3 text-sm";
-const btn = "inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-semibold disabled:opacity-50";
+const field = "h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-forest focus:ring-2 focus:ring-forest/15";
+const btn = "inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors disabled:opacity-50";
+const ghost = cn(btn, "border border-line bg-surface text-forest-text hover:border-forest/50");
+
+const SHIP_LABEL: Record<string, string> = {
+  booked: "Booked",
+  picked: "Picked up",
+  in_transit: "In transit",
+  out_for_delivery: "Out for delivery",
+  delivered: "Delivered",
+  rto: "Returning (RTO)",
+  cancelled: "Cancelled",
+};
+
+const when = (d: string) =>
+  new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(String(d).replace(" ", "T") + "+05:30"));
+
+const WHY_NOT: Partial<Record<OrderStatus, string>> = {
+  pending_payment: "Waiting for the customer's payment. Book the shipment once it's paid.",
+  payment_failed: "Payment failed, so there's nothing to ship.",
+  cancelled: "This order was cancelled.",
+  refunded: "This order was refunded.",
+  delivered: "Delivered. Nothing left to ship.",
+};
 
 export function ShipmentPanel({
   orderId,
@@ -34,6 +71,7 @@ export function ShipmentPanel({
   suggestedCourierId: string | null;
   configured: boolean;
 }) {
+  const router = useRouter();
   const [shipments, setShipments] = useState(initialShipments);
   const [orderStatus, setOrderStatus] = useState(status);
   const [weight, setWeight] = useState(defaultWeight);
@@ -46,238 +84,315 @@ export function ShipmentPanel({
   const active = shipments.find((s) => s.status !== "cancelled");
   const canShip = !active && ["paid", "cod_pending", "confirmed"].includes(orderStatus);
 
+  /** Runs an action; refreshes the server page so header, progress and history stay in sync. */
   const run = (fn: () => Promise<void>) =>
     start(async () => {
       setError(null);
       try {
         await fn();
+        router.refresh();
       } catch (e) {
         setError((e as Error).message || "Something went wrong");
       }
     });
 
+  const statusActions = (
+    <div className="flex flex-wrap gap-2">
+      {orderStatus === "cod_pending" && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => run(async () => (await setOrderStatusAction(orderId, "confirmed", "COD confirmed with customer"), setOrderStatus("confirmed")))}
+          className={ghost}
+        >
+          <CircleCheck className="size-4" /> Mark COD confirmed
+        </button>
+      )}
+      {orderStatus === "rto" && (
+        <ConfirmAction
+          trigger={
+            <button type="button" disabled={pending} className={ghost}>
+              <Undo2 className="size-4" /> RTO received back
+            </button>
+          }
+          title="Has the returned parcel reached you?"
+          description="Its items will be added back to stock."
+          confirmLabel="Yes, restock"
+          onConfirm={() => run(async () => void (await markRtoReceivedAction(orderId)))}
+        />
+      )}
+      {["shipped", "packed"].includes(orderStatus) && (
+        <ConfirmAction
+          trigger={
+            <button type="button" disabled={pending} className={ghost}>
+              <PackageCheck className="size-4" /> Mark delivered
+            </button>
+          }
+          title="Mark this order delivered?"
+          description="Use this only if the courier delivered it but tracking hasn't updated."
+          confirmLabel="Mark delivered"
+          onConfirm={() => run(async () => (await setOrderStatusAction(orderId, "delivered", "Marked delivered by admin"), setOrderStatus("delivered")))}
+        />
+      )}
+      {!active && !["cancelled", "delivered", "refunded"].includes(orderStatus) && (
+        <ConfirmAction
+          trigger={
+            <button type="button" disabled={pending} className={cn(btn, "text-red-700 hover:bg-red-50")}>
+              <CircleX className="size-4" /> Cancel order
+            </button>
+          }
+          title="Cancel this order?"
+          description="The customer is notified by email. Stock is released. Refunds for paid orders are done separately."
+          confirmLabel="Cancel order"
+          destructive
+          reasonLabel="Reason (saved in order history)"
+          onConfirm={(why) => run(async () => (await setOrderStatusAction(orderId, "cancelled", why), setOrderStatus("cancelled")))}
+        />
+      )}
+    </div>
+  );
+
   if (!configured) {
-    return <p className="text-sm text-sale">NimbusPost is not connected. Add NIMBUSPOST_* env vars to book shipments from here.</p>;
+    return (
+      <div className="space-y-4">
+        <p className="rounded-xl bg-warm p-4 text-sm text-sale ring-1 ring-warm-line">
+          NimbusPost isn&apos;t connected. Add the NIMBUSPOST_* keys to book shipments from here.
+        </p>
+        {statusActions}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+      {error && <p className="rounded-xl bg-red-50 p-3 text-sm text-red-800" role="alert">{error}</p>}
 
       {active && (
-        <div className="rounded-2xl border border-line p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold text-forest-text">
-                {active.courier ?? "Courier"} · AWB {active.awb}
-              </p>
-              <p className="text-sm text-ink-muted">
-                Status: <strong>{active.status.replace(/_/g, " ")}</strong> · booked {active.createdAt.slice(0, 16)}
-                {active.charged != null && ` · wallet charged ${formatMoney(active.charged)}`}
-                {active.pickupRequested ? " · pickup confirmed" : active.status === "booked" ? " · pickup not confirmed yet" : ""}
-              </p>
+        <div className="overflow-hidden rounded-xl border border-line">
+          <div className="flex flex-wrap items-start justify-between gap-3 bg-subtle p-4">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface text-forest-fg">
+                <Truck className="size-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-forest-text">{active.courier ?? "Courier"}</p>
+                <p className="flex items-center gap-1 text-sm text-ink-muted">
+                  AWB <span className="font-mono text-ink">{active.awb}</span>
+                  {active.awb && <CopyButton value={active.awb} label="AWB" />}
+                </p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  // Open the tab synchronously (popup blockers), then point it at the fresh label link.
-                  const tab = window.open("", "_blank");
-                  run(async () => {
+            <span
+              className={cn(
+                "rounded-full px-3 py-1 text-xs font-semibold",
+                active.status === "delivered" ? "bg-forest/10 text-forest-fg" : active.status === "rto" ? "bg-red-100 text-red-800" : "bg-warm-strong text-sale",
+              )}
+            >
+              {SHIP_LABEL[active.status] ?? active.status.replace(/_/g, " ")}
+            </span>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-px bg-line text-sm sm:grid-cols-4">
+            {[
+              ["Booked", when(active.createdAt)],
+              ["Expected", active.expectedDelivery ? new Date(`${active.expectedDelivery}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" }) : "—"],
+              ["Pickup", active.pickupRequested ? "Requested" : active.status === "booked" ? "Not requested" : "Done"],
+              ["Shipping cost", active.charged != null ? formatMoney(active.charged) : "—"],
+            ].map(([k, v]) => (
+              <div key={k} className="bg-surface px-4 py-3">
+                <dt className="text-xs text-ink-muted">{k}</dt>
+                <dd className="font-semibold text-ink">{v}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="flex flex-wrap gap-2 border-t border-line p-4">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                // Open the tab synchronously (popup blockers), then point it at the fresh label link.
+                const tab = window.open("", "_blank");
+                start(async () => {
+                  setError(null);
+                  try {
                     const url = await labelUrlAction(orderId);
                     if (tab) tab.location.href = url;
                     else window.location.href = url;
-                  });
-                }}
-                className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}
-              >
-                Print label
+                  } catch (e) {
+                    tab?.close();
+                    setError((e as Error).message || "Couldn't get the label");
+                  }
+                });
+              }}
+              className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}
+            >
+              <Printer className="size-4" /> Print label
+            </button>
+            {!active.pickupRequested && active.status === "booked" && (
+              <button type="button" disabled={pending} onClick={() => run(async () => setShipments(await requestPickupAction(orderId)))} className={ghost}>
+                <Truck className="size-4" /> Request pickup
               </button>
-              {!active.pickupRequested && active.status === "booked" && (
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => run(async () => setShipments(await requestPickupAction(orderId)))}
-                  className={cn(btn, "border border-line hover:border-forest/50")}
-                >
-                  Request pickup
-                </button>
-              )}
-              {active.trackingUrl && (
-                <a href={active.trackingUrl} target="_blank" rel="noreferrer" className={cn(btn, "border border-line hover:border-forest/50")}>
-                  Tracking page
-                </a>
-              )}
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => run(async () => setShipments(await refreshTrackingAction(orderId)))}
-                className={cn(btn, "border border-line hover:border-forest/50")}
-              >
-                Refresh tracking
-              </button>
-              {!["delivered", "rto"].includes(active.status) && (
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => {
-                    if (!window.confirm(`Cancel shipment ${active.awb}? The order goes back to "to ship".`)) return;
-                    run(async () => {
-                      setShipments(await cancelShipmentAction(orderId));
-                      setOrderStatus(orderStatus === "packed" ? "paid" : orderStatus);
-                    });
-                  }}
-                  className={cn(btn, "text-red-700 hover:bg-red-50")}
-                >
-                  Cancel shipment
-                </button>
-              )}
-            </div>
+            )}
+            <button type="button" disabled={pending} onClick={() => run(async () => setShipments(await refreshTrackingAction(orderId)))} className={ghost}>
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />} Refresh tracking
+            </button>
+            {active.trackingUrl && (
+              <a href={active.trackingUrl} target="_blank" rel="noreferrer" className={ghost}>
+                <ExternalLink className="size-4" /> Tracking page
+              </a>
+            )}
+            {!["delivered", "rto"].includes(active.status) && (
+              <ConfirmAction
+                trigger={
+                  <button type="button" disabled={pending} className={cn(btn, "ml-auto text-red-700 hover:bg-red-50")}>
+                    Cancel shipment
+                  </button>
+                }
+                title={`Cancel shipment ${active.awb ?? ""}?`}
+                description="NimbusPost cancels the booking and the order goes back to “to ship”. You can book again after."
+                confirmLabel="Cancel shipment"
+                destructive
+                onConfirm={() =>
+                  run(async () => {
+                    setShipments(await cancelShipmentAction(orderId));
+                    setOrderStatus(orderStatus === "packed" ? "paid" : orderStatus);
+                  })
+                }
+              />
+            )}
           </div>
+
           {active.events.length > 0 && (
-            <ol className="mt-3 max-h-56 space-y-1.5 overflow-y-auto border-t border-line pt-3 text-sm">
-              {active.events.map((e, i) => (
-                <li key={i}>
-                  <span className="font-semibold">{e.message ?? e.status}</span>
-                  <span className="text-ink-muted">
-                    {" "}
-                    · {e.at.slice(0, 16)}
-                    {e.location ? ` · ${e.location}` : ""}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <div className="border-t border-line p-4">
+              <p className="mb-3 text-xs font-semibold text-ink-muted">Tracking</p>
+              <ol className="relative max-h-72 space-y-4 overflow-y-auto pl-6 before:absolute before:bottom-2 before:left-[7px] before:top-2 before:w-px before:bg-line">
+                {active.events.map((e, i) => (
+                  <li key={i} className="relative">
+                    <span
+                      aria-hidden
+                      className={cn("absolute -left-6 top-1 size-[15px] rounded-full border-2 border-surface", i === 0 ? "bg-forest-fg ring-4 ring-forest/15" : "bg-line")}
+                    />
+                    <p className={cn("text-sm", i === 0 ? "font-semibold text-forest-text" : "text-ink")}>{e.message ?? SHIP_LABEL[e.status] ?? e.status}</p>
+                    <p className="flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
+                      {when(e.at)}
+                      {e.location && (
+                        <span className="inline-flex items-center gap-0.5">
+                          <MapPin className="size-3" /> {e.location}
+                        </span>
+                      )}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </div>
           )}
         </div>
       )}
 
       {canShip && (
-        <div className="space-y-3">
+        <div className="space-y-4 rounded-xl border border-line p-4">
+          <div>
+            <p className="font-semibold text-forest-text">Book a shipment</p>
+            <p className="text-sm text-ink-muted">Weight is prefilled from the catalog. Check the box size, then compare couriers.</p>
+          </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <label className="text-sm">
-              <span className="mb-1 block font-semibold">Weight (g)</span>
-              <input type="number" min={50} className={num} value={weight} onChange={(e) => (setWeight(Number(e.target.value)), setQuotes(null))} />
+              <span className="mb-1 block text-xs font-semibold text-ink-muted">Weight (g)</span>
+              <input type="number" min={50} className={field} value={weight} onChange={(e) => (setWeight(Number(e.target.value)), setQuotes(null))} />
             </label>
             {(["length", "breadth", "height"] as const).map((k) => (
               <label key={k} className="text-sm">
-                <span className="mb-1 block font-semibold capitalize">{k} (cm)</span>
-                <input
-                  type="number"
-                  min={1}
-                  className={num}
-                  value={dims[k]}
-                  onChange={(e) => (setDims({ ...dims, [k]: Number(e.target.value) }), setQuotes(null))}
-                />
+                <span className="mb-1 block text-xs font-semibold capitalize text-ink-muted">{k} (cm)</span>
+                <input type="number" min={1} className={field} value={dims[k]} onChange={(e) => (setDims({ ...dims, [k]: Number(e.target.value) }), setQuotes(null))} />
               </label>
             ))}
           </div>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() =>
-              run(async () => {
-                const q = await quoteCouriersAction(orderId, weight, dims);
-                setQuotes(q);
-                setCourier(q.find((c) => c.courierId === suggestedCourierId)?.courierId ?? q[0]?.courierId ?? null);
-              })
-            }
-            className={cn(btn, "border border-forest text-forest hover:bg-forest/5")}
-          >
-            {pending && !quotes ? "Fetching rates…" : "Get courier rates"}
-          </button>
+          {!quotes && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                start(async () => {
+                  setError(null);
+                  try {
+                    const q = await quoteCouriersAction(orderId, weight, dims);
+                    setQuotes(q);
+                    setCourier(q.find((c) => c.courierId === suggestedCourierId)?.courierId ?? q[0]?.courierId ?? null);
+                  } catch (e) {
+                    setError((e as Error).message || "Couldn't fetch rates");
+                  }
+                })
+              }
+              className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}
+            >
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
+              {pending ? "Fetching rates…" : "Compare courier rates"}
+            </button>
+          )}
 
           {quotes && quotes.length === 0 && <p className="text-sm text-sale">No courier serves this pincode for this weight.</p>}
           {quotes && quotes.length > 0 && (
             <>
-              <ul className="max-h-72 space-y-2 overflow-y-auto">
+              <ul role="radiogroup" aria-label="Courier" className="max-h-80 space-y-2 overflow-y-auto">
                 {quotes.map((q, i) => (
                   <li key={q.courierId}>
                     <label
                       className={cn(
-                        "flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-xl border px-3 py-2 text-sm",
-                        courier === q.courierId ? "border-forest bg-khaki-soft" : "border-line",
+                        "flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-xl border px-4 py-2.5 text-sm transition-colors",
+                        courier === q.courierId ? "border-forest bg-forest/5 ring-1 ring-forest" : "border-line hover:border-forest/40",
                       )}
                     >
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center gap-3">
                         <input type="radio" name="courier" checked={courier === q.courierId} onChange={() => setCourier(q.courierId)} className="accent-forest" />
                         <span>
-                          <span className="font-semibold">{q.courierName}</span>
-                          {i === 0 && <span className="ml-2 rounded-full bg-forest/10 px-2 text-xs text-forest">Cheapest</span>}
-                          {q.courierId === suggestedCourierId && <span className="ml-2 rounded-full bg-mustard/20 px-2 text-xs">Quoted at checkout</span>}
+                          <span className="font-semibold text-ink">{q.courierName}</span>
+                          <span className="mt-0.5 flex flex-wrap gap-1.5">
+                            {i === 0 && <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[11px] font-semibold text-forest-fg">Cheapest</span>}
+                            {q.courierId === suggestedCourierId && <span className="rounded-full bg-warm-strong px-2 py-0.5 text-[11px] font-semibold text-sale">Quoted at checkout</span>}
+                            {q.tatDays && <span className="text-xs text-ink-muted">{q.tatDays} days</span>}
+                          </span>
                         </span>
                       </span>
                       <span className="text-right">
-                        <span className="block font-semibold">{formatMoney(Math.ceil(q.total))}</span>
+                        <span className="block font-bold tabular-nums text-forest-text">{formatMoney(Math.ceil(q.total))}</span>
                         {q.codCharge > 0 && <span className="block text-xs text-ink-muted">incl. COD {formatMoney(Math.ceil(q.codCharge))}</span>}
-                        {q.tatDays && <span className="block text-xs text-ink-muted">{q.tatDays} days</span>}
                       </span>
                     </label>
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                disabled={pending || !courier}
-                onClick={() =>
-                  run(async () => {
-                    setShipments(await bookShipmentAction(orderId, courier!, weight, dims));
-                    setOrderStatus("packed");
-                    setQuotes(null);
-                  })
-                }
-                className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}
-              >
-                {pending ? "Booking…" : "Book shipment"}
-              </button>
-              <p className="text-xs text-ink-muted">Pickup is requested automatically. The shipping cost is deducted from your NimbusPost wallet.</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={pending || !courier}
+                  onClick={() =>
+                    run(async () => {
+                      setShipments(await bookShipmentAction(orderId, courier!, weight, dims));
+                      setOrderStatus("packed");
+                      setQuotes(null);
+                    })
+                  }
+                  className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}
+                >
+                  {pending && <Loader2 className="size-4 animate-spin" />}
+                  {pending ? "Booking…" : "Book shipment"}
+                </button>
+                <button type="button" onClick={() => setQuotes(null)} className={cn(btn, "text-ink-muted hover:bg-khaki-soft")}>
+                  Change size
+                </button>
+              </div>
+              <p className="text-xs text-ink-muted">Pickup is requested automatically. The cost is deducted from your NimbusPost wallet.</p>
             </>
           )}
         </div>
       )}
 
-      {!active && !canShip && <p className="text-sm text-ink-muted">This order can&apos;t be shipped in its current state.</p>}
+      {!active && !canShip && (
+        <p className="rounded-xl bg-subtle p-4 text-sm text-ink-muted">{WHY_NOT[orderStatus] ?? "This order can't be shipped in its current state."}</p>
+      )}
 
-      <div className="flex flex-wrap gap-2 border-t border-line pt-3">
-        {orderStatus === "cod_pending" && (
-          <button type="button" disabled={pending} onClick={() => run(async () => (await setOrderStatusAction(orderId, "confirmed", "COD confirmed with customer"), setOrderStatus("confirmed")))} className={cn(btn, "border border-line")}>
-            Mark COD confirmed
-          </button>
-        )}
-        {orderStatus === "rto" && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              if (window.confirm("Has the returned parcel reached you? Its stock will be added back.")) {
-                run(async () => void (await markRtoReceivedAction(orderId)));
-              }
-            }}
-            className={cn(btn, "border border-line")}
-          >
-            RTO received back (restock)
-          </button>
-        )}
-        {["shipped", "packed"].includes(orderStatus) && (
-          <button type="button" disabled={pending} onClick={() => run(async () => (await setOrderStatusAction(orderId, "delivered", "Marked delivered by admin"), setOrderStatus("delivered")))} className={cn(btn, "border border-line")}>
-            Mark delivered
-          </button>
-        )}
-        {!active && !["cancelled", "delivered", "refunded"].includes(orderStatus) && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => {
-              const why = window.prompt("Reason for cancelling this order?");
-              if (why === null) return;
-              run(async () => (await setOrderStatusAction(orderId, "cancelled", why), setOrderStatus("cancelled")));
-            }}
-            className={cn(btn, "text-red-700 hover:bg-red-50")}
-          >
-            Cancel order
-          </button>
-        )}
-      </div>
+      {statusActions}
     </div>
   );
 }

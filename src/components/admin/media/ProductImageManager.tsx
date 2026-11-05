@@ -67,7 +67,7 @@ export function ProductImageManager({
               run(() => reorderProductImagesAction(handle, next.map((i) => i.id)));
             }}
             render={(img, i, move) => (
-              <div className="overflow-hidden rounded-2xl border border-line bg-white">
+              <div className="overflow-hidden rounded-2xl border border-line bg-surface">
                 <div className="relative aspect-square bg-khaki-soft">
                   <Image src={img.url} alt={img.alt} fill sizes="220px" className="object-cover" draggable={false} />
                   {i === 0 && (

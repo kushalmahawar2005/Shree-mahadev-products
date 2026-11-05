@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { loginAction, type LoginState } from "@/lib/admin-login-actions";
 
 const input =
-  "min-h-12 w-full rounded-xl border border-line bg-white px-4 text-base text-ink placeholder:text-ink-muted/70 focus:border-forest focus:shadow-[0_0_0_3px_rgba(180,144,36,0.25)] focus:outline-none";
+  "min-h-12 w-full rounded-xl border border-line bg-surface px-4 text-base text-ink placeholder:text-ink-muted/70 focus:border-forest focus:shadow-[0_0_0_3px_rgba(180,144,36,0.25)] focus:outline-none";
 
 export function LoginFields({ next }: { next: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAction, undefined);
@@ -23,7 +23,7 @@ export function LoginFields({ next }: { next: string }) {
           <button
             type="button"
             onClick={() => setShow((s) => !s)}
-            className="absolute inset-y-0 right-2 my-auto h-9 rounded-lg px-2 text-sm font-semibold text-forest hover:bg-khaki-soft"
+            className="absolute inset-y-0 right-2 my-auto h-9 rounded-lg px-2 text-sm font-semibold text-forest-fg hover:bg-khaki-soft"
             aria-label={show ? "Hide password" : "Show password"}
           >
             {show ? "Hide" : "Show"}

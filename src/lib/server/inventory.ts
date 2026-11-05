@@ -196,11 +196,14 @@ export type InventoryRow = {
   price: number;
   held: number;
   waiting: number; // back-in-stock requests not yet notified
+  swatch: string | null;
+  image: string | null; // first product photo, if any
 };
 
 export async function listInventory(): Promise<InventoryRow[]> {
   const [rows] = await db().query<Rows>(
-    `SELECT v.variant_key, v.title, v.sku, v.stock_qty, v.available, v.price, p.handle, p.title AS product_title, p.status,
+    `SELECT v.variant_key, v.title, v.sku, v.stock_qty, v.available, v.price, p.handle, p.title AS product_title, p.status, p.swatch,
+       (SELECT i.url FROM product_images i WHERE i.product_handle = p.handle ORDER BY i.sort_order, i.id LIMIT 1) AS image,
        (SELECT COALESCE(SUM(quantity),0) FROM stock_reservations r WHERE r.variant_key = v.variant_key AND r.status = 'held') AS held,
        (SELECT COUNT(*) FROM back_in_stock b WHERE b.variant_key = v.variant_key AND b.notified_at IS NULL) AS waiting
      FROM product_variants v JOIN products p ON p.id = v.product_id
@@ -218,6 +221,8 @@ export async function listInventory(): Promise<InventoryRow[]> {
     price: Number(r.price),
     held: Number(r.held),
     waiting: Number(r.waiting),
+    swatch: (r.swatch as string | null) ?? null,
+    image: (r.image as string | null) ?? null,
   }));
 }
 

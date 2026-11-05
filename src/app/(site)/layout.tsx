@@ -3,10 +3,12 @@ import { Figtree, Mukta } from "next/font/google";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { StoreSettingsProvider } from "@/components/StoreSettingsProvider";
 import { getStoreSettings } from "@/lib/server/store-settings";
+import { getPublicLeadPopup } from "@/lib/server/leads";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import { ConsentManager } from "@/components/marketing/ConsentManager";
+import { WelcomeOffer } from "@/components/marketing/WelcomeOffer";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { site } from "@/data/site";
 import {
@@ -88,6 +90,7 @@ export default async function RootLayout({
               <MobileBottomBar />
               <SiteCartDrawer />
               <ConsentManager />
+              <WelcomeOffer config={await getPublicLeadPopup()} />
             </SmoothScroll>
           </CartProvider>
         </StoreSettingsProvider>

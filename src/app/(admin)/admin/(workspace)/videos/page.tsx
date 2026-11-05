@@ -1,7 +1,6 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ReelManager } from "@/components/admin/media/ReelManager";
-import { PageHeader } from "@/components/admin/ui";
 import { brandFilm } from "@/data/home";
 import { getProducts } from "@/lib/commerce";
 import { getSetting, listReels } from "@/lib/server/videos";
@@ -11,7 +10,10 @@ export const metadata = { title: "Videos" };
 export default function VideosPage() {
   return (
     <>
-      <PageHeader title="Videos" intro="Homepage reels and the brand film. Changes go live immediately." />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-forest-text sm:text-3xl">Videos</h1>
+        <p className="mt-1 text-sm text-ink-muted">Homepage reels and the brand film. Changes go live right away.</p>
+      </div>
       <Suspense fallback={<p className="text-ink-muted">Loading videos…</p>}>
         <Videos />
       </Suspense>

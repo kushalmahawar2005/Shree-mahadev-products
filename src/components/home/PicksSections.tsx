@@ -132,7 +132,7 @@ export function PromoStrip() {
 
 export function BrandFilmSection({ youtube }: { youtube: string }) {
   return (
-    <section className="relative overflow-hidden bg-[#FEF1DC] pt-12 pb-[22vw] sm:pb-[12vw] md:pt-16">
+    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-[#FEF1DC] pt-12 pb-[22vw] sm:pb-[12vw] md:pt-16">
       {/* Hand-painted landscape (dunes, hills, khejri tree, mustard field) anchored to the bottom; its empty sky blends into the section colour. */}
       <div
         aria-hidden

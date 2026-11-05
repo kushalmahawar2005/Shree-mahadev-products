@@ -14,6 +14,6 @@ export function InvoiceBulkButton() {
   };
   return <div className="flex items-center gap-2">
     {message && <span role="status" className="text-sm text-sale">{message}</span>}
-    <button type="button" onClick={print} className="min-h-11 rounded-full border border-forest px-4 text-sm font-semibold text-forest hover:bg-khaki-soft">Print selected invoices</button>
+    <button type="button" onClick={print} className="min-h-11 rounded-full border border-forest px-4 text-sm font-semibold text-forest-fg hover:bg-khaki-soft">Print selected invoices</button>
   </div>;
 }

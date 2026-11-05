@@ -1,25 +1,21 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { PageHeader } from "@/components/admin/ui";
 import { CouponsWorkspace } from "@/components/admin/CouponsWorkspace";
 import { listCoupons } from "@/lib/server/coupons";
 import { loadProducts } from "@/lib/server/catalog";
 import { db } from "@/lib/server/db";
 import type { RowDataPacket } from "mysql2/promise";
 
+/** Page is dynamic (connection()), so this runs per request. */
+const requestTime = () => Date.now();
+
 export const metadata = { title: "Coupons" };
 
 export default function DiscountsPage() {
   return (
-    <>
-      <PageHeader
-        title="Coupons"
-        intro="Create clear offers and track their use at checkout."
-      />
       <Suspense fallback={<p className="text-ink-muted">Loading coupons…</p>}>
         <CouponData />
       </Suspense>
-    </>
   );
 }
 
@@ -34,8 +30,10 @@ async function CouponData() {
       )
       .then(([rows]) => rows),
   ]);
+  const now = requestTime();
   return (
     <CouponsWorkspace
+      now={now}
       coupons={coupons}
       products={products.map((p) => ({ handle: p.handle, title: p.title }))}
       collections={collections.map((c) => ({

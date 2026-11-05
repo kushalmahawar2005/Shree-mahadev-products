@@ -1,18 +1,31 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import { PageHeader, Card, StatusBadge } from "@/components/admin/ui";
+import { AlertTriangle, ClipboardList, PackageX, Phone, RotateCcw, Truck, Undo2 } from "lucide-react";
+import { CopyButton } from "@/components/admin/order/CopyButton";
+import { StatTile } from "@/components/admin/ui";
 import { listNdrCases } from "@/lib/server/shipments";
 import { requireRole } from "@/lib/server/admin-auth";
 import { createDailyManifestAction, ndrAction } from "@/lib/admin-actions";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata = { title: "Shipping operations" };
 export const instant = false;
 
+const card = "rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,.04)]";
+const input = "h-10 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink outline-none placeholder:text-ink-muted/70 focus:border-forest-fg";
+const btn = "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors";
+
 async function manifest(formData: FormData) {
   "use server";
-  const result = await createDailyManifestAction(String(formData.get("date") ?? ""));
-  if (result.url) redirect(result.url);
+  let url: string | null = null;
+  let problem = "";
+  try {
+    url = (await createDailyManifestAction(String(formData.get("date") ?? ""))).url ?? null;
+  } catch (e) {
+    problem = e instanceof Error ? e.message : "Could not create the manifest";
+  }
+  redirect(url ?? `/admin/shipping?manifest=${encodeURIComponent(problem || "NimbusPost returned no manifest link")}`);
 }
 
 async function ndr(formData: FormData) {
@@ -25,27 +38,115 @@ async function ndr(formData: FormData) {
   revalidatePath("/admin/shipping");
 }
 
-export default async function ShippingPage() {
+export default async function ShippingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireRole("owner", "manager");
   await connection();
   const cases = await listNdrCases().catch((error) => {
     console.error("listNdrCases", error);
     return [];
   });
+  const manifestNote = (await searchParams).manifest;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+
   return (
-    <>
-      <PageHeader title="Shipping operations" intro="Create the daily manifest and resolve NimbusPost NDR cases." />
-      <Card title="Daily manifest">
-        <form action={manifest} className="flex flex-wrap items-end gap-3">
-          <label className="text-sm"><span className="mb-1 block font-semibold">Shipment date</span><input name="date" type="date" defaultValue={today} className="min-h-11 rounded-xl border border-line px-3" /></label>
-          <button className="min-h-11 rounded-full bg-forest px-5 font-semibold text-white">Create manifest</button>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-forest-text sm:text-3xl">Shipping ops</h1>
+        <p className="mt-1 text-sm text-ink-muted">Daily pickup manifest and failed-delivery (NDR) cases from NimbusPost.</p>
+      </div>
+
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4" aria-label="Summary">
+        <StatTile icon={PackageX} label="Open NDR cases" value={String(cases.length)} note={cases.length ? "Need your action" : "All clear"} tone={cases.length ? "warn" : undefined} />
+        <StatTile icon={Truck} label="Courier" value="NimbusPost" note="Bookings from each order page" />
+      </section>
+
+      <section className={cn(card, "p-4 sm:p-5")}>
+        <header className="mb-4 flex items-start gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-khaki-soft text-forest-fg">
+            <ClipboardList className="size-4" />
+          </span>
+          <div>
+            <h2 className="font-bold text-forest-text">Daily manifest</h2>
+            <p className="text-xs text-ink-muted">One sheet for the courier listing every parcel booked that day. Opens the NimbusPost PDF.</p>
+          </div>
+        </header>
+        <form action={manifest} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <label className="block sm:w-56">
+            <span className="mb-1.5 block text-xs font-medium text-ink-muted">Shipment date</span>
+            <input name="date" type="date" defaultValue={today} className={input} />
+          </label>
+          <button className={cn(btn, "h-10 justify-center bg-forest px-5 text-white hover:bg-forest-mid")}>Create manifest</button>
         </form>
-        <p className="mt-3 text-sm text-ink-muted">The NimbusPost response opens through its returned manifest URL when available.</p>
-      </Card>
-      <Card title={`NDR cases (${cases.length})`} className="mt-6">
-        {!cases.length ? <p className="text-sm text-ink-muted">No NDR cases reported by NimbusPost.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead><tr className="border-b border-line text-ink-muted"><th className="py-2">AWB</th><th>Customer</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead><tbody>{cases.map((item) => <tr key={item.awb} className="border-b border-line"><td className="py-3 font-semibold">{item.awb}</td><td>{item.customerName ?? "—"}<span className="block text-ink-muted">{item.phone ?? ""}</span></td><td>{item.reason ?? "—"}</td><td><StatusBadge tone="amber">{item.status}</StatusBadge></td><td><form action={ndr} className="flex flex-wrap items-center gap-2"><input type="hidden" name="awb" value={item.awb} /><button name="action" value="reattempt" className="rounded-full border border-line px-3 py-2 font-semibold hover:border-forest">Re-attempt</button><button name="action" value="rto" className="rounded-full border border-red-200 px-3 py-2 font-semibold text-red-700 hover:bg-red-50">RTO</button><input name="address" defaultValue={item.address ?? ""} placeholder="New address" className="min-h-10 w-44 rounded-xl border border-line px-2" /><input name="phone" defaultValue={item.phone ?? ""} placeholder="10-digit phone" className="min-h-10 w-32 rounded-xl border border-line px-2" /><button name="action" value="change_address_phone" className="rounded-full border border-line px-3 py-2 font-semibold hover:border-forest">Update details</button></form></td></tr>)}</tbody></table></div>}
-      </Card>
-    </>
+        {typeof manifestNote === "string" && (
+          <p role="status" className="mt-3 rounded-xl border border-warm-line bg-warm px-3 py-2 text-sm text-sale">
+            {manifestNote === "Select at least one booked shipment" ? "No booked shipments on this date, so there is nothing to put on a manifest." : manifestNote.slice(0, 200)}
+          </p>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-xl bg-warm-strong text-sale">
+            <AlertTriangle className="size-4" />
+          </span>
+          <div>
+            <h2 className="font-bold text-forest-text">Delivery problems (NDR)</h2>
+            <p className="text-xs text-ink-muted">Courier couldn&apos;t deliver. Call the customer, then re-attempt, fix details or return.</p>
+          </div>
+        </div>
+
+        {!cases.length ? (
+          <p className={cn(card, "px-6 py-10 text-center text-sm text-ink-muted")}>No NDR cases reported by NimbusPost.</p>
+        ) : (
+          <ul className="grid gap-3 xl:grid-cols-2">
+            {cases.map((c) => (
+              <li key={c.awb} className={cn(card, "p-4 sm:p-5")}>
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1 font-mono text-sm font-bold text-forest-text">
+                      {c.awb}
+                      <CopyButton value={c.awb} label="AWB" />
+                    </p>
+                    <p className="text-sm font-semibold text-ink">{c.customerName ?? "Unknown customer"}</p>
+                    {c.phone && (
+                      <a href={`tel:+91${c.phone}`} className="inline-flex items-center gap-1 text-xs text-forest-fg hover:underline">
+                        <Phone className="size-3" /> +91 {c.phone}
+                      </a>
+                    )}
+                  </div>
+                  <span className="rounded-full bg-warm-strong px-2.5 py-0.5 text-[11px] font-semibold text-sale">{c.status}</span>
+                </div>
+                {c.reason && <p className="mt-3 rounded-xl bg-subtle px-3 py-2 text-sm text-ink">{c.reason}</p>}
+
+                <form action={ndr} className="mt-3">
+                  <input type="hidden" name="awb" value={c.awb} />
+                  <details className="group rounded-xl border border-line">
+                    <summary className="flex h-10 cursor-pointer list-none items-center px-3 text-sm font-semibold text-forest-fg">
+                      Change address / phone
+                      <span className="ml-auto text-xs text-ink-muted group-open:hidden">Edit</span>
+                    </summary>
+                    <div className="space-y-2 border-t border-line p-3">
+                      <input name="address" defaultValue={c.address ?? ""} placeholder="Full new address" className={input} />
+                      <input name="phone" defaultValue={c.phone ?? ""} inputMode="numeric" placeholder="10-digit phone" className={input} />
+                      <button name="action" value="change_address_phone" className={cn(btn, "w-full justify-center border border-line text-forest-fg hover:bg-khaki-soft")}>
+                        Send new details to courier
+                      </button>
+                    </div>
+                  </details>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button name="action" value="reattempt" className={cn(btn, "bg-forest text-white hover:bg-forest-mid")}>
+                      <RotateCcw className="size-4" /> Re-attempt delivery
+                    </button>
+                    <button name="action" value="rto" className={cn(btn, "ml-auto border border-line text-alert hover:bg-alert-soft")}>
+                      <Undo2 className="size-4" /> Return to us (RTO)
+                    </button>
+                  </div>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }
