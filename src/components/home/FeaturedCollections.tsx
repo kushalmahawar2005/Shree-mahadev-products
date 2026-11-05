@@ -89,7 +89,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                 )}
 
                 {/* copy */}
-                <span className="relative z-10 flex h-full max-w-[60%] flex-col p-4 md:p-6">
+                <span className={cn("relative z-10 flex h-full flex-col p-4 md:p-6", t.span === "wide" && t.images.length ? "max-w-[46%]" : "max-w-[60%]")}>
                   <span className={cn("text-[11px] font-semibold tracking-[0.16em] uppercase", light ? "text-white/70" : "text-forest/60")} lang="hi">
                     {t.titleHi}
                   </span>
