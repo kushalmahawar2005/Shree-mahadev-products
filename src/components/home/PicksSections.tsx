@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, Check } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
 import { DecoBg } from "@/components/ui/DecoBg";
@@ -43,7 +44,7 @@ function Wrap({
 
 export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   return (
-    <section className="relative overflow-hidden bg-[#FBF8F2] pt-16 pb-12 md:pt-20 md:pb-16">
+    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] pt-16 pb-12 md:pt-20 md:pb-16">
       <Sky />
       <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <Reveal>
@@ -86,41 +87,46 @@ export function PromoStrip() {
     <section aria-label={promoStrip.tag} className="bg-[#023019] py-1.5">
       <Link
         href={promoStrip.cta.href}
-        className="group relative flex h-[190px] items-center justify-center overflow-hidden border-y-[3px] border-[#E8B032] bg-[#03331C] md:h-[150px]"
+        className="group relative block h-[380px] overflow-hidden border-y-[3px] border-[#E8B032] bg-[#03331C] md:h-[420px]"
       >
+        {/* Real footage: oil pouring from our wooden ghani. Desktop plays the muted loop on the right,
+            fading into the green; mobile uses the still frame behind a dark overlay. */}
+        <Image src="/videos/ghani-pour-desktop.jpg" alt="" fill sizes="100vw" className="object-cover md:hidden" />
+        <div aria-hidden className="absolute inset-0 bg-[#03331C]/75 md:hidden" />
+        <video
+          className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[64%] object-cover [mask-image:linear-gradient(90deg,transparent_0%,#000_38%)] md:block"
+          src="/videos/ghani-pour-desktop.mp4"
+          poster="/videos/ghani-pour-desktop.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden
+        />
+        <div aria-hidden className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(60%_80%_at_20%_50%,rgba(3,51,28,0.95),transparent_70%)] md:block" />
         <ReflectionSweep />
-        {/* Hand-painted art cropped from one banner: ghani on the left, kadhai tadka on the right. */}
-        <Image
-          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735938/swadeshi-mahadev/static/images/deco/promo-left.webp"
-          alt=""
-          width={416}
-          height={497}
-          sizes="200px"
-          className="pointer-events-none absolute top-0 left-0 h-full w-auto opacity-40 sm:opacity-100"
-        />
-        <Image
-          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735940/swadeshi-mahadev/static/images/deco/promo-right.webp"
-          alt=""
-          width={472}
-          height={497}
-          sizes="220px"
-          className="pointer-events-none absolute top-0 right-0 h-full w-auto opacity-40 sm:opacity-100"
-        />
-        {/* Mobile: stacked + centred. Desktop: copy and button side by side, so the band stays slim. */}
-        <div className="relative z-10 flex flex-col items-center gap-3 px-4 text-center md:max-w-[62%] md:flex-row md:gap-8 md:text-left">
+
+        <div className="relative z-10 mx-auto flex h-full max-w-[1360px] flex-col items-center justify-center gap-4 px-6 text-center md:items-start md:px-12 md:text-left">
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#E8B032]/40 bg-black/20 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-khaki uppercase backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-[#E8B032]" />
+            {promoStrip.tag}
+          </p>
           <div>
-            <p className="text-xs font-semibold text-khaki sm:text-sm">
-              {promoStrip.tag}
-            </p>
-            <p className="mt-0.5 text-2xl leading-tight font-bold text-[#E8B032] lg:text-[32px]">
-              {promoStrip.line1}
-            </p>
-            <p className="text-lg leading-tight font-semibold text-khaki-soft lg:text-xl">
-              {promoStrip.line2}
-            </p>
+            <p className="text-3xl leading-tight font-bold text-[#E8B032] lg:text-[52px]">{promoStrip.line1}</p>
+            <p className="mt-2 max-w-md text-lg leading-snug font-medium text-khaki-soft lg:text-xl">{promoStrip.line2}</p>
           </div>
-          <span className="btn-shine inline-flex min-h-11 shrink-0 items-center rounded-md bg-[#E8B032] px-5 text-sm font-bold text-forest-deep transition-colors duration-200 group-hover:bg-khaki">
+          <ul className="flex flex-wrap justify-center gap-2 md:justify-start">
+            {promoStrip.points.map((pt) => (
+              <li key={pt} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-khaki-soft backdrop-blur-sm">
+                <Check className="size-3.5 text-[#E8B032]" strokeWidth={3} aria-hidden />
+                {pt}
+              </li>
+            ))}
+          </ul>
+          <span className="btn-shine inline-flex h-12 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-[#E8B032] px-7 text-sm font-bold tracking-wide text-forest-deep uppercase transition-colors duration-200 group-hover:bg-khaki">
             {promoStrip.cta.label}
+            <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
         </div>
       </Link>

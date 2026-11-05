@@ -40,11 +40,11 @@ export const topPicks = {
 } as const;
 
 export const promoStrip = {
-  // TODO(client): confirm the Rasoi Starter Kit contents and price before this goes live.
   line1: "Still cooking in refined oil?",
-  line2: "Your nani never did.",
-  cta: { label: "Make the switch", href: "/collections/combos" },
-  tag: "Rasoi Starter Kit",
+  line2: "Your nani never did. Switch to oil pressed slow, with nothing taken out.",
+  points: ["No heat", "No chemicals", "No refining"],
+  cta: { label: "Shop kachi ghani oils", href: "/collections/wood-pressed-oils" },
+  tag: "Kachi ghani · The old way",
 };
 
 export const brandFilm = {

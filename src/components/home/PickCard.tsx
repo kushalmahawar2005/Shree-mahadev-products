@@ -86,7 +86,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity - 1))}
-              className="grid size-9 place-items-center rounded-md bg-white/10 transition-colors hover:bg-white/20 disabled:opacity-60"
+              className="grid size-8 shrink-0 place-items-center rounded-md bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Remove one"
             >
               <Minus className="size-4" />
@@ -94,10 +94,10 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             <button
               type="button"
               onClick={openCart}
-              className="flex flex-1 items-center justify-center gap-1.5 text-sm"
+              className="flex flex-1 items-center justify-center gap-1.5 text-sm whitespace-nowrap"
               aria-label="View cart"
             >
-              <Check className="size-4 text-mustard" strokeWidth={2.5} aria-hidden />
+              <Check className="hidden size-4 text-mustard sm:block" strokeWidth={2.5} aria-hidden />
               <span className="relative inline-grid h-5 min-w-4 overflow-hidden text-base leading-5 font-extrabold tabular-nums">
                 {busy ? (
                   <Loader2 className="size-4 animate-spin self-center" />
@@ -109,14 +109,14 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                   </AnimatePresence>
                 )}
               </span>
-              <span className="font-medium text-white/80">in cart</span>
+              <span className="hidden font-medium text-white/80 sm:inline">in cart</span>
               <span className="ml-1 hidden text-xs font-semibold text-mustard underline-offset-2 hover:underline sm:inline">View</span>
             </button>
             <button
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity + 1))}
-              className="grid size-9 place-items-center rounded-md bg-white/10 transition-colors hover:bg-white/20 disabled:opacity-60"
+              className="grid size-8 shrink-0 place-items-center rounded-md bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Add one more"
             >
               <Plus className="size-4" />
@@ -127,7 +127,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             type="button"
             disabled={busy}
             onClick={onAdd}
-            className="btn-shine inline-flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-forest px-4 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-forest-mid disabled:opacity-60"
+            className="btn-shine inline-flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-forest px-3 text-sm font-bold tracking-wide whitespace-nowrap text-white uppercase transition-colors hover:bg-forest-mid disabled:opacity-60"
             aria-label={`Add ${product.title} ${selected?.title ?? ""} to cart`}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -140,7 +140,8 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 className="inline-flex items-center gap-2"
               >
                 {added ? <Check className="size-[18px]" strokeWidth={2.5} aria-hidden /> : <ShoppingCart className="size-[18px]" strokeWidth={2} aria-hidden />}
-                {added ? "Added" : "Add to cart"}
+                <span className="sm:hidden">{added ? "Added" : "Add"}</span>
+                <span className="hidden sm:inline">{added ? "Added" : "Add to cart"}</span>
               </motion.span>
             </AnimatePresence>
           </button>
