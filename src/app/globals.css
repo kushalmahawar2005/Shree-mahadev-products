@@ -429,3 +429,11 @@ html[data-admin-theme="dark"] {
 /* Hero carousel: active dot fills over the autoplay interval */
 @keyframes hero-progress { from { width: 0%; } to { width: 100%; } }
 .hero-progress { animation: hero-progress linear forwards; }
+
+/* Cart drawer: progress shimmer + gentle glow on the checkout button */
+@keyframes bar-shimmer { from { background-position: -100% 0; } to { background-position: 250% 0; } }
+@keyframes checkout-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(180, 144, 36, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(180, 144, 36, 0.18); }
+}
+.checkout-glow { animation: checkout-glow 2.4s ease-in-out infinite; }

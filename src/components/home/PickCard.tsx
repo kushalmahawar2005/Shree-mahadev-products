@@ -24,7 +24,7 @@ const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed /, "");
  * add-to-cart. Once a size is in the cart the button becomes a − qty + stepper.
  */
 export function PickCard({ product, priority = false }: { product: PickProduct; priority?: boolean }) {
-  const { cart, add, update } = useCart();
+  const { cart, add, update, open: openCart } = useCart();
   // Per-card busy flag, so only the clicked card reacts (the cart's own pending flag is shared).
   const [busy, setBusy] = useState(false);
   const withBusy = async (fn: () => Promise<void>) => {
@@ -81,25 +81,42 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         {selected?.outOfStock ? (
           <NotifyMe key={selected.id} variantKey={selected.id} sizeLabel={`${shortTitle(product.title)} ${selected.title}`} compact />
         ) : line && !added ? (
-          <div className="flex h-11 items-center justify-between rounded-lg bg-forest text-white" aria-label={`${line.quantity} in cart`}>
+          <div className="flex h-11 items-center gap-1 rounded-lg bg-forest p-1 text-white" aria-label={`${line.quantity} in cart`}>
             <button
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity - 1))}
-              className="grid h-full w-12 place-items-center rounded-l-lg transition-colors hover:bg-forest-mid disabled:opacity-60"
+              className="grid size-9 place-items-center rounded-md bg-white/10 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Remove one"
             >
               <Minus className="size-4" />
             </button>
-            <span className="flex items-center gap-1.5 text-sm font-bold tabular-nums">
-              {busy ? <Loader2 className="size-4 animate-spin" /> : line.quantity}
-              <span className="text-xs font-medium text-white/70">in cart</span>
-            </span>
+            <button
+              type="button"
+              onClick={openCart}
+              className="flex flex-1 items-center justify-center gap-1.5 text-sm"
+              aria-label="View cart"
+            >
+              <Check className="size-4 text-mustard" strokeWidth={2.5} aria-hidden />
+              <span className="relative inline-grid h-5 min-w-4 overflow-hidden text-base leading-5 font-extrabold tabular-nums">
+                {busy ? (
+                  <Loader2 className="size-4 animate-spin self-center" />
+                ) : (
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    <motion.span key={line.quantity} initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -14, opacity: 0 }} transition={{ duration: 0.2 }}>
+                      {line.quantity}
+                    </motion.span>
+                  </AnimatePresence>
+                )}
+              </span>
+              <span className="font-medium text-white/80">in cart</span>
+              <span className="ml-1 hidden text-xs font-semibold text-mustard underline-offset-2 hover:underline sm:inline">View</span>
+            </button>
             <button
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity + 1))}
-              className="grid h-full w-12 place-items-center rounded-r-lg transition-colors hover:bg-forest-mid disabled:opacity-60"
+              className="grid size-9 place-items-center rounded-md bg-white/10 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Add one more"
             >
               <Plus className="size-4" />
