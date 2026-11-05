@@ -49,7 +49,7 @@ export async function Footer() {
           </div>
 
           {/* Columns */}
-          <div className="grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.4fr] lg:gap-8">
+          <div className="grid gap-10 pt-12 pb-4 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.4fr] lg:gap-8">
             <div>
               <Link href="/" className="inline-flex items-center gap-3">
                 <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={64} height={64} unoptimized className="size-16" />
@@ -90,7 +90,7 @@ export async function Footer() {
           sky: on desktop it is pulled up under the content; on smaller screens it is cropped to the scene.
         */}
         <div
-          className="relative -mt-6 aspect-[2172/430] w-full lg:-mt-[8vw] lg:aspect-[2172/724] mix-blend-multiply"
+          className="relative -mt-10 aspect-[2172/430] w-full lg:-mt-[16vw] lg:aspect-[2172/724] mix-blend-multiply"
           aria-hidden
         >
           <DecoBg
