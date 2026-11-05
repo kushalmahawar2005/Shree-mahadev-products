@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { ArrowRight, Baby, Cookie, CookingPot, Flame, Lightbulb, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { PickCard, type PickProduct } from "./PickCard";
@@ -91,13 +91,11 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
 
         <div className="mt-5 grid gap-4 lg:grid-cols-[320px_1fr] lg:gap-5">
           {/* Story panel */}
-          <AnimatePresence mode="wait" initial={false}>
             <motion.aside
               key={tab.key}
-              initial={reduce ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? undefined : { opacity: 0, y: -12 }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              initial={reduce ? false : { opacity: 0.4 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
               className="relative flex flex-col overflow-hidden rounded-3xl bg-forest p-6 text-white"
             >
               <Icon aria-hidden className="absolute -right-6 -bottom-6 size-44 text-white/[0.06]" strokeWidth={1.25} />
@@ -121,28 +119,24 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
                 Shop all for {tab.label.toLowerCase()} <ArrowRight className="size-4" />
               </Link>
             </motion.aside>
-          </AnimatePresence>
 
           {/* Products for this use */}
           <div ref={track} className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 md:gap-4 lg:mx-0 lg:px-0">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {tab.products.length === 0 ? (
-                <p className="grid w-full place-items-center rounded-3xl border border-dashed border-line bg-white/60 p-10 text-sm text-ink-muted">Products for this use are coming soon.</p>
-              ) : (
-                tab.products.map((p, n) => (
-                  <motion.div
-                    key={`${tab.key}-${p.handle}`}
-                    initial={reduce ? false : { opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, delay: Math.min(n, 4) * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                    className="w-[46%] shrink-0 snap-start sm:w-[32%] lg:w-[calc((100%-3rem)/3.2)]"
-                  >
-                    <PickCard product={p} />
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
+            {tab.products.length === 0 ? (
+              <p className="grid w-full place-items-center rounded-3xl border border-dashed border-line bg-white/60 p-10 text-sm text-ink-muted">Products for this use are coming soon.</p>
+            ) : (
+              tab.products.map((p) => (
+                <motion.div
+                  key={`${tab.key}-${p.handle}`}
+                  initial={reduce ? false : { opacity: 0.4 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-[46%] shrink-0 snap-start sm:w-[32%] lg:w-[calc((100%-3rem)/3.2)]"
+                >
+                  <PickCard product={p} />
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </div>
