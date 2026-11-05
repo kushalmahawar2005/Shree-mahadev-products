@@ -57,7 +57,7 @@ function ReelCard({ reel, onOpen, index }: { reel: ReelItem; onOpen: () => void;
         rx.set(0);
         ry.set(0);
       }}
-      className={cn("group relative", index % 2 === 1 && "md:translate-y-8")}
+      className="group relative"
     >
       <button
         type="button"
@@ -271,7 +271,7 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
   const reduce = useReducedMotion();
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] py-12 md:pt-16 md:pb-24">
+    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] py-12 md:py-16">
       <div className="relative mx-auto max-w-[1200px] px-4 md:px-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
@@ -284,7 +284,7 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
           <h2 className="text-3xl md:text-[44px]">{title}</h2>
           <p className="text-ink-muted">Real moments from our ghani. Tap any reel to watch.</p>
         </div>
-        <ul className={cn("no-scrollbar mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pt-2 pb-10 md:mt-10 md:gap-5", reels.length <= 5 && "lg:justify-center")}>
+        <ul className={cn("no-scrollbar mt-8 flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pt-2 pb-6 md:mt-10 md:gap-5", reels.length <= 5 && "lg:justify-center")}>
           {reels.map((r, i) => (
             <motion.li
               key={r.id}
