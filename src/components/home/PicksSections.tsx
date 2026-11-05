@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { SpotlightStage } from "./SpotlightStage";
 import { ArrowRight, Check } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
@@ -265,7 +266,7 @@ export function Spotlight({
   products,
   fadeTo = "#F5EDDE",
 }: {
-  products: Pick<Product, "handle" | "images">[];
+  products: Product[];
   /** Colour of the section below, so the watercolour melts into it. */
   fadeTo?: string;
 }) {
@@ -285,7 +286,7 @@ export function Spotlight({
       />
       <Wrap className="relative">
         <Reveal>
-          <h2 className="inline-flex items-center gap-2 text-3xl text-mustard md:text-[44px]">
+          <h2 className="inline-flex items-center gap-2 text-3xl text-forest-text md:text-[44px]">
             Spotlight
             <svg
               viewBox="0 0 24 24"
@@ -297,51 +298,22 @@ export function Spotlight({
             </svg>
           </h2>
         </Reveal>
-        <div className="mt-6 md:mt-8">
-          <ArrowRow label="Spotlight" arrowTop="50%">
-            {spotlight.flatMap((s) => {
-              const img = byHandle.get(s.handle)?.images[0];
-              const cell =
-                "aspect-square w-[46%] shrink-0 snap-start overflow-hidden rounded-xl sm:w-[31%] md:w-[calc((100%-3rem)/4)]";
-              return [
-                <Link
-                  key={`${s.handle}-img`}
-                  href={`/products/${s.handle}`}
-                  className={cn(cell, "group block bg-khaki-soft")}
-                >
-                  {img && (
-                    <SmartImage
-                      src={img.url}
-                      alt={img.alt}
-                      width={img.width}
-                      height={img.height}
-                      sizes="(min-width: 768px) 25vw, 46vw"
-                      className="size-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                    />
-                  )}
-                </Link>,
-                <Link
-                  key={`${s.handle}-note`}
-                  href={`/products/${s.handle}`}
-                  className={cn(
-                    cell,
-                    "flex flex-col items-center justify-between p-4 text-center text-white md:p-6",
-                  )}
-                  style={{ backgroundColor: s.color }}
-                >
-                  <span className="text-base font-semibold md:text-lg">
-                    {s.title}
-                  </span>
-                  <span className="line-clamp-5 text-xs leading-relaxed text-white/90 md:text-sm">
-                    {s.text}
-                  </span>
-                  <span className="text-xs font-semibold text-khaki md:text-sm">
-                    {s.note}
-                  </span>
-                </Link>,
-              ];
+        <div className="mt-6 md:mt-8" data-spot-root="">
+          <SpotlightStage
+            items={spotlight.map((sp) => {
+              const p = byHandle.get(sp.handle);
+              const v = p?.variants.find((x) => x.availableForSale);
+              return {
+                ...sp,
+                titleHi: p?.titleHi ?? "",
+                swatch: p?.swatch ?? "#d0b17a",
+                image: p?.images[0],
+                rating: p?.rating,
+                reviewCount: p?.reviewCount,
+                variant: v ? { id: v.id, title: v.title, price: v.price.amount, mrp: v.compareAtPrice?.amount } : undefined,
+              };
             })}
-          </ArrowRow>
+          />
         </div>
         <Endorsements />
       </Wrap>
