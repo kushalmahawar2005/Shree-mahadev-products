@@ -67,6 +67,8 @@ function OwnFilm({ title, sub }: { title: string; sub: string }) {
         muted
         loop
         playsInline
+        disablePictureInPicture
+        controlsList="nodownload noplaybackrate noremoteplayback"
         preload="metadata"
         onPause={() => setPaused(true)}
         onPlay={() => setPaused(false)}
@@ -75,10 +77,6 @@ function OwnFilm({ title, sub }: { title: string; sub: string }) {
       {!full ? (
         <button type="button" onClick={start} className="absolute inset-0 flex flex-col justify-end text-left" aria-label={`Play film: ${title}`}>
           <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-          <span className="absolute top-1/2 left-1/2 grid size-20 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/20 ring-1 ring-white/40 backdrop-blur-md transition-transform duration-300 group-hover:scale-110 md:size-24">
-            <span className="absolute inset-0 animate-ping rounded-full bg-white/20" />
-            <Play className="relative ml-1 size-8 fill-white text-white md:size-10" />
-          </span>
           <span className="relative p-5 md:p-8">
             <span className="block text-2xl font-bold text-white md:text-4xl">{title}</span>
             <span className="mt-1 block text-sm text-white/80 md:text-base">{sub}</span>
