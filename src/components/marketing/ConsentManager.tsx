@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { saveAttributionAction } from "@/lib/attribution-actions";
 import { emitMarketingEvent, type MarketingEvent } from "@/lib/marketing-events";
 
@@ -72,13 +72,22 @@ const gaEventNames: Record<string, string> = {
   InitiateCheckout: "begin_checkout", AddPaymentInfo: "add_payment_info", Purchase: "purchase", Lead: "generate_lead", Contact: "contact",
 };
 
+const noopSubscribe = () => () => {};
+
 export function ConsentManager() {
   const pathname = usePathname();
-  const [choice, setChoice] = useState<"all" | "necessary" | null>(() => {
-    if (typeof document === "undefined") return null;
-    const value = cookie(CONSENT_COOKIE);
-    return value === "all" || value === "necessary" ? value : null;
-  });
+  // Read the saved choice only on the client. The server snapshot is "unknown", so the server
+  // never renders the banner and hydration always matches; the client then shows it if needed.
+  const stored = useSyncExternalStore(
+    noopSubscribe,
+    () => {
+      const value = cookie(CONSENT_COOKIE);
+      return value === "all" || value === "necessary" ? value : null;
+    },
+    () => "unknown" as const,
+  );
+  const [picked, setChoice] = useState<"all" | "necessary" | null>(null);
+  const choice = picked ?? (stored === "unknown" ? undefined : stored);
   const persist = useCallback(async (next: Attribution) => {
     writeCookie(ATTRIBUTION_COOKIE, encodeURIComponent(JSON.stringify(next)));
     await saveAttributionAction(next);
