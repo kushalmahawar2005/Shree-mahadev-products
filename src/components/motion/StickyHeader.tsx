@@ -19,6 +19,18 @@ export function StickyHeader({
   const [compact, setCompact] = useState(false);
   const [hidden, setHidden] = useState(false);
   const last = useRef({ y: 0, t: 0 });
+  const el = useRef<HTMLElement>(null);
+
+  // Publish how much of the viewport the header covers, so other sticky bits (shop filters) sit right under it.
+  useEffect(() => {
+    const h = el.current;
+    if (!h) return;
+    const write = () => document.documentElement.style.setProperty("--sticky-top", `${hidden ? 0 : h.offsetHeight}px`);
+    write();
+    const ro = new ResizeObserver(write);
+    ro.observe(h);
+    return () => ro.disconnect();
+  }, [hidden]);
 
   useEffect(() => {
     let ticking = false;
@@ -50,6 +62,7 @@ export function StickyHeader({
 
   return (
     <header
+      ref={el}
       data-compact={compact || undefined}
       data-hidden={hidden || undefined}
       onFocusCapture={() => setHidden(false)}

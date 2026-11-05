@@ -120,7 +120,7 @@ export function ShopListing({ products }: { products: Product[] }) {
       </FilterGroup>
       <FilterGroup value="use" title="Use">
         {shopByUse.map((u) => (
-          <Check key={u.tag} label={u.label} hint={u.labelHi} count={countIn((p) => p.tags.includes(u.tag))} checked={uses.includes(u.tag)} onChange={() => toggle("use", uses, u.tag)} />
+          <Check key={u.tag} label={u.label} count={countIn((p) => p.tags.includes(u.tag))} checked={uses.includes(u.tag)} onChange={() => toggle("use", uses, u.tag)} />
         ))}
       </FilterGroup>
       <FilterGroup value="size" title="Pack size">
@@ -152,7 +152,7 @@ export function ShopListing({ products }: { products: Product[] }) {
     <div className="mt-6 grid gap-8 lg:grid-cols-[260px_1fr]">
       {/* Sidebar (desktop) */}
       <aside className="hidden lg:block">
-        <div className="sticky top-[calc(var(--header-h,72px)+16px)] rounded-2xl border border-line bg-white p-5">
+        <div className="sticky top-[calc(var(--sticky-top,120px)+16px)] max-h-[calc(100dvh-var(--sticky-top,120px)-32px)] overflow-y-auto rounded-2xl border border-line bg-white p-5 transition-[top] duration-300 [scrollbar-width:thin]" data-lenis-prevent="">
           <div className="mb-1 flex items-center justify-between">
             <p className="font-bold text-forest-text">Filters</p>
             {filterCount > 0 && (

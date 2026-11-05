@@ -218,9 +218,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 {product.rating.toFixed(1)} <span className="text-ink-muted">({product.reviewCount})</span>
               </span>
             </p>
-          ) : (
-            <p className="text-xs font-medium text-ink-muted">New on the shelf</p>
-          )}
+          ) : null}
         </div>
 
         {/* 4. One-line USP */}
@@ -239,7 +237,6 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 {formatMoney(selected.price)}
               </span>
               {per && <span className="text-xs text-ink-muted">· {per}</span>}
-              <span className="text-[11px] font-medium text-ink-muted md:ml-auto">{selected.title}</span>
             </p>
             {selected.outOfStock ? (
               <p className="mt-1 text-[12px] font-semibold text-sale">Out of stock</p>
