@@ -24,7 +24,17 @@ const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed /, "");
  * add-to-cart. Once a size is in the cart the button becomes a − qty + stepper.
  */
 export function PickCard({ product, priority = false }: { product: PickProduct; priority?: boolean }) {
-  const { cart, add, update, pending } = useCart();
+  const { cart, add, update } = useCart();
+  // Per-card busy flag, so only the clicked card reacts (the cart's own pending flag is shared).
+  const [busy, setBusy] = useState(false);
+  const withBusy = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
   // Sizes we can show: on sale, or priced but sold out (shown struck through with "Notify me").
   const available = product.variants.filter((v) => v.availableForSale || v.outOfStock);
   const [selectedId, setSelectedId] = useState((available.find((v) => v.availableForSale) ?? available[0])?.id);
@@ -47,7 +57,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
   const onAdd = async (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!selected) return;
     flyToCart(e.currentTarget.closest("article")?.querySelector("[data-card-media]") ?? null, img?.url);
-    await add(selected.id);
+    await withBusy(() => add(selected.id));
     setAdded(true);
   };
 
@@ -74,21 +84,21 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
           <div className="flex h-11 items-center justify-between rounded-lg bg-forest text-white" aria-label={`${line.quantity} in cart`}>
             <button
               type="button"
-              disabled={pending}
-              onClick={() => update(line.id, line.quantity - 1)}
+              disabled={busy}
+              onClick={() => withBusy(() => update(line.id, line.quantity - 1))}
               className="grid h-full w-12 place-items-center rounded-l-lg transition-colors hover:bg-forest-mid disabled:opacity-60"
               aria-label="Remove one"
             >
               <Minus className="size-4" />
             </button>
             <span className="flex items-center gap-1.5 text-sm font-bold tabular-nums">
-              {pending ? <Loader2 className="size-4 animate-spin" /> : line.quantity}
+              {busy ? <Loader2 className="size-4 animate-spin" /> : line.quantity}
               <span className="text-xs font-medium text-white/70">in cart</span>
             </span>
             <button
               type="button"
-              disabled={pending}
-              onClick={() => update(line.id, line.quantity + 1)}
+              disabled={busy}
+              onClick={() => withBusy(() => update(line.id, line.quantity + 1))}
               className="grid h-full w-12 place-items-center rounded-r-lg transition-colors hover:bg-forest-mid disabled:opacity-60"
               aria-label="Add one more"
             >
@@ -98,7 +108,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         ) : (
           <button
             type="button"
-            disabled={pending}
+            disabled={busy}
             onClick={onAdd}
             className="btn-shine inline-flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-forest px-4 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-forest-mid disabled:opacity-60"
             aria-label={`Add ${product.title} ${selected?.title ?? ""} to cart`}
