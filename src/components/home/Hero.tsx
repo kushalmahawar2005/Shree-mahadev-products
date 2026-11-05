@@ -1,15 +1,16 @@
+import { FilterX, FlaskConicalOff, Hourglass, MapPin, Sprout, ThermometerSnowflake, type LucideIcon } from "lucide-react";
 import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
 import { Ticker } from "@/components/motion/Ticker";
 import { getHeroSlides } from "@/lib/hero";
 import { HeroCarousel } from "./HeroCarousel";
 
-const trustPoints = [
-  "Wood-pressed in Bijainagar, Rajasthan",
-  "No heat",
-  "No chemicals",
-  "No refining",
-  "Slow kachi ghani",
-  "Seed to bottle, one family",
+const trustPoints: [LucideIcon, string][] = [
+  [MapPin, "Wood-pressed in Bijainagar, Rajasthan"],
+  [ThermometerSnowflake, "No heat"],
+  [FlaskConicalOff, "No chemicals"],
+  [FilterX, "No refining"],
+  [Hourglass, "Slow kachi ghani"],
+  [Sprout, "Seed to bottle, one family"],
 ];
 
 /** Full-width banner carousel (1600 x 650), then a trust ticker. */
@@ -27,11 +28,18 @@ export async function Hero() {
       >
         <ReflectionSweep />
         <Ticker
-          items={trustPoints}
+          items={trustPoints.map(([Icon, text]) => (
+            <span key={text} className="inline-flex items-center gap-2.5">
+              <Icon className="size-5 shrink-0 text-mustard" strokeWidth={1.75} aria-hidden />
+              {text}
+            </span>
+          ))}
           duration={30}
           className="text-lg font-semibold text-white"
           separator={
-            <span className="inline-block size-2 rounded-full bg-mustard" />
+            <svg viewBox="0 0 24 24" className="size-2.5 text-mustard/70" aria-hidden>
+              <path fill="currentColor" d="M12 0c.6 6.3 5.7 11.4 12 12-6.3.6-11.4 5.7-12 12-.6-6.3-5.7-11.4-12-12C6.3 11.4 11.4 6.3 12 0Z" />
+            </svg>
           }
         />
       </div>
