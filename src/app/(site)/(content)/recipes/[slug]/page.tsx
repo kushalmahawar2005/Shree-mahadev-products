@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArticleShell } from "@/components/content/ArticleShell";
+import { MadeWith } from "@/components/content/MadeWith";
 import { content, getEntry, loadMdx } from "@/content";
 import { getProducts } from "@/lib/commerce";
 import { breadcrumbJsonLd, jsonLdString, pageMetadata, recipeJsonLd } from "@/lib/utils/seo";
@@ -36,22 +36,8 @@ export default async function Entry({ params }: PageProps<"/recipes/[slug]">) {
           ]),
         }}
       />
-      <ArticleShell kicker="Recipe" backHref="/recipes" backLabel="All recipes" title={entry.title} description={entry.description} date={entry.date}>
+      <ArticleShell kicker="Recipe" backHref="/recipes" backLabel="Recipes" title={entry.title} description={entry.description} date={entry.date} after={used.length > 0 && <MadeWith title="Made with" products={used} />}>
         <Body />
-        {used.length > 0 && (
-          <aside className="mt-10 rounded-2xl bg-khaki-soft p-5">
-            <p className="font-semibold text-forest-text">Made with</p>
-            <ul className="mt-2 space-y-1">
-              {used.map((p) => (
-                <li key={p.handle}>
-                  <Link href={`/products/${p.handle}`} className="font-semibold text-forest underline">
-                    {p.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </aside>
-        )}
       </ArticleShell>
     </>
   );

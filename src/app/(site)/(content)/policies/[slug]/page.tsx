@@ -29,7 +29,7 @@ export default async function PolicyPage({ params }: PageProps<"/policies/[slug]
           __html: jsonLdString(breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: entry.title, path: `/policies/${slug}` }])),
         }}
       />
-      <ArticleShell kicker="Policy" backHref="/" backLabel="Home" title={entry.title} updated={entry.updated}>
+      <ArticleShell kicker="Policy" backHref="/" backLabel="Home" title={entry.title} description={entry.description} updated={entry.updated} nav={content.policies.map((p) => ({ href: `/policies/${p.slug}`, label: p.title.replace(/ policy$/i, "").replace("Terms of service", "Terms"), active: p.slug === slug }))}>
         <Body />
       </ArticleShell>
     </>
