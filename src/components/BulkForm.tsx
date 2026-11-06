@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 import { whatsappLink } from "@/data/site";
 import { submitBulkInquiryAction } from "@/lib/inquiry-actions";
 
 const fieldClass =
-  "h-12 w-full rounded-full border border-ink/20 bg-white px-5 text-base outline-none focus-visible:border-forest focus-visible:ring-2 focus-visible:ring-forest/30";
+  "h-12 w-full rounded-xl border border-line bg-white px-4 text-[15px] font-normal text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10";
+const labelClass = "grid gap-1.5 text-[13px] font-medium text-ink-muted";
+const QTY = ["2 × 15 L tins", "5 × 15 L tins", "10 × 15 L tins", "Monthly supply"];
 
 export function BulkForm({ products }: { products: string[] }) {
   const [values, setValues] = useState({
@@ -22,6 +26,7 @@ export function BulkForm({ products }: { products: string[] }) {
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState("");
+  const [done, setDone] = useState(false);
 
   const set =
     (key: keyof typeof values) =>
@@ -58,12 +63,21 @@ export function BulkForm({ products }: { products: string[] }) {
       popup.location.href = url;
     }
     setPending(false);
-    setFeedback(
-      result.ok
-        ? "Thanks. Your inquiry has been saved and WhatsApp is opening."
-        : `${result.error ?? "Could not save the inquiry."} You can still continue in WhatsApp.`,
-    );
+    if (result.ok) setDone(true);
+    else setFeedback(`${result.error ?? "Could not save the inquiry."} You can still continue in WhatsApp.`);
   }
+
+  if (done)
+    return (
+      <div className="mt-6 flex flex-col items-center rounded-2xl bg-white p-8 text-center">
+        <CheckCircle2 className="size-14 text-forest" strokeWidth={1.5} />
+        <p className="mt-4 text-xl font-bold text-forest-text">Inquiry received</p>
+        <p className="mt-1 max-w-sm text-sm text-ink-muted">Thanks, {values.name.split(" ")[0]}. Our team will reply on WhatsApp with prices and delivery details.</p>
+        <a href={fallbackUrl} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-forest px-5 text-sm font-bold text-white hover:bg-forest-mid">
+          <MessageCircle className="size-4" /> Open WhatsApp again
+        </a>
+      </div>
+    );
 
   return (
     <form onSubmit={onSubmit} className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -80,7 +94,7 @@ export function BulkForm({ products }: { products: string[] }) {
           onChange={set("website")}
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className={labelClass}>
         Name
         <input
           required
@@ -90,7 +104,7 @@ export function BulkForm({ products }: { products: string[] }) {
           autoComplete="name"
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className={labelClass}>
         Business
         <input
           required
@@ -100,7 +114,7 @@ export function BulkForm({ products }: { products: string[] }) {
           autoComplete="organization"
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className={labelClass}>
         City
         <input
           required
@@ -110,7 +124,7 @@ export function BulkForm({ products }: { products: string[] }) {
           autoComplete="address-level2"
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className={labelClass}>
         Phone
         <input
           required
@@ -124,8 +138,10 @@ export function BulkForm({ products }: { products: string[] }) {
           autoComplete="tel"
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
-        Email <span className="font-normal text-ink-muted">(optional)</span>
+      <label className={labelClass}>
+        <span>
+          Email <span className="text-ink-muted/70">(optional)</span>
+        </span>
         <input
           type="email"
           maxLength={160}
@@ -135,7 +151,7 @@ export function BulkForm({ products }: { products: string[] }) {
           autoComplete="email"
         />
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className={labelClass}>
         Product
         <select
           className={fieldClass}
@@ -149,7 +165,7 @@ export function BulkForm({ products }: { products: string[] }) {
           ))}
         </select>
       </label>
-      <label className="grid gap-1 text-sm font-medium">
+      <label className={cn(labelClass, "sm:col-span-2")}>
         Quantity
         <input
           required
@@ -158,14 +174,31 @@ export function BulkForm({ products }: { products: string[] }) {
           value={values.quantity}
           onChange={set("quantity")}
         />
+        <span className="flex flex-wrap gap-1.5">
+          {QTY.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setValues((v) => ({ ...v, quantity: q }))}
+              className={cn(
+                "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                values.quantity === q ? "border-forest bg-forest text-white" : "border-line bg-white text-ink-muted hover:border-forest/40 hover:text-forest",
+              )}
+            >
+              {q}
+            </button>
+          ))}
+        </span>
       </label>
-      <label className="grid gap-1 text-sm font-medium sm:col-span-2">
-        Anything else we should know?{" "}
-        <span className="font-normal text-ink-muted">(optional)</span>
+      <label className={cn(labelClass, "sm:col-span-2")}>
+        <span>
+          Anything else we should know? <span className="text-ink-muted/70">(optional)</span>
+        </span>
         <textarea
           maxLength={1000}
           rows={3}
-          className="w-full rounded-2xl border border-ink/20 bg-white px-5 py-3 text-base outline-none focus-visible:border-forest focus-visible:ring-2 focus-visible:ring-forest/30"
+          placeholder="Delivery city, how often you need it, packaging…"
+          className="w-full rounded-xl border border-line bg-white px-4 py-3 text-[15px] font-normal text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10"
           value={values.message}
           onChange={set("message")}
         />
@@ -173,13 +206,16 @@ export function BulkForm({ products }: { products: string[] }) {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-12 rounded-full bg-forest px-6 font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-60 sm:col-span-2"
+        className="btn-shine inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-6 text-sm font-bold text-white transition-colors hover:bg-forest-mid disabled:opacity-60 sm:col-span-2"
       >
-        {pending ? "Saving inquiry…" : "Save inquiry & open WhatsApp"}
+        {pending ? <Loader2 className="size-4 animate-spin" /> : <MessageCircle className="size-4" />}
+        {pending ? "Sending inquiry…" : "Send inquiry on WhatsApp"}
       </button>
-      <p aria-live="polite" className="text-sm text-ink-muted sm:col-span-2">
-        {feedback}
-      </p>
+      {feedback && (
+        <p role="alert" className="rounded-xl bg-alert-soft px-3 py-2 text-sm text-alert sm:col-span-2">
+          {feedback}
+        </p>
+      )}
       {fallbackUrl && (
         <a
           href={fallbackUrl}
