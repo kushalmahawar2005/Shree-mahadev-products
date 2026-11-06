@@ -19,7 +19,8 @@ import { calculateCoupon, CouponError } from "@/lib/server/coupons";
 import { headers } from "next/headers";
 
 export type CheckoutState =
-  { error?: string; fieldErrors?: Partial<Record<string, string>> } | undefined;
+  | { error?: string; fieldErrors?: Partial<Record<string, string>>; payUrl?: string }
+  | undefined;
 
 export type ShippingQuoteResult =
   | {
@@ -313,5 +314,7 @@ export async function placeOrderAction(
     await clearCartCookies();
     redirect(`/order?t=${token}`);
   }
-  redirect(`/checkout/pay?t=${token}`);
+  // The pay page auto-posts a form to PayU. A soft (router) navigation there races the
+  // Next router's own history update and cancels that POST, so the client does a full load.
+  return { payUrl: `/checkout/pay?t=${token}` };
 }

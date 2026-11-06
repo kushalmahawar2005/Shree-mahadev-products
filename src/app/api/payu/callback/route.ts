@@ -4,7 +4,8 @@ import { handlePayuResult } from "@/lib/server/payu-process";
 
 /** PayU browser return (surl + furl). The S2S webhook (/api/payu/webhook) handles the same result if the tab closes. */
 export async function POST(req: NextRequest) {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin;
+  // In dev, come back to the server that started the payment (localhost), not the live domain.
+  const base = (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_SITE_URL) || req.nextUrl.origin;
   const p: Record<string, string> = {};
   (await req.formData()).forEach((v, k) => {
     if (typeof v === "string") p[k] = v;

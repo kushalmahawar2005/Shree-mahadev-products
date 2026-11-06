@@ -12,7 +12,9 @@ export const CSP_SOURCES = {
   font: ["'self'", "data:"],
   connect: ["'self'", "https://api.cloudinary.com", ...(isDev ? ["ws:"] : [])],
   frame: ["https://www.youtube-nocookie.com"],
-  formAction: ["'self'", "https://secure.payu.in", "https://test.payu.in"], // PayU hosted checkout POST
+  // PayU hosted checkout POST. Chrome applies form-action to the redirects after the POST too, and
+  // PayU hops to other subdomains (api.payu.in etc.), so allow all of them or the submit is silently blocked.
+  formAction: ["'self'", "https://*.payu.in", "https://*.payubiz.in"],
 };
 
 export function contentSecurityPolicy() {

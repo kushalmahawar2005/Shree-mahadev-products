@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { buttonClass } from "@/components/ui/Button";
+import { AlertCircle, Banknote, Check, Clock, CreditCard, MapPin, MessageCircle, PackageCheck, Phone, RotateCcw, Truck, XCircle } from "lucide-react";
+import { OrderCelebrate } from "@/components/checkout/OrderCelebrate";
 import { PurchaseEvent } from "@/components/marketing/PurchaseEvent";
-import { Container } from "@/components/ui/primitives";
 import { site, whatsappLink } from "@/data/site";
+import { getProducts } from "@/lib/commerce";
 import { getOrderByToken, type Order } from "@/lib/server/orders";
 import { formatMoney } from "@/lib/utils/money";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = {
   title: "Your order",
@@ -16,200 +19,234 @@ export const metadata: Metadata = {
 
 export default function OrderPage({ searchParams }: PageProps<"/order">) {
   return (
-    <Container className="max-w-3xl py-12 md:py-16">
-      <Suspense
-        fallback={<p className="text-ink-muted">Loading your order…</p>}
-      >
+    <div className="mx-auto max-w-[1000px] px-4 pt-8 pb-16 md:px-8 md:pt-12 md:pb-24">
+      <Suspense fallback={<div className="h-96 animate-pulse rounded-3xl bg-white/60" />}>
         <OrderContent searchParams={searchParams} />
       </Suspense>
-    </Container>
+    </div>
   );
 }
 
-const HEADLINE: Record<Order["status"], { title: string; note: string }> = {
-  paid: {
-    title: "Thank you! Your order is confirmed.",
-    note: "Payment received. We'll pack it fresh and share tracking on WhatsApp.",
-  },
-  cod_pending: {
-    title: "Thank you! Your order is placed.",
-    note: "Pay in cash when it arrives. We'll call or WhatsApp to confirm before dispatch.",
-  },
-  pending_payment: {
-    title: "Waiting for payment confirmation",
-    note: "If money was deducted, it will reflect here shortly. Please don't pay twice.",
-  },
-  payment_failed: {
-    title: "Payment didn't go through",
-    note: "No order was charged. You can try again below.",
-  },
-  confirmed: {
-    title: "Your order is confirmed",
-    note: "We're getting it ready.",
-  },
-  packed: {
-    title: "Packed and ready to ship",
-    note: "It will be handed to the courier soon.",
-  },
-  rto: {
-    title: "Your order is returning to us",
-    note: "The courier couldn't deliver it. Message us to reship.",
-  },
-  refunded: { title: "Refunded", note: "Your refund has been processed." },
-  partially_refunded: {
-    title: "Partly refunded",
-    note: "Part of your payment has been refunded. Message us if you have questions.",
-  },
-  shipped: {
-    title: "Your order is on the way",
-    note: "It has been handed to the courier.",
-  },
-  delivered: { title: "Delivered", note: "We hope you enjoy it." },
-  cancelled: {
-    title: "This order was cancelled",
-    note: "Message us if this looks wrong.",
-  },
+type Tone = "success" | "pending" | "failed" | "neutral";
+
+const HEADLINE: Record<Order["status"], { title: string; note: string; tone: Tone }> = {
+  paid: { title: "Thank you! Your order is confirmed.", note: "Payment received. We'll pack it fresh and share tracking on WhatsApp.", tone: "success" },
+  cod_pending: { title: "Thank you! Your order is placed.", note: "Pay in cash when it arrives. We'll call or WhatsApp to confirm before dispatch.", tone: "success" },
+  pending_payment: { title: "Waiting for payment confirmation", note: "If money was deducted, it will reflect here shortly. Please don't pay twice.", tone: "pending" },
+  payment_failed: { title: "Payment didn't go through", note: "No order was charged. You can try again below.", tone: "failed" },
+  confirmed: { title: "Your order is confirmed", note: "We're getting it ready.", tone: "success" },
+  packed: { title: "Packed and ready to ship", note: "It will be handed to the courier soon.", tone: "success" },
+  rto: { title: "Your order is returning to us", note: "The courier couldn't deliver it. Message us to reship.", tone: "neutral" },
+  refunded: { title: "Refunded", note: "Your refund has been processed.", tone: "neutral" },
+  partially_refunded: { title: "Partly refunded", note: "Part of your payment has been refunded. Message us if you have questions.", tone: "neutral" },
+  shipped: { title: "Your order is on the way", note: "It has been handed to the courier.", tone: "success" },
+  delivered: { title: "Delivered", note: "We hope you enjoy it.", tone: "success" },
+  cancelled: { title: "This order was cancelled", note: "Message us if this looks wrong.", tone: "failed" },
 };
 
-async function OrderContent({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+const STEPS = [
+  { label: "Placed", icon: Check },
+  { label: "Packed", icon: PackageCheck },
+  { label: "Shipped", icon: Truck },
+  { label: "Delivered", icon: MapPin },
+];
+const STEP_OF: Partial<Record<Order["status"], number>> = { paid: 0, cod_pending: 0, confirmed: 0, packed: 1, shipped: 2, delivered: 3 };
+
+const TONE = {
+  success: { icon: Check, ring: "bg-forest text-white", halo: "bg-forest/10" },
+  pending: { icon: Clock, ring: "bg-mustard text-white", halo: "bg-mustard/15" },
+  failed: { icon: XCircle, ring: "bg-alert text-white", halo: "bg-alert-soft" },
+  neutral: { icon: RotateCcw, ring: "bg-ink-muted text-white", halo: "bg-khaki-soft" },
+};
+
+const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
+
+async function OrderContent({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const t = (await searchParams).t;
   const token = typeof t === "string" ? t : "";
   const order = await getOrderByToken(token);
   if (!order) notFound();
+  const products = await getProducts();
+  const imageOf = (handle: string) => products.find((p) => p.handle === handle)?.images[0];
   const h = HEADLINE[order.status];
+  const tone = TONE[h.tone];
+  const ToneIcon = tone.icon;
   const a = order.address;
+  const step = STEP_OF[order.status];
+  const celebrate = order.status === "paid" || order.status === "cod_pending" || order.status === "confirmed";
+  const PayIcon = order.paymentMethod === "cod" ? Banknote : CreditCard;
 
   return (
     <>
-      {(order.status === "paid" || order.status === "cod_pending" || order.status === "confirmed") && (
-        <PurchaseEvent
-          orderNo={order.orderNo}
-          total={order.total}
-          items={order.items.map((item) => ({
-            productHandle: item.productHandle,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-          }))}
-        />
+      {celebrate && (
+        <>
+          <PurchaseEvent
+            orderNo={order.orderNo}
+            total={order.total}
+            items={order.items.map((item) => ({ productHandle: item.productHandle, quantity: item.quantity, unitPrice: item.unitPrice }))}
+          />
+          <OrderCelebrate orderNo={order.orderNo} />
+        </>
       )}
-      <p className="text-sm font-semibold text-mustard">
-        Order {order.orderNo}
-      </p>
-      <h1 className="mt-2 text-4xl md:text-5xl">{h.title}</h1>
-      <p className="mt-3 text-lg text-ink-muted">{h.note}</p>
 
-      {order.status === "payment_failed" && (
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link
-            href={`/checkout/pay?t=${order.token}`}
-            className={buttonClass("primary", "lg")}
-          >
-            Try payment again
-          </Link>
-          <a
-            href={whatsappLink(
-              `Hi, my payment for order ${order.orderNo} failed.`,
-            )}
-            className={buttonClass("secondary", "lg")}
-          >
-            Order on WhatsApp
-          </a>
+      {/* Hero */}
+      <section className="flex flex-col items-center text-center">
+        <span className={cn("grid size-20 place-items-center rounded-full", tone.halo)}>
+          <span className={cn("grid size-14 place-items-center rounded-full shadow-[0_10px_24px_-12px_rgba(7,47,27,0.6)]", tone.ring)}>
+            <ToneIcon className="size-7" strokeWidth={2.5} />
+          </span>
+        </span>
+        <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-ink-muted">
+          Order <span className="font-mono text-forest-text">{order.orderNo}</span>
+        </p>
+        <h1 className="mt-3 max-w-xl text-3xl md:text-[40px] md:leading-tight">{h.title}</h1>
+        <p className="mt-2 max-w-lg text-ink-muted">{h.note}</p>
+
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {order.status === "payment_failed" ? (
+            <>
+              {/* Plain <a>: the pay page must load fully so its PayU auto-post isn't cancelled by the router. */}
+              <a href={`/checkout/pay?t=${order.token}`} className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-forest px-7 text-sm font-bold text-white hover:bg-forest-mid">
+                <RotateCcw className="size-4" /> Try payment again
+              </a>
+              <a
+                href={whatsappLink(`Hi, my payment for order ${order.orderNo} failed.`)}
+                className="inline-flex h-12 items-center gap-2 rounded-full border border-line bg-white px-6 text-sm font-semibold text-forest-text hover:border-forest/40"
+              >
+                <MessageCircle className="size-4" /> Order on WhatsApp
+              </a>
+            </>
+          ) : (
+            <>
+              <Link href={`/track-order?t=${order.token}`} className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-forest px-7 text-sm font-bold text-white hover:bg-forest-mid">
+                <Truck className="size-4" /> Track this order
+              </Link>
+              <Link href="/shop" className="inline-flex h-12 items-center rounded-full border border-line bg-white px-6 text-sm font-semibold text-forest-text hover:border-forest/40">
+                Continue shopping
+              </Link>
+            </>
+          )}
         </div>
+      </section>
+
+      {/* Progress */}
+      {step !== undefined && (
+        <section className="mt-10 rounded-3xl border border-line bg-white p-5 md:p-7">
+          <ol className="grid grid-cols-4">
+            {STEPS.map((s, i) => {
+              const done = i <= step;
+              const I = s.icon;
+              return (
+                <li key={s.label} className="relative flex flex-col items-center gap-2 text-center">
+                  {i > 0 && <span className={cn("absolute top-5 right-1/2 h-0.5 w-full -translate-y-1/2", i <= step ? "bg-forest" : "bg-line")} />}
+                  <span className={cn("relative z-10 grid size-10 place-items-center rounded-full border-2", done ? "border-forest bg-forest text-white" : "border-line bg-white text-ink-muted", i === step && "ring-4 ring-forest/15")}>
+                    <I className="size-4" />
+                  </span>
+                  <span className={cn("text-xs font-semibold md:text-sm", done ? "text-forest-text" : "text-ink-muted")}>{s.label}</span>
+                </li>
+              );
+            })}
+          </ol>
+          {order.awb && (
+            <p className="mt-6 flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-khaki-soft px-4 py-3 text-sm">
+              <Truck className="size-4 text-forest" /> Tracking <strong className="font-mono">{order.awb}</strong>
+              {order.courierName ? <span className="text-ink-muted">· {order.courierName}</span> : null}
+            </p>
+          )}
+        </section>
       )}
-      {order.awb && (
-        <p className="mt-4 rounded-2xl bg-khaki-soft p-4">
-          Tracking: <strong>{order.awb}</strong>
-          {order.courierName ? ` (${order.courierName})` : ""}
+
+      {order.status === "pending_payment" && (
+        <p className="mt-8 flex items-start gap-2 rounded-2xl border border-warm-line bg-warm px-4 py-3 text-sm text-ink">
+          <AlertCircle className="mt-0.5 size-4 shrink-0 text-mustard" /> Refresh this page in a minute. If it still says waiting, WhatsApp us with order {order.orderNo}.
         </p>
       )}
-      <Link href={`/track-order?t=${order.token}`} className={buttonClass("secondary", "md", "mt-5 inline-flex")}>
-        Track this order
-      </Link>
 
-      <div className="mt-10 grid gap-8 md:grid-cols-2">
-        <section>
-          <h2 className="text-xl">Items</h2>
-          <ul className="mt-3 divide-y divide-line">
-            {order.items.map((i) => (
-              <li
-                key={i.variantKey}
-                className="flex justify-between gap-4 py-3"
-              >
-                <span>
-                  <span className="block font-semibold text-forest-text">
-                    {i.productTitle}
+      <div className="mt-6 grid items-start gap-5 md:grid-cols-[1.4fr_1fr]">
+        {/* Items */}
+        <section className="rounded-3xl border border-line bg-white">
+          <h2 className="border-b border-line px-5 py-4 text-lg">Items</h2>
+          <ul className="divide-y divide-line px-5">
+            {order.items.map((i) => {
+              const img = imageOf(i.productHandle);
+              return (
+                <li key={i.variantKey} className="flex items-center gap-3 py-3">
+                  <span className="relative grid size-14 shrink-0 place-items-center rounded-xl bg-[radial-gradient(circle_at_50%_60%,#f3e6c8,#f6efe2_70%)]">
+                    {img && <Image src={img.url} alt="" width={56} height={56} className="size-12 object-contain" />}
+                    <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-forest text-[10px] font-bold text-white">{i.quantity}</span>
                   </span>
-                  <span className="text-sm text-ink-muted">
-                    {i.variantTitle} × {i.quantity}
+                  <span className="min-w-0 flex-1">
+                    <Link href={`/products/${i.productHandle}`} className="block truncate text-sm font-semibold text-ink hover:text-forest">
+                      {shortTitle(i.productTitle)}
+                    </Link>
+                    <span className="block text-xs text-ink-muted">{i.variantTitle}</span>
                   </span>
-                </span>
-                <span className="font-semibold">
-                  {formatMoney(i.lineTotal)}
-                </span>
-              </li>
-            ))}
+                  <span className="text-sm font-semibold tabular-nums">{formatMoney(i.lineTotal)}</span>
+                </li>
+              );
+            })}
           </ul>
-          <dl className="mt-3 space-y-1 border-t border-line pt-3">
-            <div className="flex justify-between">
-              <dt className="text-ink-muted">Subtotal</dt>
-              <dd>{formatMoney(order.subtotal)}</dd>
-            </div>
-            {order.discount > 0 && (
-              <div className="flex justify-between text-forest">
-                <dt>
-                  {order.couponCode
-                    ? `Coupon (${order.couponCode})`
-                    : "Discount"}
-                </dt>
-                <dd>−{formatMoney(order.discount)}</dd>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <dt className="text-ink-muted">Shipping</dt>
-              <dd>{order.shipping ? formatMoney(order.shipping) : "Free"}</dd>
-            </div>
-            {order.codFee > 0 && (
-              <div className="flex justify-between">
-                <dt className="text-ink-muted">COD charge</dt>
-                <dd>{formatMoney(order.codFee)}</dd>
-              </div>
-            )}
-            <div className="flex justify-between text-lg font-bold text-forest-text">
-              <dt>Total</dt>
-              <dd>{formatMoney(order.total)}</dd>
+          <dl className="space-y-2 border-t border-line px-5 py-4 text-sm">
+            <Row label="Subtotal" value={formatMoney(order.subtotal)} />
+            {order.discount > 0 && <Row label={order.couponCode ? `Coupon (${order.couponCode})` : "Discount"} value={`−${formatMoney(order.discount)}`} accent />}
+            <Row label="Shipping" value={order.shipping ? formatMoney(order.shipping) : "Free"} accent={!order.shipping} />
+            {order.codFee > 0 && <Row label="COD charge" value={formatMoney(order.codFee)} />}
+            <div className="flex items-baseline justify-between border-t border-line pt-3">
+              <dt className="font-semibold">Total</dt>
+              <dd className="text-xl font-extrabold text-forest tabular-nums">{formatMoney(order.total)}</dd>
             </div>
           </dl>
         </section>
-        <section>
-          <h2 className="text-xl">Delivering to</h2>
-          <address className="mt-3 not-italic leading-relaxed text-ink">
-            {a.name}
-            <br />
-            {a.line1}
-            {a.line2 ? `, ${a.line2}` : ""}
-            <br />
-            {a.city}, {a.state} {a.pincode}
-            <br />
-            {a.phone}
-          </address>
-          <p className="mt-4 text-sm text-ink-muted">
-            Payment:{" "}
-            {order.paymentMethod === "cod"
-              ? "Cash on delivery"
-              : order.paymentMethod === "offline"
-                ? "Paid offline"
-                : "Online (PayU)"}
-          </p>
-        </section>
-      </div>
 
-      <p className="mt-10 text-sm text-ink-muted">
-        Questions? WhatsApp or call {site.phone}, {site.supportHours}.
-      </p>
+        {/* Delivery + payment */}
+        <div className="space-y-5">
+          <section className="rounded-3xl border border-line bg-white p-5">
+            <h2 className="flex items-center gap-2 text-lg">
+              <MapPin className="size-4 text-forest/60" /> Delivering to
+            </h2>
+            <address className="mt-3 text-sm leading-relaxed text-ink not-italic">
+              <span className="font-semibold">{a.name}</span>
+              <br />
+              {a.line1}
+              {a.line2 ? `, ${a.line2}` : ""}
+              <br />
+              {a.city}, {a.state} {a.pincode}
+              <br />
+              <span className="text-ink-muted">{a.phone}</span>
+            </address>
+          </section>
+          <section className="rounded-3xl border border-line bg-white p-5">
+            <h2 className="flex items-center gap-2 text-lg">
+              <PayIcon className="size-4 text-forest/60" /> Payment
+            </h2>
+            <p className="mt-2 text-sm text-ink">{order.paymentMethod === "cod" ? "Cash on delivery" : order.paymentMethod === "offline" ? "Paid offline" : "Online (PayU)"}</p>
+          </section>
+          <section className="rounded-3xl bg-forest p-5 text-white">
+            <p className="font-semibold">Need help with this order?</p>
+            <p className="mt-1 text-sm text-white/70">{site.supportHours}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href={whatsappLink(`Hi, I have a question about order ${order.orderNo}.`)}
+                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#e8c879] px-4 text-sm font-bold text-forest-deep hover:bg-white"
+              >
+                <MessageCircle className="size-4" /> WhatsApp
+              </a>
+              <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="inline-flex h-10 items-center gap-2 rounded-full border border-white/30 px-4 text-sm font-semibold hover:bg-white/10">
+                <Phone className="size-4" /> Call
+              </a>
+            </div>
+          </section>
+        </div>
+      </div>
     </>
+  );
+}
+
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="flex justify-between">
+      <dt className="text-ink-muted">{label}</dt>
+      <dd className={cn("tabular-nums", accent && "font-semibold text-forest")}>{value}</dd>
+    </div>
   );
 }
