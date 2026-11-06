@@ -58,7 +58,7 @@ function sizeMatch(p: Product, sizesSel: string[]) {
 }
 
 /** Standard shop layout: filter sidebar (sheet on mobile) + toolbar + grid. All filter state lives in the URL. */
-export function ShopListing({ products }: { products: Product[] }) {
+export function ShopListing({ products, hideCategory = false }: { products: Product[]; hideCategory?: boolean }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -110,19 +110,25 @@ export function ShopListing({ products }: { products: Product[] }) {
   ];
   const filterCount = chips.length + (priceMax < maxPrice ? 1 : 0);
   const countIn = (pred: (p: Product) => boolean) => products.filter(pred).length;
+  // Only show uses that match something here (e.g. honey has no "deep frying"); keep any already ticked.
+  const useOptions = shopByUse.map((u) => ({ ...u, n: countIn((p) => p.tags.includes(u.tag)) })).filter((u) => u.n > 0 || uses.includes(u.tag));
 
   const filters = (
     <Accordion type="multiple" defaultValue={["category", "use", "size", "price"]} className="w-full">
+      {!hideCategory && (
       <FilterGroup value="category" title="Category">
         {categories.map((c) => (
           <Check key={c.value} label={c.label} count={countIn((p) => p.category === c.value)} checked={cats.includes(c.value)} onChange={() => toggle("category", cats, c.value)} />
         ))}
       </FilterGroup>
-      <FilterGroup value="use" title="Use">
-        {shopByUse.map((u) => (
-          <Check key={u.tag} label={u.label} count={countIn((p) => p.tags.includes(u.tag))} checked={uses.includes(u.tag)} onChange={() => toggle("use", uses, u.tag)} />
-        ))}
-      </FilterGroup>
+      )}
+      {useOptions.length > 0 && (
+        <FilterGroup value="use" title="Use">
+          {useOptions.map((u) => (
+            <Check key={u.tag} label={u.label} count={u.n} checked={uses.includes(u.tag)} onChange={() => toggle("use", uses, u.tag)} />
+          ))}
+        </FilterGroup>
+      )}
       <FilterGroup value="size" title="Pack size">
         {sizes.map((s) => (
           <Check key={s.value} label={s.label} count={countIn((p) => sizeMatch(p, [s.value]))} checked={sizeSel.includes(s.value)} onChange={() => toggle("size", sizeSel, s.value)} />

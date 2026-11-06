@@ -392,3 +392,32 @@ export async function importGoogleReviewAction(raw: unknown) {
   );
   return { ok: true };
 }
+
+const publicInput = z
+  .object({
+    productHandle: z.string().regex(/^[a-z0-9-]{2,80}$/),
+    name: z.string().trim().min(2, "Please add your name.").max(120),
+    city: z.string().trim().max(80),
+    rating: z.number().int().min(1).max(5),
+    title: z.string().trim().max(160),
+    body: z.string().trim().min(10, "Please write at least a line (10+ characters).").max(3000),
+    website: z.string().max(0), // honeypot: real people leave it empty
+  })
+  .strict();
+
+/** Review from the product page (no order link). Always lands as `pending` for moderation and is never marked verified. */
+export async function submitProductReviewAction(raw: unknown) {
+  const limit = await rateLimit("review_public", await clientIp(), 3, 60);
+  if (!limit.ok) return { ok: false, error: `Too many review attempts. Try again in ${limit.retryInMin} min.` };
+  const p = publicInput.safeParse(raw);
+  if (!p.success) return { ok: false, error: p.error.issues[0]?.message ?? "Check your review details." };
+  const input = p.data;
+  const [product] = await db().execute<RowDataPacket[]>("SELECT handle FROM products WHERE handle=? AND status='active' LIMIT 1", [input.productHandle]);
+  if (!product.length) return { ok: false, error: "This product isn't available." };
+  const reason = holdReason(input.body);
+  await db().execute(
+    "INSERT INTO reviews (product_handle, name, city, rating, title, body, status, source, auto_hold_reason) VALUES (?,?,?,?,?,?,'pending','site',?)",
+    [input.productHandle, input.name, input.city || null, input.rating, input.title || null, input.body, reason],
+  );
+  return { ok: true, message: "Thank you! Your review will appear here once our team has checked it." };
+}
