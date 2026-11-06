@@ -30,7 +30,6 @@ export async function Footer() {
         <div className="relative z-10 mx-auto max-w-[1240px] px-4 pt-12 sm:px-6 lg:px-8 lg:pt-16">
           {/* WhatsApp CTA card */}
           <div className="relative overflow-hidden rounded-[28px] bg-forest px-6 py-8 text-white md:flex md:items-center md:justify-between md:gap-8 md:px-10">
-            <span aria-hidden className="absolute -top-20 -right-10 size-64 rounded-full bg-[radial-gradient(circle,rgba(180,144,36,0.45),transparent_65%)]" />
             <div className="relative">
               <p className="font-hindi text-lg text-[#e8c879]" lang="hi">
                 स्वदेशी · धीमी घानी

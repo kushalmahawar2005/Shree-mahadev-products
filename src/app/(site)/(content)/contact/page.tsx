@@ -69,7 +69,6 @@ export default function ContactPage() {
                       : "group flex h-full flex-col rounded-3xl border border-line bg-white p-6 transition-colors hover:border-forest/30"
                   }
                 >
-                  {c.featured && <span aria-hidden className="absolute -top-16 -right-16 size-48 rounded-full bg-[radial-gradient(circle,rgba(180,144,36,0.45),transparent_65%)]" />}
                   <span className={`relative grid size-12 place-items-center rounded-2xl ${c.featured ? "bg-white/10 text-[#e8c879]" : "bg-khaki-soft text-forest"}`}>
                     <I className="size-6" />
                   </span>

@@ -26,7 +26,6 @@ function TrackingDetails({ tracking }: { tracking: TrackingSummary }) {
   const externalTracking = tracking.trackingUrl?.startsWith("https://") ? tracking.trackingUrl : null;
   return <section aria-labelledby="tracking-result-title" className="mt-6 overflow-hidden rounded-3xl border border-line bg-white">
     <div className="relative overflow-hidden bg-forest p-5 text-white sm:p-7">
-      <span aria-hidden className="absolute -top-16 -right-16 size-48 rounded-full bg-[radial-gradient(circle,rgba(180,144,36,0.45),transparent_65%)]" />
       <div className="relative flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold text-white/60">Order <span className="font-mono text-white">{tracking.orderNo}</span></p>

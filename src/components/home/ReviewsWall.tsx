@@ -79,7 +79,6 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="relative overflow-hidden rounded-3xl bg-forest p-6 text-white"
           >
-            <span aria-hidden className="absolute -top-16 -right-16 size-48 rounded-full bg-[radial-gradient(circle,rgba(180,144,36,0.5),transparent_65%)]" />
             <p className="relative text-6xl font-extrabold tabular-nums">{avg.toFixed(1)}</p>
             <Stars n={Math.round(avg)} className="relative mt-2" />
             <p className="relative mt-2 text-sm text-white/75">

@@ -172,7 +172,7 @@ export const categoryTiles = [
   {
     key: "oils", title: "Wood-pressed oils", titleHi: "लकड़ी घानी तेल", unit: "oils", collection: "wood-pressed-oils", span: "hero",
     blurb: "Mustard, groundnut, sesame, coconut and more, slow-pressed in our wooden ghani.",
-    tone: { bg: "linear-gradient(140deg,#0c3c24 0%,#145a36 100%)", ink: "light", glow: "radial-gradient(circle,rgba(180,144,36,.65),transparent 65%)" },
+    tone: { bg: "linear-gradient(140deg,#0c3c24 0%,#145a36 100%)", ink: "light", glow: "none" },
   },
   {
     key: "honey", title: "Raw honey", titleHi: "कच्चा शहद", unit: "honeys", collection: "raw-honey", span: "wide",
@@ -192,7 +192,7 @@ export const categoryTiles = [
   {
     key: "seeds", title: "Seeds", titleHi: "बीज", unit: "seeds", collection: "", span: "wide",
     blurb: "The same clean seeds we press, for your kitchen.",
-    tone: { bg: "linear-gradient(140deg,#fbf6ec 0%,#eadbb9 100%)", ink: "dark", glow: "radial-gradient(circle,rgba(180,144,36,.35),transparent 65%)" },
+    tone: { bg: "linear-gradient(140deg,#fbf6ec 0%,#eadbb9 100%)", ink: "dark", glow: "none" },
   },
   {
     key: "cake", title: "Oil cake (khal)", titleHi: "खल", unit: "items", collection: "", span: "wide",

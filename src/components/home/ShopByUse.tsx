@@ -99,7 +99,6 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
               className="relative flex flex-col overflow-hidden rounded-3xl bg-forest p-6 text-white"
             >
               <Icon aria-hidden className="absolute -right-6 -bottom-6 size-44 text-white/[0.06]" strokeWidth={1.25} />
-              <span className="absolute -top-16 -right-16 size-48 rounded-full bg-[radial-gradient(circle,rgba(180,144,36,0.45),transparent_65%)]" aria-hidden />
               <span className="relative grid size-12 place-items-center rounded-2xl bg-white/10 text-[#e8c879]">
                 <Icon className="size-6" />
               </span>
