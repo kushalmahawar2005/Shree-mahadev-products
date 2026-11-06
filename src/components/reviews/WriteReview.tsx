@@ -10,9 +10,9 @@ const field =
   "h-11 w-full rounded-xl border border-line bg-white px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10";
 const LABELS = ["", "Poor", "Okay", "Good", "Very good", "Loved it"];
 
-type Cat = "oil" | "honey" | "sweetener";
+export type Cat = "oil" | "honey" | "sweetener";
 // Tap-to-fill starters, by product type and how happy the customer is. They only fill the box; people edit freely.
-const SUGGEST: Record<Cat, { good: { title: string[]; body: string[] }; mid: { title: string[]; body: string[] }; low: { title: string[]; body: string[] } }> = {
+export const SUGGEST: Record<Cat, { good: { title: string[]; body: string[] }; mid: { title: string[]; body: string[] }; low: { title: string[]; body: string[] } }> = {
   oil: {
     good: {
       title: ["Asli kachi ghani swad", "Pure and fresh", "Will order again"],
@@ -164,7 +164,7 @@ export function WriteReview({ productHandle, productTitle, category = "oil" }: {
   );
 }
 
-function Chips({ items, active, onPick, plus }: { items: string[]; active: (t: string) => boolean; onPick: (t: string) => void; plus?: boolean }) {
+export function Chips({ items, active, onPick, plus }: { items: string[]; active: (t: string) => boolean; onPick: (t: string) => void; plus?: boolean }) {
   return (
     <span className="mt-2 flex flex-wrap gap-1.5">
       {items.map((t) => {

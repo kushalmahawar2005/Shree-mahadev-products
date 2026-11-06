@@ -1,6 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Camera, CheckCircle2, Loader2, Star, X } from "lucide-react";
+import { Chips, SUGGEST, type Cat } from "@/components/reviews/WriteReview";
+import { cn } from "@/lib/utils/cn";
 import {
   signReviewUploadAction,
   submitVerifiedReviewAction,
@@ -8,13 +11,21 @@ import {
 
 type Uploaded = { url: string; publicId: string };
 
+const field =
+  "w-full rounded-xl border border-line bg-white px-4 text-[15px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10";
+const LABELS = ["", "Poor", "Okay", "Good", "Very good", "Loved it"];
+
 export function VerifiedReviewForm({
   token,
   productHandle,
+  category = "oil",
 }: {
   token: string;
   productHandle: string;
+  category?: string;
 }) {
+  const [hover, setHover] = useState(0);
+  const [files, setFiles] = useState<{ file: File; url: string }[]>([]);
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -57,13 +68,9 @@ export function VerifiedReviewForm({
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
-    const form = event.currentTarget;
-    const files = Array.from(
-      (form.elements.namedItem("photos") as HTMLInputElement).files ?? [],
-    );
     startTransition(async () => {
       try {
-        const photos = await uploadPhotos(files);
+        const photos = await uploadPhotos(files.map((f) => f.file));
         const result = await submitVerifiedReviewAction({
           token,
           productHandle,
@@ -91,54 +98,46 @@ export function VerifiedReviewForm({
     });
   }
 
+  const shown = hover || rating;
+  const pool = SUGGEST[(category in SUGGEST ? category : "oil") as Cat][rating >= 4 ? "good" : rating === 3 ? "mid" : "low"];
+
+  if (done)
+    return (
+      <div className="mt-5 flex items-center gap-3 rounded-2xl bg-forest/5 p-4 text-forest">
+        <CheckCircle2 className="size-6 shrink-0" />
+        <p className="text-sm font-semibold">{notice || "Thanks. Your review has been submitted for approval."}</p>
+      </div>
+    );
+
   return (
-    <form onSubmit={submit} className="mt-5 space-y-4">
-      <fieldset>
-        <legend className="mb-2 text-sm font-semibold text-forest-text">
-          Your rating
-        </legend>
-        <div role="radiogroup" aria-label="Your rating" className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((value) => (
-            <label
-              key={value}
-              className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-full border border-line px-2 has-[:checked]:border-forest has-[:checked]:bg-khaki-soft"
+    <form onSubmit={submit} className="mt-5 space-y-5">
+      <div>
+        <p className="mb-1.5 text-[13px] font-medium text-ink-muted">Your rating</p>
+        <div role="radiogroup" aria-label="Your rating" className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={rating === n}
+              aria-label={`${n} star${n > 1 ? "s" : ""}`}
+              onMouseEnter={() => setHover(n)}
+              onClick={() => setRating(n)}
+              className="rounded-md p-0.5 transition-transform hover:scale-110"
             >
-              <input
-                type="radio"
-                name={`rating-${productHandle}`}
-                value={value}
-                checked={rating === value}
-                onChange={() => setRating(value)}
-                className="sr-only"
-                aria-label={`${value} ${value === 1 ? "star" : "stars"}`}
-              />
-              <span
-                aria-hidden
-                className={
-                  value <= rating ? "text-mustard" : "text-ink-muted/30"
-                }
-              >
-                ★
-              </span>
-            </label>
+              <Star className={cn("size-9", n <= shown ? "fill-[#f5b400] text-[#f5b400]" : "fill-line text-line")} />
+            </button>
           ))}
+          <span className="ml-2 text-sm font-semibold text-forest-text">{LABELS[shown]}</span>
         </div>
-      </fieldset>
+      </div>
       <label className="block">
-        <span className="mb-1 block text-sm font-semibold text-forest-text">
-          Short title (optional)
-        </span>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={160}
-          className="min-h-12 w-full rounded-2xl border border-line px-4"
-        />
+        <span className="mb-1.5 block text-[13px] font-medium text-ink-muted">Headline (optional)</span>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} placeholder="e.g. Asli kachi ghani swad" className={cn(field, "h-12")} />
+        <Chips items={pool.title} active={(t) => t === title} onPick={setTitle} />
       </label>
       <label className="block">
-        <span className="mb-1 block text-sm font-semibold text-forest-text">
-          Your review
-        </span>
+        <span className="mb-1.5 block text-[13px] font-medium text-ink-muted">Your review</span>
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
@@ -146,42 +145,60 @@ export function VerifiedReviewForm({
           maxLength={3000}
           required
           rows={5}
-          className="w-full rounded-2xl border border-line p-4"
-          placeholder="What did you think of the product?"
+          className={cn(field, "py-3 leading-relaxed")}
+          placeholder="Taste, smell, packing, how you used it…"
         />
+        <Chips items={pool.body} active={(t) => body.includes(t)} onPick={(t) => setBody((b) => (b.includes(t) ? b : `${b.trim()} ${t}`.trim()))} plus />
       </label>
-      <label className="block">
-        <span className="mb-1 block text-sm font-semibold text-forest-text">
-          Photos (optional, up to 3)
-        </span>
-        <input
-          type="file"
-          name="photos"
-          accept="image/*"
-          multiple
-          className="block min-h-11 w-full rounded-xl border border-line p-2 text-sm file:mr-3 file:min-h-9 file:rounded-full file:border-0 file:bg-khaki-soft file:px-3"
-        />
-      </label>
-      <p className="text-sm text-ink-muted">
-        Your review is linked to your delivered order and will appear after
-        moderation.
-      </p>
+      <div>
+        <p className="mb-1.5 text-[13px] font-medium text-ink-muted">Photos (optional, up to 3)</p>
+        <div className="flex flex-wrap gap-2">
+          {files.map((f, n) => (
+            <span key={f.url} className="relative size-20 overflow-hidden rounded-xl border border-line">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
+              <img src={f.url} alt="" className="size-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setFiles((fs) => fs.filter((_, k) => k !== n))}
+                aria-label="Remove photo"
+                className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-black/60 text-white"
+              >
+                <X className="size-3.5" />
+              </button>
+            </span>
+          ))}
+          {files.length < 3 && (
+            <label className="grid size-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-line text-ink-muted hover:border-forest/40 hover:text-forest">
+              <Camera className="size-6" />
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                onChange={(e) => {
+                  const picked = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
+                  setFiles((fs) => [...fs, ...picked.map((file) => ({ file, url: URL.createObjectURL(file) }))].slice(0, 3));
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          )}
+        </div>
+      </div>
       {notice && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded-xl bg-khaki-soft p-3 text-sm text-forest"
-        >
+        <p role="alert" className="rounded-xl bg-alert-soft px-3 py-2 text-sm text-alert">
           {notice}
         </p>
       )}
       <button
         type="submit"
-        disabled={pending || done}
-        className="min-h-12 rounded-full bg-forest px-6 font-semibold text-white disabled:opacity-60"
+        disabled={pending}
+        className="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-6 text-sm font-bold text-white hover:bg-forest-mid disabled:opacity-60 sm:w-auto"
       >
-        {pending ? "Submitting…" : done ? "Review submitted" : "Submit review"}
+        {pending && <Loader2 className="size-4 animate-spin" />}
+        {pending ? "Submitting…" : "Submit review"}
       </button>
+      <p className="text-xs text-ink-muted">Linked to your delivered order and shown as a verified review after a quick check.</p>
     </form>
   );
 }
