@@ -197,7 +197,7 @@ export const categoryTiles = [
   {
     key: "cake", title: "Oil cake (khal)", titleHi: "खल", unit: "items", collection: "", span: "wide",
     blurb: "Nutritious oil cake for cattle and farms.",
-    tone: { bg: "linear-gradient(140deg,#5a4a30 0%,#3a2f1f 100%)", ink: "light", glow: "radial-gradient(circle,rgba(208,177,122,.45),transparent 65%)" },
+    tone: { bg: "linear-gradient(140deg,#5a4a30 0%,#3a2f1f 100%)", ink: "light", glow: "none" },
   },
 ] as const;
 
