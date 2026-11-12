@@ -3,7 +3,8 @@
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import confetti from "canvas-confetti";
-import { PartyPopper, Truck } from "lucide-react";
+import { PartyPopper, Truck } from "@/components/icons/duo";
+import { Check } from "lucide-react";
 import { useStoreSettings } from "@/components/StoreSettingsProvider";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
@@ -20,7 +21,7 @@ export function FreeShippingBar({ subtotal }: { subtotal: number }) {
   useEffect(() => {
     if (done && !prev.current && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const shoot = (x: number) =>
-        confetti({ particleCount: 70, spread: 70, startVelocity: 38, origin: { x, y: 0.15 }, colors: ["#0c3c24", "#b49024", "#d0b17a", "#f6efe2"], zIndex: 9999 });
+        confetti({ particleCount: 110, spread: 85, startVelocity: 42, origin: { x, y: 0.15 }, colors: ["#0c3c24", "#b49024", "#f6efe2", "#f08a24"], zIndex: 9999 });
       shoot(0.82);
       setTimeout(() => shoot(0.92), 180);
     }
@@ -28,8 +29,8 @@ export function FreeShippingBar({ subtotal }: { subtotal: number }) {
   }, [done]);
 
   return (
-    <div className={cn("rounded-2xl border p-3.5 transition-colors", done ? "border-forest/20 bg-forest/5" : "border-line bg-white")}>
-      <p className="flex items-center gap-2 text-sm text-forest-text">
+    <div className={cn("rounded-2xl border px-3 py-2.5 transition-colors", done ? "border-forest/20 bg-forest/5" : "border-line bg-white")}>
+      <div className="flex items-center justify-between gap-2"><p className="flex items-center gap-2 text-[13px] text-forest-text">
         {done ? (
           <>
             <PartyPopper className="size-4 text-mustard" aria-hidden />
@@ -44,8 +45,14 @@ export function FreeShippingBar({ subtotal }: { subtotal: number }) {
           </>
         )}
       </p>
+      {/* milestone: amount + reward, green check once unlocked */}
+      <span className={cn("flex shrink-0 items-center gap-1 text-[11px] font-semibold tabular-nums", done ? "text-forest" : "text-ink-muted")}>
+        {done && <Check className="size-3" strokeWidth={3} aria-hidden />}
+        {formatMoney(threshold)} · Free shipping
+      </span>
+      </div>
       <div
-        className="relative mt-3 h-2 rounded-full bg-khaki-soft"
+        className="relative mt-2.5 h-2 rounded-full bg-khaki-soft"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={threshold}

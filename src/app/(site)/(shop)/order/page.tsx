@@ -1,9 +1,11 @@
+import { cutoutUrl } from "@/lib/image-loader";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { AlertCircle, Banknote, Check, Clock, CreditCard, MapPin, MessageCircle, PackageCheck, Phone, RotateCcw, Truck, XCircle } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
+import { AlertCircle, Banknote, Clock, CreditCard, MapPin, MessageCircle, PackageCheck, Phone, Truck, XCircle } from "@/components/icons/duo";
 import { OrderCelebrate } from "@/components/checkout/OrderCelebrate";
 import { PurchaseEvent } from "@/components/marketing/PurchaseEvent";
 import { site, whatsappLink } from "@/data/site";
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function OrderPage({ searchParams }: PageProps<"/order">) {
   return (
-    <div className="mx-auto max-w-[1000px] px-4 pt-8 pb-16 md:px-8 md:pt-12 md:pb-24">
+    <div className="co-theme mx-auto max-w-[1000px] px-4 pt-8 pb-10 text-ink md:px-8 md:pt-12 md:pb-24">
       <Suspense fallback={<div className="h-96 animate-pulse rounded-3xl bg-white/60" />}>
         <OrderContent searchParams={searchParams} />
       </Suspense>
@@ -172,7 +174,7 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
               return (
                 <li key={i.variantKey} className="flex items-center gap-3 py-3">
                   <span className="relative grid size-14 shrink-0 place-items-center rounded-xl bg-[radial-gradient(circle_at_50%_60%,#f3e6c8,#f6efe2_70%)]">
-                    {img && <Image src={img.url} alt="" width={56} height={56} className="size-12 object-contain" />}
+                    {img && <Image src={cutoutUrl(img.url)} alt="" width={56} height={56} className="size-12 object-contain" />}
                     <span className="absolute -top-1.5 -right-1.5 grid size-5 place-items-center rounded-full bg-forest text-[10px] font-bold text-white">{i.quantity}</span>
                   </span>
                   <span className="min-w-0 flex-1">

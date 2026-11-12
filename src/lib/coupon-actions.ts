@@ -212,3 +212,33 @@ export async function validateCheckoutCouponAction(
     };
   }
 }
+
+/** Cart drawer: check a code against the cart before checkout (no phone yet). Same server-side
+ * pricing as checkout; first-order / per-phone limits are re-checked at checkout. */
+export async function previewCartCouponAction(
+  raw: unknown,
+): Promise<
+  | { ok: false; error: string }
+  | { ok: true; code: string; discount: number; freeShipping: boolean; phoneRulesPending: boolean }
+> {
+  const limit = await rateLimit("coupon", await clientIp(), 15, 10);
+  if (!limit.ok) return { ok: false, error: `Too many attempts. Try again in ${limit.retryInMin} min.` };
+  const p = z.object({ code: z.string().trim().min(1).max(30) }).strict().safeParse(raw);
+  if (!p.success) return { ok: false, error: "Enter a coupon code." };
+  const cart = await getCartAction();
+  if (!cart?.lines.length) return { ok: false, error: "Your cart is empty." };
+  const items = [];
+  for (const line of cart.lines) {
+    const product = await getProduct(line.product.handle);
+    const variant = product?.variants.find((v) => v.id === line.variant.id && v.availableForSale);
+    if (!product || !variant) return { ok: false, error: "A product in your cart is no longer available." };
+    items.push({ productHandle: product.handle, unitPrice: variant.price.amount, quantity: line.quantity });
+  }
+  const subtotal = items.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  try {
+    const quote = await calculateCoupon(p.data.code, subtotal, "", items);
+    return { ok: true, code: quote.code, discount: quote.discount, freeShipping: quote.freeShipping, phoneRulesPending: !!quote.phoneRulesPending };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "This code can't be applied." };
+  }
+}

@@ -1,5 +1,8 @@
+import { cldUrl, cutoutUrl } from "@/lib/image-loader";
+
 /**
- * "Fly to cart": clones the product photo and arcs it into the header cart icon.
+ * "Fly to cart": arcs the product (the transparent bottle cut-out, not the whole photo with its
+ * background) into the header cart icon.
  * Pure Web Animations API (no layout work, cleans itself up). Skipped for reduced motion.
  */
 export function flyToCart(from: Element | null, src?: string) {
@@ -12,7 +15,7 @@ export function flyToCart(from: Element | null, src?: string) {
   const b = target.getBoundingClientRect();
   const size = Math.min(a.width, a.height) * 0.7;
   const img = document.createElement("img");
-  img.src = src;
+  img.src = cldUrl(cutoutUrl(src), 240);
   img.alt = "";
   Object.assign(img.style, {
     position: "fixed",

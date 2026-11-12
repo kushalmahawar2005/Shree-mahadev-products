@@ -7,6 +7,8 @@ import { redirect } from "next/navigation";
 import { getProduct } from "@/lib/commerce";
 import { getCartAction } from "@/lib/commerce/actions";
 import { INDIAN_STATES } from "@/lib/checkout";
+import { stateFromPincode } from "@/lib/pincode-states";
+import { checkoutConfig } from "@/config/checkout";
 import { captureCartContact } from "@/lib/server/carts";
 import { clearCartCookies, getCartDbToken } from "@/lib/server/cart-cookies";
 import { createOrder, type OrderItemInput } from "@/lib/server/orders";
@@ -29,6 +31,8 @@ export type ShippingQuoteResult =
       payu: { shipping: number };
       cod: { shipping: number; codFee: number };
       edd: string | null;
+      /** Courier's minimum transit days (null = unknown, e.g. flat-rate fallback). */
+      etaDays: number | null;
     }
   | { ok: false };
 
@@ -94,7 +98,39 @@ export async function quoteShippingAction(
       ? { shipping: cod.shipping, codFee: cod.codFee }
       : { shipping: -1, codFee: 0 },
     edd: payu.edd,
+    etaDays: payu.edd ? Number(/\d+/.exec(payu.edd)?.[0]) || null : null,
   };
+}
+
+const pinCache = new Map<string, { city: string; state: string }>();
+
+/** Pincode → city + state for autofill. Public India Post API, with an offline prefix table fallback. */
+export async function lookupPincodeAction(
+  pincode: string,
+): Promise<{ city: string; state: string } | null> {
+  if (!PIN.test(pincode)) return null;
+  const hit = pinCache.get(pincode);
+  if (hit) return hit;
+  let result: { city: string; state: string } | null = null;
+  try {
+    const res = await fetch(`${checkoutConfig.pincodeLookupUrl}${pincode}`, {
+      signal: AbortSignal.timeout(3500),
+    });
+    const data = (await res.json()) as {
+      Status?: string;
+      PostOffice?: { District?: string; State?: string }[] | null;
+    }[];
+    const po = data?.[0]?.Status === "Success" ? data[0].PostOffice?.[0] : undefined;
+    const state = (INDIAN_STATES as readonly string[]).find(
+      (s) => s.toLowerCase() === po?.State?.trim().toLowerCase(),
+    );
+    if (po?.District) result = { city: po.District.trim(), state: state ?? stateFromPincode(pincode) ?? "" };
+  } catch {
+    // network/API down: fall back below
+  }
+  result ??= stateFromPincode(pincode) ? { city: "", state: stateFromPincode(pincode)! } : null;
+  if (result?.city) pinCache.set(pincode, result);
+  return result;
 }
 
 /** Saves contact details as they are typed, so abandoned checkouts can be followed up. */
@@ -173,6 +209,12 @@ const CheckoutForm = z.object({
       "Select your state.",
     ),
   pincode: z.string().trim().regex(PIN, "Enter a 6-digit pincode."),
+  gstin: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine((v) => !v || /^\d{2}[A-Z]{5}\d{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(v), "Enter a valid 15-character GSTIN or leave it empty.")
+    .catch(""),
   couponCode: z.string().trim().max(30).catch(""),
 });
 
@@ -199,6 +241,7 @@ export async function placeOrderAction(
         "city",
         "state",
         "pincode",
+        "gstin",
         "couponCode",
       ].map((k) => [k, field(k)]),
     ),
@@ -209,7 +252,7 @@ export async function placeOrderAction(
       fieldErrors[String(i.path[0])] ??= i.message;
     return { fieldErrors };
   }
-  const { method, couponCode: rawCoupon, ...address } = parsed.data;
+  const { method, couponCode: rawCoupon, gstin, ...address } = parsed.data;
   const { shipping: ship } = await getStoreSettings();
   if (method === "cod" && !ship.codEnabled)
     return {
@@ -297,6 +340,7 @@ export async function placeOrderAction(
       cartToken: await getCartDbToken(),
       clientIp: await clientIp(),
       userAgent: requestHeaders.get("user-agent"),
+      customerGstin: gstin || null,
     }));
   } catch (e) {
     if (e instanceof OutOfStockError) return { error: e.message };
