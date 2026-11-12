@@ -13,6 +13,8 @@ export type CouponQuote = {
   code: string;
   discount: number;
   freeShipping: boolean;
+  /** True when first-order / per-phone rules exist and were not checked (preview without a phone). */
+  phoneRulesPending?: boolean;
 };
 
 export class CouponError extends Error {}
@@ -59,7 +61,8 @@ export async function calculateCoupon(
     Number(coupon.used_count) >= Number(coupon.usage_limit)
   )
     fail("This coupon has reached its usage limit.");
-  if (coupon.first_order_only) {
+  // Cart preview passes no phone: phone-based rules are checked at checkout (order creation always has one).
+  if (coupon.first_order_only && phone) {
     const [orders] = await executor.execute<RowDataPacket[]>(
       `SELECT COUNT(*) AS n FROM orders WHERE phone=? AND status IN
        ('paid','cod_pending','confirmed','packed','shipped','delivered','partially_refunded')`,
@@ -67,7 +70,7 @@ export async function calculateCoupon(
     );
     if (Number(orders[0]?.n) > 0) fail("This code is for first orders only.");
   }
-  if (coupon.per_phone_limit !== null) {
+  if (coupon.per_phone_limit !== null && phone) {
     const [uses] = await executor.execute<RowDataPacket[]>(
       "SELECT COUNT(*) AS n FROM coupon_redemptions WHERE coupon_id=? AND phone=?",
       [coupon.id, phone],
@@ -126,6 +129,7 @@ export async function calculateCoupon(
     code: coupon.code,
     discount,
     freeShipping: coupon.kind === "free_shipping",
+    phoneRulesPending: !phone && (!!coupon.first_order_only || coupon.per_phone_limit !== null),
   };
 }
 

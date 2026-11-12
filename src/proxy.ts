@@ -25,6 +25,14 @@ export async function proxy(req: NextRequest) {
       }
     }
   }
+  // Account area: no customer cookie → sign in first, then come back. (The layout verifies the session.)
+  if (pathname === "/account" || pathname.startsWith("/account/")) {
+    if (req.cookies.get("smp_customer")?.value) return NextResponse.next();
+    const url = req.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    return NextResponse.redirect(url);
+  }
   if (!pathname.startsWith("/admin")) return NextResponse.next();
   if (pathname === "/admin/login") {
     const requestHeaders = new Headers(req.headers);
@@ -39,4 +47,4 @@ export async function proxy(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export const config = { matcher: ["/admin", "/admin/:path*", "/collections/:handle"] };
+export const config = { matcher: ["/admin", "/admin/:path*", "/collections/:handle", "/account", "/account/:path*"] };

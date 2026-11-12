@@ -20,6 +20,7 @@ export type PublicReview = {
   verified: boolean;
   featured: boolean;
   holdReason: string;
+  helpful: number;
 };
 
 async function mapPhotos(rows: RowDataPacket[]) {
@@ -55,6 +56,7 @@ async function mapPhotos(rows: RowDataPacket[]) {
         verified: row.order_id !== null && row.order_id !== undefined,
         featured: Boolean(row.featured),
         holdReason: String(row.auto_hold_reason ?? ""),
+        helpful: Number(row.helpful ?? 0),
       }) satisfies PublicReview,
   );
 }
@@ -65,8 +67,10 @@ export async function getProductReviews(
   "use cache";
   cacheLife({ revalidate: 3600 });
   cacheTag("reviews", `reviews:${handle}`);
+  // No database (e.g. a preview deploy): no reviews yet, same as store-settings falls back to defaults.
+  if (!process.env.DATABASE_NAME) return [];
   const [rows] = await db().execute<RowDataPacket[]>(
-    `SELECT r.id, r.product_handle, r.order_id, r.featured, r.auto_hold_reason, p.title AS product_title, r.name, r.city, r.rating, r.title, r.body, r.reply, r.source, r.created_at
+    `SELECT r.id, r.product_handle, r.order_id, r.featured, r.helpful, r.auto_hold_reason, p.title AS product_title, r.name, r.city, r.rating, r.title, r.body, r.reply, r.source, r.created_at
      FROM reviews r JOIN products p ON p.handle=r.product_handle WHERE r.status='approved' AND r.product_handle=?
      ORDER BY r.created_at DESC LIMIT 30`,
     [handle],
@@ -78,8 +82,9 @@ export async function getFeaturedReviews(): Promise<PublicReview[]> {
   "use cache";
   cacheLife({ revalidate: 3600 });
   cacheTag("reviews", "reviews:featured");
+  if (!process.env.DATABASE_NAME) return [];
   const [rows] = await db().query<RowDataPacket[]>(
-    `SELECT r.id, r.product_handle, r.order_id, r.featured, r.auto_hold_reason, p.title AS product_title, r.name, r.city, r.rating, r.title, r.body, r.reply, r.source, r.created_at
+    `SELECT r.id, r.product_handle, r.order_id, r.featured, r.helpful, r.auto_hold_reason, p.title AS product_title, r.name, r.city, r.rating, r.title, r.body, r.reply, r.source, r.created_at
      FROM reviews r JOIN products p ON p.handle=r.product_handle WHERE r.status='approved' AND r.featured=1
      ORDER BY r.created_at DESC LIMIT 6`,
   );

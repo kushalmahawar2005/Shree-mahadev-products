@@ -114,7 +114,7 @@ export async function requestPayuRefund(mihpayid: string, token: string, amount:
     hash: sha512([key, command, mihpayid, salt].join("|")),
   });
   try {
-    const res = await fetch(PAYU_VERIFY_URL, {
+    const res = await fetch(verifyUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
       body,

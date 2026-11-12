@@ -67,6 +67,7 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
         gstRate: p.gstRate ?? undefined,
         status: p.status,
         collections: p.collections,
+        defaultSize: p.defaultSize,
         variants: p.variants.map((v) => ({
           key: v.id,
           title: v.title,

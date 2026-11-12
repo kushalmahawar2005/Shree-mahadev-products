@@ -2,6 +2,7 @@ import "server-only";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import type { Product, ProductCategory, ProductVariant } from "@/lib/commerce/types";
 import { db } from "./db";
+import { PRODUCT_PLACEHOLDER } from "@/lib/placeholder";
 
 /**
  * Catalog in MySQL (products, product_variants, product_images, collections, collection_products).
@@ -115,8 +116,10 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
       shelfLife: p.shelf_life ?? undefined,
       images: images.length
         ? images
-        : [{ url: `/images/placeholder-${p.handle}.svg`, alt: `${p.title} bottle`, width: 800, height: 800 }],
+        : // No photo yet (e.g. Black Sesame, Jaggery Block): neutral branded 4:5 placeholder, same frame as packshots.
+          [{ url: PRODUCT_PLACEHOLDER, alt: `${p.title} (photo coming soon)`, width: 800, height: 1000 }],
       variants,
+      defaultSize: p.default_size ?? undefined,
       priceRange: {
         min: inr(priced.length ? Math.min(...priced) : 0),
         max: inr(priced.length ? Math.max(...priced) : 0),
@@ -178,6 +181,8 @@ export type ProductInput = {
   shelfLife?: string;
   tags: string[];
   faqs: { q: string; a: string }[];
+  /** Variant title the storefront opens on, e.g. "1 L". */
+  defaultSize?: string;
   seoTitle?: string;
   seoDescription?: string;
   hsn?: string;
@@ -230,13 +235,14 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
       input.descriptionHtml || null, JSON.stringify(input.benefits), JSON.stringify(input.bestFor), input.howToUse || null,
       input.processNote || null, input.labReportUrl || null, input.shelfLife || null, JSON.stringify(input.tags),
       JSON.stringify(input.faqs), input.seoTitle || null, input.seoDescription || null, input.hsn || null, input.gstRate ?? null, input.status,
+      input.defaultSize || null,
     ];
     let id: number;
     if (existing[0]) {
       id = existing[0].id;
       await c.execute(
         `UPDATE products SET handle=?, title=?, title_hi=?, category=?, swatch=?, short_description=?, description_html=?, benefits=?,
-           best_for=?, how_to_use=?, process_note=?, lab_report_url=?, shelf_life=?, tags=?, faqs=?, seo_title=?, seo_description=?, hsn=?, gst_rate=?, status=?
+           best_for=?, how_to_use=?, process_note=?, lab_report_url=?, shelf_life=?, tags=?, faqs=?, seo_title=?, seo_description=?, hsn=?, gst_rate=?, status=?, default_size=?
          WHERE id = ?`,
         [...cols, id],
       );
@@ -247,8 +253,8 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
       const [[{ next }]] = await c.query<Rows>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM products");
       const [res] = await c.execute<ResultSetHeader>(
         `INSERT INTO products (handle, title, title_hi, category, swatch, short_description, description_html, benefits, best_for,
-           how_to_use, process_note, lab_report_url, shelf_life, tags, faqs, seo_title, seo_description, hsn, gst_rate, status, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           how_to_use, process_note, lab_report_url, shelf_life, tags, faqs, seo_title, seo_description, hsn, gst_rate, status, default_size, sort_order)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [...cols, Number(next)],
       );
       id = res.insertId;

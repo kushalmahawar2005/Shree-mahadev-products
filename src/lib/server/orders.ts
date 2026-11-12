@@ -5,10 +5,12 @@ import type {
   ResultSetHeader,
   RowDataPacket,
 } from "mysql2/promise";
+import { findDuplicateAddress } from "./account-addresses";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
 import { queueOrderWhatsApp } from "./whatsapp";
-import { ensureInvoiceForOrder } from "./invoices";
+import { ensureCreditNotesForOrder } from "./credit-notes";
+import { ensureInvoiceForOrder, ensureInvoiceIfApplicable } from "./invoices";
 import { queueMarketingEvent } from "./marketing";
 import { calculateCoupon } from "./coupons";
 import {
@@ -172,6 +174,8 @@ export async function createOrder(input: {
   cartToken?: string;
   clientIp?: string | null;
   userAgent?: string | null;
+  /** Optional buyer GSTIN for a business (B2B) invoice; validated by the caller. */
+  customerGstin?: string | null;
 }): Promise<{ id: number; orderNo: string; token: string }> {
   if (input.method === "offline" && input.source !== "admin") {
     throw new Error("Offline payment orders can only be created by an admin.");
@@ -235,7 +239,9 @@ export async function createOrder(input: {
     const [[{ cid }]] = await conn.query<RowDataPacket[]>(
       "SELECT LAST_INSERT_ID() AS cid",
     );
-    await conn.execute(
+    // Save the address to the book only once (repeat orders to the same place reuse it).
+    const existing = await findDuplicateAddress(conn, Number(cid), a);
+    if (!existing) await conn.execute(
       "INSERT INTO addresses (customer_id, name, phone, line1, line2, city, state, pincode) VALUES (?,?,?,?,?,?,?,?)",
       [
         cid,
@@ -290,8 +296,8 @@ export async function createOrder(input: {
       `INSERT INTO orders (token, customer_id, cart_id, source, status, payment_method, customer_name, phone, email,
          address_line1, address_line2, city, state, pincode, subtotal, discount, coupon_code, shipping, cod_fee, courier_id, courier_name, total,
          utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, fbc, fbp, gclid, client_id,
-         landing_page, referrer, marketing_consent, client_ip, user_agent, paid_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL))`,
+         landing_page, referrer, marketing_consent, client_ip, user_agent, paid_at, customer_gstin)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,IF(?=1,NOW(),NULL),?)`,
       [
         token,
         cid,
@@ -331,6 +337,7 @@ export async function createOrder(input: {
         input.clientIp ?? null,
         input.userAgent?.slice(0, 255) ?? null,
         input.method === "offline" ? 1 : 0,
+        input.customerGstin?.trim().toUpperCase().slice(0, 15) || null,
       ],
     );
     const id = res.insertId;
@@ -407,7 +414,7 @@ export async function createOrder(input: {
     return { id, orderNo, token };
   });
   if (input.method === "cod" || input.method === "offline") {
-    await ensureInvoiceForOrder(created.id).catch((error) => console.error("Invoice could not be created", created.orderNo, error));
+    await ensureInvoiceIfApplicable(created.id).catch((error) => console.error("Invoice could not be created", created.orderNo, error));
     void queueMarketingEvent("Purchase", created.orderNo, created.id);
   }
   return created;
@@ -730,8 +737,10 @@ export async function setOrderStatus(
       await returnStock(conn, orderId, "any", "restock", actor);
   });
   // Customer emails go out after the change is committed.
-  if (changed && to === "delivered")
-    await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
+  if (changed && (to === "paid" || to === "shipped" || to === "delivered"))
+    await ensureInvoiceIfApplicable(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
+  if (to === "cancelled" || to === "rto" || to === "refunded" || to === "partially_refunded")
+    await ensureCreditNotesForOrder(orderId).catch((error) => console.error("Credit note could not be created", orderId, error));
   if (changed && (to === "delivered" || to === "cancelled"))
     await notifyOrder(orderId, to);
   if (changed && (to === "delivered" || to === "cancelled"))

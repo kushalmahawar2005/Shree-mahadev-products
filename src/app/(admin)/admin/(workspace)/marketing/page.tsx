@@ -142,7 +142,7 @@ export default async function MarketingPage() {
 
 function Panel({ icon: Icon, title, hint, children }: { icon: typeof Radio; title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className={cn(card, "p-4 sm:p-5")}>
+    <section className={cn(card, "min-w-0 p-4 sm:p-5")}>
       <header className="mb-4 flex items-start gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-khaki-soft text-forest-fg">
           <Icon className="size-4" />

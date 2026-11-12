@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import type { RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 
@@ -14,7 +14,14 @@ const cleanPhone = (value: string) => value.replace(/\D/g, "").replace(/^(91|0)(
 export async function createCustomerSession(customerId: number) {
   const raw = randomBytes(32).toString("base64url");
   const expires = new Date(Date.now() + DAYS * 86400000);
-  await db().execute("INSERT INTO customer_sessions (customer_id, token_hash, expires_at) VALUES (?,?,?)", [customerId, hash(raw), expires]);
+  const h = await headers();
+  // Device info for "Active sessions" on the profile page.
+  await db().execute(
+    "INSERT INTO customer_sessions (customer_id, token_hash, expires_at, user_agent, ip, last_seen_at) VALUES (?,?,?,?,?,NOW())",
+    [customerId, hash(raw), expires, h.get("user-agent")?.slice(0, 255) ?? null, h.get("x-forwarded-for")?.split(",")[0]?.trim().slice(0, 45) || null],
+  );
+  // Signing in again cancels a pending account deletion (7-day grace period).
+  await db().execute("UPDATE customers SET last_login_at=NOW(), delete_requested_at=NULL WHERE id=?", [customerId]);
   const value = `${raw}.${sign(raw)}`;
   (await cookies()).set(COOKIE, value, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", expires });
 }

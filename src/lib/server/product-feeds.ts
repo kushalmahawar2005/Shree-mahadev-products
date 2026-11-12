@@ -9,7 +9,8 @@ const absolute = (url: string, siteUrl: string) =>
 
 export async function buildProductFeed(kind: "google" | "meta") {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const products = await loadProducts({ status: "active" });
+  // No database (preview deploy): an empty, valid feed instead of failing the build.
+  const products = process.env.DATABASE_NAME ? await loadProducts({ status: "active" }) : [];
   const items = products.flatMap((product) =>
     product.variants.filter((variant) => variant.enabled && variant.price.amount > 0).map((variant) => {
       const id = variant.sku || variant.id;

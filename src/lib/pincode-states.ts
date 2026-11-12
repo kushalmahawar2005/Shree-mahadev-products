@@ -1,0 +1,33 @@
+/**
+ * Offline fallback: Indian pincode prefix → state (India Post zones). Used when the public
+ * lookup API is down. Longest matching prefix wins; city is left for the shopper to type.
+ */
+const PREFIX: Record<string, string> = {
+  "11": "Delhi", "12": "Haryana", "13": "Haryana", "14": "Punjab", "15": "Punjab", "16": "Punjab", "160": "Chandigarh",
+  "17": "Himachal Pradesh", "18": "Jammu and Kashmir", "19": "Jammu and Kashmir", "194": "Ladakh",
+  "20": "Uttar Pradesh", "21": "Uttar Pradesh", "22": "Uttar Pradesh", "23": "Uttar Pradesh", "24": "Uttar Pradesh",
+  "246": "Uttarakhand", "247": "Uttarakhand", "248": "Uttarakhand", "249": "Uttarakhand", "262": "Uttarakhand", "263": "Uttarakhand",
+  "25": "Uttar Pradesh", "26": "Uttar Pradesh", "27": "Uttar Pradesh", "28": "Uttar Pradesh",
+  "30": "Rajasthan", "31": "Rajasthan", "32": "Rajasthan", "33": "Rajasthan", "34": "Rajasthan",
+  "36": "Gujarat", "37": "Gujarat", "38": "Gujarat", "39": "Gujarat", "396": "Dadra and Nagar Haveli and Daman and Diu",
+  "40": "Maharashtra", "403": "Goa", "41": "Maharashtra", "42": "Maharashtra", "43": "Maharashtra", "44": "Maharashtra",
+  "45": "Madhya Pradesh", "46": "Madhya Pradesh", "47": "Madhya Pradesh", "48": "Madhya Pradesh", "49": "Chhattisgarh",
+  "50": "Telangana", "51": "Andhra Pradesh", "52": "Andhra Pradesh", "53": "Andhra Pradesh",
+  "56": "Karnataka", "57": "Karnataka", "58": "Karnataka", "59": "Karnataka",
+  "60": "Tamil Nadu", "605": "Puducherry", "61": "Tamil Nadu", "62": "Tamil Nadu", "63": "Tamil Nadu", "64": "Tamil Nadu",
+  "67": "Kerala", "68": "Kerala", "6825": "Lakshadweep", "69": "Kerala",
+  "70": "West Bengal", "71": "West Bengal", "72": "West Bengal", "73": "West Bengal", "737": "Sikkim", "74": "West Bengal", "744": "Andaman and Nicobar Islands",
+  "75": "Odisha", "76": "Odisha", "77": "Odisha", "78": "Assam",
+  "790": "Arunachal Pradesh", "791": "Arunachal Pradesh", "792": "Arunachal Pradesh", "793": "Meghalaya", "794": "Meghalaya",
+  "795": "Manipur", "796": "Mizoram", "797": "Nagaland", "798": "Nagaland", "799": "Tripura",
+  "80": "Bihar", "81": "Bihar", "814": "Jharkhand", "815": "Jharkhand", "816": "Jharkhand", "82": "Bihar", "825": "Jharkhand",
+  "826": "Jharkhand", "827": "Jharkhand", "828": "Jharkhand", "829": "Jharkhand", "83": "Jharkhand", "84": "Bihar", "85": "Bihar",
+};
+
+export function stateFromPincode(pin: string): string | null {
+  for (let n = 4; n >= 2; n--) {
+    const s = PREFIX[pin.slice(0, n)];
+    if (s) return s;
+  }
+  return null;
+}
