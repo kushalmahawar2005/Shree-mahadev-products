@@ -29,6 +29,11 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "POST" && url.pathname === "/payu/verify") {
     const form = await body(req);
+    if (form.command === "cancel_refund_transaction") {
+      // Refund request: PayU answers status 1 + request_id when it queues the refund.
+      const ok = Number(form.var3) > 0 && String(form.var1 ?? "").length > 0;
+      return send(res, 200, ok ? { status: 1, msg: "Refund Request Queued", request_id: `QA-RF-${form.var2}` } : { status: 0, msg: "Invalid refund request" });
+    }
     const txnid = String(form.var1 ?? "");
     const result = payuStatuses.get(txnid);
     if (!result) return send(res, 200, { transaction_details: {} });

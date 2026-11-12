@@ -1,5 +1,5 @@
 // PayU callback, verification, reconciliation, and inventory checks against QA-only local mocks.
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { connectQaDatabase } from "./test-db.mjs";
@@ -56,8 +56,10 @@ class Shopper {
       name: "PayU QA", phone: "9822233344", email, line1: "12 QA Test Road", city: "Jaipur", state: "Rajasthan", pincode: "305001", method: "payu",
     })) form.append(key, value);
     const response = await fetch(`${BASE}/checkout`, { method: "POST", body: form, headers: { Cookie: this.cookie(), Origin: BASE }, redirect: "manual" });
-    const location = response.headers.get("location") ?? "";
-    if (response.status !== 303 || !location.includes("/checkout/pay")) throw new Error(`Could not create QA PayU order (${response.status} ${location})`);
+    // placeOrderAction returns { payUrl } (the client then does a full page load), so read it from the re-rendered page.
+    const page = response.headers.get("location") ? "" : await response.text();
+    const location = response.headers.get("location") ?? page.match(/\/checkout\/pay\?t=[\w-]+/)?.[0] ?? "";
+    if (!location.includes("/checkout/pay")) throw new Error(`Could not create QA PayU order (${response.status} ${location}) ${page.match(/"error":"[^"]*"|Too many[^<"]*/)?.[0] ?? ""}`);
     const payUrl = new URL(location, BASE);
     const payHtml = await (await fetch(`${BASE}${payUrl.pathname}${payUrl.search}`, { headers: { Cookie: this.cookie() } })).text();
     const field = (name) => (payHtml.match(new RegExp(`name="${name}" value="([^"]*)"`)) ?? [])[1];
@@ -108,6 +110,30 @@ try {
   await post("/api/payu/webhook", { key: KEY, txnid: first.txnid, amount: first.amount, productinfo: first.productinfo, firstname: first.firstname, email: first.email, udf1: first.udf1, mihpayid: `MOCK-${first.txnid}`, status: "success", hash: reverse(first, "success") });
   state = await paymentStatus(first.txnid);
   check(state.payment_status === "success" && await stock() === paidStock, "duplicate verified callback is idempotent");
+
+  // Refunds: partial, then over-limit (rejected), then the rest (full).
+  const [[owner]] = await db.query("SELECT username, session_version FROM admin_users WHERE role='owner' ORDER BY id LIMIT 1");
+  if (!owner) throw new Error("QA database has no owner admin");
+  const sessionPayload = Buffer.from(JSON.stringify({ u: owner.username, v: owner.session_version, exp: Date.now() + 600_000 })).toString("base64url");
+  const adminCookie = `smp_admin=${sessionPayload}.${createHmac("sha256", process.env.ADMIN_SESSION_SECRET).update(sessionPayload).digest("base64url")}`;
+  const REFUND = actionId("refundOrderAction");
+  const refund = (orderId, amount, reason) => fetch(`${BASE}/admin/orders/view?id=${orderId}`, {
+    method: "POST", headers: { "Next-Action": REFUND, "Content-Type": "text/plain;charset=UTF-8", Cookie: adminCookie, Origin: BASE }, body: JSON.stringify([orderId, amount, reason]),
+  }).then((r) => r.text());
+  const paidOrderId = Number(state.order_id);
+  const [[{ total }]] = await db.query("SELECT total FROM orders WHERE id=?", [paidOrderId]);
+  const part = Math.max(1, Math.floor(Number(total) / 3));
+  await refund(paidOrderId, part, "QA partial");
+  const orderStatus = async () => (await db.query("SELECT status FROM orders WHERE id=?", [paidOrderId]))[0][0].status;
+  const refundRows = async () => (await db.query("SELECT amount, status FROM refunds WHERE order_id=? ORDER BY id", [paidOrderId]))[0];
+  let rows = await refundRows();
+  check(rows.length === 1 && rows[0].status === "success" && Number(rows[0].amount) === part && await orderStatus() === "partially_refunded", "partial refund recorded and order marked partly refunded");
+  const over = await refund(paidOrderId, Number(total), "QA over-refund");
+  rows = await refundRows();
+  check(rows.length === 1 && /refund up to/i.test(over), "refund above the remaining amount is rejected");
+  await refund(paidOrderId, Number(total) - part, "QA rest");
+  rows = await refundRows();
+  check(rows.length === 2 && rows.every((r) => r.status === "success") && await orderStatus() === "refunded", "refunding the rest marks the order fully refunded");
 
   const wrongAmount = await new Shopper().createPayuOrder(`${testEmail.replace("@", "+amount@")}`);
   const changedAmount = (Number(wrongAmount.amount) + 1).toFixed(2);

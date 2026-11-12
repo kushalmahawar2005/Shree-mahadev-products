@@ -9,7 +9,7 @@ process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const db = await connectQaDatabase();
 const suffix = randomBytes(3).toString("hex").toUpperCase();
-const handles = [`SMP14A${suffix}`, `SMP14B${suffix}`, `SMP14C${suffix}`, `SMP14D${suffix}`, `SMP14E${suffix}`];
+const handles = [`SMP14A${suffix}`, `SMP14B${suffix}`, `SMP14C${suffix}`, `SMP14D${suffix}`, `SMP14E${suffix}`, `SMP14F${suffix}`];
 const tokens = handles.map(() => randomBytes(16).toString("hex"));
 const orderIds = [];
 let product = null;
@@ -57,7 +57,8 @@ try {
     const [insert] = await db.execute(
       `INSERT INTO orders (order_no,token,status,payment_method,customer_name,phone,email,address_line1,city,state,pincode,subtotal,discount,shipping,cod_fee,total)
        VALUES (?,?,?,'cod','Invoice Test Customer','9412345678','invoice-test@example.test','12 Invoice Test Road','Jaipur',?,'302001',1000,0,0,0,1000)`,
-      [orderNo, tokens[i], i === 4 ? "cancelled" : "cod_pending", state],
+      // COD invoices are issued once dispatched (shipped); F stays undispatched.
+      [orderNo, tokens[i], i === 4 ? "cancelled" : i === 5 ? "cod_pending" : "shipped", state],
     );
     orderIds.push(Number(insert.insertId));
     await db.execute(
@@ -74,14 +75,14 @@ try {
   let [[first]] = await db.query("SELECT invoice_no, fy, seq, snapshot FROM invoices WHERE order_id=?", [orderIds[0]]);
   let firstSnapshot = first && decode(first.snapshot);
   check(firstResponse.status === 200 && firstResponse.headers.get("content-type")?.includes("application/pdf") && firstBuffer.subarray(0, 4).toString() === "%PDF", "admin route returns a readable PDF tax invoice");
-  check(firstSnapshot?.documentTitle === "Tax invoice" && firstSnapshot?.lines[0]?.cgst === 24 && firstSnapshot?.lines[0]?.sgst === 24 && firstSnapshot?.lines[0]?.igst === 0, "Rajasthan buyer receives CGST and SGST from GST-inclusive price");
+  check(firstSnapshot?.documentTitle === "Tax invoice" && firstSnapshot?.lines[0]?.taxableValue === 952.38 && firstSnapshot?.lines[0]?.cgst === 23.81 && firstSnapshot?.lines[0]?.sgst === 23.81 && firstSnapshot?.lines[0]?.igst === 0 && firstSnapshot?.placeOfSupply?.code === "08", "Rajasthan buyer receives CGST and SGST from GST-inclusive price");
 
   const secondResponse = await pdfResponse(`/admin/orders/invoice?id=${orderIds[1]}`, cookie);
   const secondBuffer = Buffer.from(await secondResponse.arrayBuffer());
   const [[second]] = await db.query("SELECT invoice_no, fy, seq, snapshot FROM invoices WHERE order_id=?", [orderIds[1]]);
   const secondSnapshot = second && decode(second.snapshot);
-  check(secondResponse.status === 200 && secondBuffer.subarray(0, 4).toString() === "%PDF" && secondSnapshot?.lines[0]?.igst === 48 && secondSnapshot?.lines[0]?.cgst === 0 && secondSnapshot?.lines[0]?.sgst === 0, "out-of-state buyer receives a readable PDF with IGST only");
-  check(second?.fy === first?.fy && /^\d{4}-\d{2}$/.test(first?.fy ?? "") && Number(second?.seq) === Number(first?.seq) + 1 && first?.invoice_no === `SMP/${first.fy}/${String(first.seq).padStart(4, "0")}`, "invoice numbers use SMP/YYYY-YY/NNNN and increment sequentially within the financial year");
+  check(secondResponse.status === 200 && secondBuffer.subarray(0, 4).toString() === "%PDF" && secondSnapshot?.lines[0]?.igst === 47.62 && secondSnapshot?.lines[0]?.cgst === 0 && secondSnapshot?.lines[0]?.sgst === 0, "out-of-state buyer receives a readable PDF with IGST only");
+  check(second?.fy === first?.fy && /^\d{4}-\d{2}$/.test(first?.fy ?? "") && Number(second?.seq) === Number(first?.seq) + 1 && first?.invoice_no === `SMP/${first.fy}/${String(first.seq).padStart(6, "0")}`, "invoice numbers use SMP/YYYY-YY/NNNNNN and increment sequentially within the financial year");
 
   const customerResponse = await pdfResponse(`/order/invoice?t=${tokens[1]}`);
   check(customerResponse.status === 200 && (await customerResponse.headers.get("content-type"))?.includes("application/pdf"), "customer token link downloads its order invoice");
@@ -92,6 +93,21 @@ try {
   const invalidBulk = await pdfResponse(`/admin/orders/invoice?ids=${orderIds[3]},${orderIds[4]}`, cookie);
   const [[partial]] = await db.query("SELECT order_id FROM invoices WHERE order_id=?", [orderIds[3]]);
   check(invalidBulk.status === 409 && !partial, "invalid order in a bulk selection rolls back every new invoice in that batch");
+
+  const undispatched = await pdfResponse(`/admin/orders/invoice?id=${orderIds[5]}`, cookie);
+  const [[none]] = await db.query("SELECT order_id FROM invoices WHERE order_id=?", [orderIds[5]]);
+  check(undispatched.status === 409 && !none, "COD order not yet dispatched gets no invoice (and no number is used)");
+
+  await db.execute("UPDATE orders SET status='cancelled' WHERE id=?", [orderIds[0]]);
+  const creditResponse = await pdfResponse(`/admin/orders/invoice?id=${orderIds[0]}&cn=latest`, cookie);
+  const creditBuffer = Buffer.from(await creditResponse.arrayBuffer());
+  const [notes] = await db.query("SELECT credit_note_no, amount, snapshot FROM credit_notes WHERE order_id=?", [orderIds[0]]);
+  const note = notes[0] && decode(notes[0].snapshot);
+  check(creditResponse.status === 200 && creditBuffer.subarray(0, 4).toString() === "%PDF" && notes.length === 1 && Number(notes[0].amount) === 1000
+    && /^SMP\/CN\/\d{4}-\d{2}\/\d{6}$/.test(notes[0].credit_note_no) && note?.against?.invoiceNo === first?.invoice_no, "cancelled invoiced order gets one credit note against its invoice");
+  await pdfResponse(`/admin/orders/invoice?id=${orderIds[0]}&cn=latest`, cookie);
+  const [[again]] = await db.query("SELECT COUNT(*) AS n FROM credit_notes WHERE order_id=?", [orderIds[0]]);
+  check(Number(again.n) === 1, "credit notes are idempotent");
 
   const noGstin = { ...business, gstin: "" };
   await db.execute("UPDATE settings SET value=? WHERE `key`='business'", [JSON.stringify(noGstin)]);

@@ -5,7 +5,7 @@ import { join } from "node:path";
 process.loadEnvFile(".env.local");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const walk = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]));
-const actionId = (n) => { for (const f of walk(".next/dev").filter((f) => f.endsWith("server-reference-manifest.json"))) { const m = JSON.parse(readFileSync(f, "utf8")); for (const [id, v] of Object.entries(m.node ?? {})) if (v.exportedName === n) return id; } throw new Error(n); };
+const actionId = (n) => { for (const f of walk(process.env.TEST_MANIFEST_DIR ?? ".next/dev").filter((f) => f.endsWith("server-reference-manifest.json"))) { const m = JSON.parse(readFileSync(f, "utf8")); for (const [id, v] of Object.entries(m.node ?? {})) if (v.exportedName === n) return id; } throw new Error(n); };
 const page = (u) => fetch(BASE + u).then((r) => r.text());
 import { connectQaDatabase } from "./test-db.mjs";
 const db = await connectQaDatabase();

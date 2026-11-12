@@ -43,7 +43,9 @@ class Shopper {
       line1: "12 Test Street", city: "Ajmer", state: "Rajasthan", pincode: "305001", method })) fd.append(k, v);
     const res = await fetch(BASE + "/checkout", { method: "POST", body: fd, headers: { Cookie: this.cookie(), Origin: BASE, "x-forwarded-for": "198.18.250.1" }, redirect: "manual" });
     const body = res.status === 200 ? await res.text() : "";
-    return { placed: res.status === 303, location: res.headers.get("location"), outOfStock: /out of stock|left of/i.test(body) };
+    // placeOrderAction returns { payUrl } for PayU (client does a full load); COD still redirects.
+    const location = res.headers.get("location") ?? body.match(/\/checkout\/pay\?t=[\w-]+/)?.[0] ?? null;
+    return { placed: res.status === 303 || Boolean(location), location, outOfStock: /out of stock|left of/i.test(body) };
   }
 }
 
