@@ -50,11 +50,11 @@ function Wrap({
 
 export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   return (
-    <section className="paper-grain relative overflow-hidden bg-page pt-12 pb-4 md:pt-20 md:pb-8">
+    <section className="paper-grain relative overflow-hidden bg-page pt-16 pb-4 md:pt-20 md:pb-8">
       <Sky />
       <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <Reveal>
-          <h2 className="text-center text-3xl text-forest md:text-[44px]">
+          <h2 className="text-center text-[26px] text-forest md:text-[44px]">
             {topPicks.title}
           </h2>
         </Reveal>
@@ -145,7 +145,7 @@ export function PromoStrip() {
 export function BrandFilmSection({ youtube, reels = [] }: { youtube: string; /** Two reels stacked on the film's right. */ reels?: ReelItem[] }) {
   // Painted folk birds on the top-right margin, behind the content (smaller on phones).
   return (
-    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-forest-deep pt-14 pb-16 md:pt-24 md:pb-24">
+    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-forest-deep pt-10 pb-10 md:pt-24 md:pb-24">
       <TornEdge color="var(--color-page)" />
       {/* Deep forest "screening room" band: warm lamp-light glow behind the film */}
       <span
@@ -164,14 +164,14 @@ export function BrandFilmSection({ youtube, reels = [] }: { youtube: string; /**
             हमारी कहानी
             <span aria-hidden className="h-px w-6 bg-[#e8c879]/60" />
           </p>
-          <h2 className="mt-2 max-w-[18ch] text-[30px] leading-[1.1] font-bold tracking-tight text-balance text-[#fbf3df] sm:max-w-none md:text-[44px]">
+          <h2 className="mt-1.5 max-w-[18ch] text-[24px] leading-[1.1] font-bold tracking-tight text-balance text-[#fbf3df] sm:max-w-none md:text-[44px]">
             {brandFilm.titleRest}
           </h2>
-          <p className="mt-3 max-w-lg text-[15px] text-white/70 md:text-base">
+          <p className="mt-2 max-w-lg text-sm text-white/70 md:mt-3 md:text-base">
             Watch one batch go from seed to bottle in our ghani: cleaned by hand, pressed slow, nothing added.
           </p>
         </Reveal>
-        <div className="mt-8 md:mt-10">
+        <div className="mt-6 md:mt-10">
           <FilmShowcase youtube={youtube} title={brandFilm.posterTitle} subtitle={brandFilm.posterSub} reels={reels} />
         </div>
       </div>
@@ -296,11 +296,11 @@ export function Spotlight({
       />
       <Wrap className="relative">
         <Reveal className="text-center md:text-left">
-          <h2 className="inline-flex items-center gap-2 text-3xl text-forest-text md:text-[44px]">
+          <h2 className="inline-flex items-center gap-2 text-[24px] text-forest-text md:text-[44px]">
             Spotlight
             <svg
               viewBox="0 0 24 24"
-              className="size-7 text-[#E0A526] md:size-8"
+              className="size-5 text-[#E0A526] md:size-8"
               fill="currentColor"
               aria-hidden
             >

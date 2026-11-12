@@ -91,6 +91,22 @@ export async function getFeaturedReviews(): Promise<PublicReview[]> {
   return mapPhotos(rows);
 }
 
+/** Best approved 4-5★ reviews from other products (featured first), for a product that has none yet. */
+export async function getOtherProductReviews(excludeHandle: string, limit = 3): Promise<PublicReview[]> {
+  "use cache";
+  cacheLife({ revalidate: 3600 });
+  cacheTag("reviews");
+  if (!process.env.DATABASE_NAME) return [];
+  const [rows] = await db().query<RowDataPacket[]>(
+    `SELECT r.id, r.product_handle, r.order_id, r.featured, r.helpful, r.auto_hold_reason, p.title AS product_title, r.name, r.city, r.rating, r.title, r.body, r.reply, r.source, r.created_at
+     FROM reviews r JOIN products p ON p.handle=r.product_handle
+     WHERE r.status='approved' AND r.rating>=4 AND r.product_handle<>?
+     ORDER BY r.featured DESC, r.created_at DESC LIMIT ?`,
+    [excludeHandle, limit],
+  );
+  return mapPhotos(rows);
+}
+
 export async function listAdminReviews(
   status: "pending" | "approved" | "rejected",
 ) {

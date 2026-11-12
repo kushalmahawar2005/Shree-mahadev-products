@@ -50,7 +50,7 @@ export function WhyChooseOil() {
   const [active, setActive] = useState(reduce ? STEPS.length - 1 : -1);
 
   return (
-    <section id="ghani-process" aria-labelledby="why-oil-title" className="paper-grain relative scroll-mt-24 bg-ivory py-14 md:py-20">
+    <section id="ghani-process" aria-labelledby="why-oil-title" className="paper-grain relative scroll-mt-24 bg-ivory py-10 md:py-20">
       <TornEdge />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
         {/* Header */}
@@ -60,17 +60,17 @@ export function WhyChooseOil() {
             हमारा तेल ही क्यों
             <span aria-hidden className="h-px w-6 bg-sale/50" />
           </p>
-          <h2 id="why-oil-title" className="mt-2 text-[30px] leading-[1.1] font-bold tracking-tight md:text-[44px]">
+          <h2 id="why-oil-title" className="mt-1.5 text-[24px] leading-[1.1] md:mt-2 font-bold tracking-tight md:text-[44px]">
             Why choose our oil?
           </h2>
-          <p className="mt-3 max-w-xl text-[15px] text-ink-muted md:text-base">
+          <p className="mt-2 max-w-xl text-sm text-ink-muted md:mt-3 md:text-base">
             Slow-speed wooden ghani, strained through cloth and clarified by natural settling. No chemicals, no high heat.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-10 md:mt-14 lg:grid-cols-12 lg:items-start lg:gap-12">
+        <div className="mt-6 grid gap-6 md:mt-14 md:gap-10 lg:grid-cols-12 lg:items-start lg:gap-12">
           {/* LEFT: Dadi ji (sticky while the steps scroll past) */}
-          <div className="relative mx-auto w-full max-w-[440px] lg:sticky lg:top-[152px] lg:col-span-5 lg:max-w-none">
+          <div className="relative mx-auto w-full max-w-[300px] md:max-w-[440px] lg:sticky lg:top-[152px] lg:col-span-5 lg:max-w-none">
             {/* soft mustard sun */}
             <span
               aria-hidden
@@ -94,7 +94,7 @@ export function WhyChooseOil() {
                   height={1205}
                   quality={85}
                   sizes="(min-width: 1360px) 500px, (min-width: 1024px) 38vw, 90vw"
-                  className="relative mx-auto h-auto max-h-[360px] w-auto drop-shadow-[0_16px_20px_rgba(60,40,10,0.12)] lg:max-h-[480px]"
+                  className="relative mx-auto h-auto max-h-[240px] w-auto drop-shadow md:max-h-[360px]-[0_16px_20px_rgba(60,40,10,0.12)] lg:max-h-[480px]"
                 />
               </motion.div>
               {/* Speech bubble, tail pointing down-left to Dadi */}
@@ -104,7 +104,7 @@ export function WhyChooseOil() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-80px" }}
                 transition={{ duration: 0.4, delay: reduce ? 0 : 0.3, ease: EASE }}
-                className="font-hindi absolute -top-3 left-[30%] max-w-[13.5rem] origin-bottom-left rounded-2xl border border-line bg-page px-3.5 py-2.5 text-[15px] leading-snug text-forest-text shadow-[0_10px_24px_-14px_rgba(7,47,27,0.45)] sm:left-[34%] md:text-base"
+                className="font-hindi absolute -top-3 left-[30%] max-w-[11rem] origin-bottom-left rounded-2xl border border-line bg-page px-3 py-2 text-[12.5px] leading-snug md:max-w-[13.5rem] md:px-3.5 md:py-2.5 md:text-[15px] text-forest-text shadow-[0_10px_24px_-14px_rgba(7,47,27,0.45)] sm:left-[34%] md:text-base"
               >
                 {DADI_QUOTE}
                 <span aria-hidden className="absolute -bottom-[7px] left-5 size-3.5 rotate-45 border-r border-b border-line bg-page" />
@@ -115,12 +115,12 @@ export function WhyChooseOil() {
 
           {/* RIGHT: six-step timeline, then chips + CTA */}
           <div className="lg:col-span-7">
-            <ol ref={timeline} className="relative space-y-6 md:space-y-8">
+            <ol ref={timeline} className="relative space-y-3 overflow-x-clip md:space-y-8">
               {/* dashed line: faint full track + the part drawn so far */}
-              <span aria-hidden className="absolute top-2 bottom-2 left-[17px] w-0.5 opacity-30" style={{ backgroundImage: DASHES }} />
+              <span aria-hidden className="absolute top-2 bottom-2 left-[13px] w-0.5 opacity-30 md:left-[17px]" style={{ backgroundImage: DASHES }} />
               <motion.span
                 aria-hidden
-                className="absolute top-2 left-[17px] w-0.5"
+                className="absolute top-2 left-[13px] w-0.5 md:left-[17px]"
                 style={{ backgroundImage: DASHES, height: reduce ? "calc(100% - 1rem)" : lineHeight, maxHeight: "calc(100% - 1rem)" }}
               />
               {STEPS.map((s, i) => {
@@ -134,18 +134,18 @@ export function WhyChooseOil() {
                     viewport={{ once: true, margin: "0px 0px -35% 0px" }}
                     onViewportEnter={() => setActive((a) => Math.max(a, i))}
                     transition={{ duration: 0.5, ease: EASE }}
-                    className="relative flex items-center gap-4 pl-14 md:gap-6"
+                    className="relative flex items-center gap-3 pl-10 md:gap-6 md:pl-14"
                   >
                     <span
                       className={cn(
-                        "absolute top-1/2 left-0 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full text-sm font-bold ring-4 ring-ivory transition-colors duration-500",
+                        "absolute top-1/2 left-0 z-10 grid size-7 -translate-y-1/2 place-items-center rounded-full text-xs font-bold ring-4 md:size-9 md:text-sm ring-ivory transition-colors duration-500",
                         on ? "bg-mustard text-forest-deep" : "bg-forest text-[#f6efe2]",
                       )}
                     >
                       {i + 1}
                     </span>
-                    <div className={cn("flex min-w-0 flex-1 items-center gap-4 md:gap-6", hero && "rounded-3xl bg-[#E3B341]/10 p-4 md:p-5")}>
-                      <div className={cn("relative shrink-0", hero ? "size-[120px] md:size-[180px]" : "size-24 md:size-[140px]")}>
+                    <div className={cn("flex min-w-0 flex-1 items-center gap-3 md:gap-6", hero && "rounded-2xl bg-[#E3B341]/10 p-2.5 md:rounded-3xl md:p-5")}>
+                      <div className={cn("relative shrink-0", hero ? "size-20 md:size-[180px]" : "size-16 md:size-[140px]")}>
                         <Image
                           src={`/illustrations/process/${s.img}.webp`}
                           alt=""
@@ -156,13 +156,13 @@ export function WhyChooseOil() {
                       </div>
                       <div className="min-w-0">
                         {hero && (
-                          <p className="mb-1 inline-flex rounded-full bg-mustard/20 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-forest-text">The heart of our process</p>
+                          <p className="mb-1 inline-flex rounded-full bg-mustard/20 px-2 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap text-forest-text md:px-2.5 md:text-[11px]">The heart of our process</p>
                         )}
-                        <h3 className={cn("font-semibold text-forest-text", hero ? "text-xl" : "text-base md:text-lg")}>{s.title}</h3>
-                        <p className="font-hindi text-sm text-sale" lang="hi">
+                        <h3 className={cn("leading-tight font-semibold text-forest-text", hero ? "text-[17px] md:text-xl" : "text-[15px] md:text-lg")}>{s.title}</h3>
+                        <p className="font-hindi text-[12.5px] text-sale md:text-sm" lang="hi">
                           {s.titleHi}
                         </p>
-                        <p className="mt-1 text-sm leading-snug text-ink-muted">{s.text}</p>
+                        <p className="mt-0.5 text-[12.5px] leading-snug text-ink-muted md:mt-1 md:text-sm">{s.text}</p>
                       </div>
                     </div>
                   </motion.li>
@@ -170,9 +170,9 @@ export function WhyChooseOil() {
               })}
             </ol>
 
-            <ul className="mt-10 flex flex-wrap justify-center gap-2 lg:justify-start lg:pl-14">
+            <ul className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:flex md:flex-wrap md:justify-center lg:justify-start lg:pl-14">
               {CHIPS.map((c) => {
-                const cls = "inline-flex h-9 items-center gap-1.5 rounded-full border border-forest/15 bg-white/60 px-3.5 text-sm font-medium text-forest-text";
+                const cls = "inline-flex h-9 w-full items-center justify-center gap-1 rounded-full md:w-auto border border-forest/15 bg-white/60 px-3 text-[12px] font-medium text-forest-text md:h-9 md:gap-1.5 md:px-3.5 md:text-sm";
                 const inner = (
                   <>
                     <Check className="size-3.5 text-forest" strokeWidth={2.5} aria-hidden /> {c.label}
@@ -191,10 +191,10 @@ export function WhyChooseOil() {
                 );
               })}
             </ul>
-            <div className="mt-7 flex justify-center lg:justify-start lg:pl-14">
+            <div className="mt-5 flex justify-center md:mt-7 lg:justify-start lg:pl-14">
               <Link
                 href="/collections/wood-pressed-oils"
-                className="inline-flex h-11 items-center gap-2 rounded-full border border-forest/25 px-5 text-sm font-semibold text-forest-text transition-colors duration-300 hover:border-forest hover:bg-forest hover:text-white"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-forest/25 bg-forest px-5 text-[13px] font-semibold text-white md:h-11 md:bg-transparent md:px-5 md:text-sm md:text-forest-text transition-colors duration-300 hover:border-forest hover:bg-forest hover:text-white"
               >
                 Shop wood-pressed oils <ArrowRight className="size-4" />
               </Link>

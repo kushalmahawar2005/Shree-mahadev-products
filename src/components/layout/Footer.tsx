@@ -28,21 +28,21 @@ export async function Footer() {
   return (
     <footer className="relative bg-page text-forest-text">
       <div className="relative">
-        <div className="relative z-10 mx-auto max-w-[1240px] px-4 pt-8 sm:px-6 sm:pt-12 lg:px-8 lg:pt-16">
+        <div className="relative z-10 mx-auto max-w-[1240px] px-4 pt-6 sm:px-6 sm:pt-12 lg:px-8 lg:pt-16">
           {/* WhatsApp CTA card */}
-          <div className="relative overflow-hidden rounded-[28px] bg-forest px-5 py-6 text-white sm:px-6 sm:py-8 md:flex md:items-center md:justify-between md:gap-8 md:px-10">
+          <div className="relative overflow-hidden rounded-2xl bg-forest px-4 py-5 text-white sm:rounded-[28px] sm:px-6 sm:py-8 md:flex md:items-center md:justify-between md:gap-8 md:px-10">
             <div className="relative">
-              <p className="font-hindi text-base text-[#e8c879] sm:text-lg" lang="hi">
+              <p className="font-hindi text-sm text-[#e8c879] sm:text-lg" lang="hi">
                 स्वदेशी · धीमी घानी
               </p>
-              <p className="text-xl font-bold sm:text-2xl md:text-3xl">Slow-pressed, the old way</p>
-              <p className="mt-1.5 max-w-md text-sm text-white/75">New batches, offers and recipes straight on WhatsApp. No spam.</p>
+              <p className="text-lg font-bold sm:text-2xl md:text-3xl">Slow-pressed, the old way</p>
+              <p className="mt-1 max-w-md text-[13px] text-white/75 sm:mt-1.5 sm:text-sm">New batches, offers and recipes straight on WhatsApp. No spam.</p>
             </div>
             <a
               href={whatsappLink("Hi, please add me to the Swadeshi Mahadev updates list.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-shine relative mt-4 inline-flex h-11 shrink-0 items-center gap-2.5 overflow-hidden rounded-full bg-[#e8c879] px-5 text-sm sm:mt-5 sm:h-12 sm:px-6 font-bold text-forest-deep transition-colors hover:bg-white md:mt-0"
+              className="btn-shine relative mt-3.5 inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-4 text-[13px] sm:mt-5 sm:gap-2.5 sm:px-5 sm:text-sm sm:h-12 sm:px-6 font-bold text-forest-deep transition-colors hover:bg-white md:mt-0"
             >
               <MessageCircle className="size-5" /> Join on WhatsApp <ArrowRight className="size-4" />
             </a>

@@ -48,7 +48,7 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
         <div className="mb-5 lg:mb-6">
           <HelpSearchBox name={c.name} />
         </div>
-        <div className="grid gap-5 lg:grid-cols-12 lg:gap-6">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
           <div className="space-y-5 lg:col-span-7 lg:space-y-6">
             <HelpFlow
               orders={page.orders.slice(0, 5).map(toHelpOption)}

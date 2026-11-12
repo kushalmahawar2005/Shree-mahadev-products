@@ -71,7 +71,7 @@ export default async function AccountOverview() {
       {/* Action banner: only when something needs the shopper */}
       {unpaid ? (
         <section
-          className="flex flex-col gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center md:p-6"
+          className="flex flex-col gap-4 rounded-3xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:p-5 md:p-6"
           aria-label="Payment pending"
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-amber-700 ring-1 ring-amber-200">
@@ -91,13 +91,13 @@ export default async function AccountOverview() {
           <div className="flex gap-2 max-sm:[&>*]:flex-1">
             <a
               href={`/checkout/pay?t=${unpaid.token}`}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-forest px-5 text-sm font-semibold text-white hover:bg-forest-mid"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-forest px-5 text-sm font-semibold whitespace-nowrap text-white hover:bg-forest-mid max-sm:flex-[2]"
             >
               Complete payment
             </a>
             <Link
               href={`/account/orders/${unpaid.id}`}
-              className="inline-flex h-11 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 text-sm font-semibold text-ink hover:border-amber-400"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-amber-300 bg-white px-4 whitespace-nowrap text-sm font-semibold text-ink hover:border-amber-400"
             >
               View
             </Link>

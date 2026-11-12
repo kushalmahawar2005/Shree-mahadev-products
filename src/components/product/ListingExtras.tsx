@@ -16,10 +16,10 @@ export function TrustRow() {
     { Icon: BadgeCheck, label: "FSSAI licensed" },
   ];
   return (
-    <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-muted">
+    <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted md:mt-3 md:gap-x-5 md:gap-y-2 md:text-sm">
       {items.map(({ Icon, label }) => (
         <li key={label} className="flex items-center gap-1.5">
-          <Icon className="size-5" /> {label}
+          <Icon className="size-4 md:size-5" /> {label}
         </li>
       ))}
     </ul>
@@ -36,8 +36,8 @@ export async function CategoryPills({ current, total }: { current: string; total
       .map((c) => ({ href: `/collections/${c.handle}`, key: c.handle, label: c.title, n: c.products.length })),
   );
   return (
-    <nav aria-label="Categories" className="-mx-4 mt-5 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
-      <ul className="flex gap-2">
+    <nav aria-label="Categories" className="-mx-4 mt-3 overflow-x-auto max-md:contents px-4 [mask-image:linear-gradient(90deg,#000_85%,transparent)] [scrollbar-width:none] md:mx-0 md:mt-5 md:px-0 md:[mask-image:none] [&::-webkit-scrollbar]:hidden">
+      <ul className="flex gap-2 max-md:contents">
         {items.map((c) => {
           const on = c.key === current;
           return (
@@ -46,7 +46,7 @@ export async function CategoryPills({ current, total }: { current: string; total
                 href={c.href}
                 aria-current={on ? "page" : undefined}
                 className={cn(
-                  "inline-flex h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition-colors",
+                  "inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors md:h-10 md:gap-2 md:px-4 md:text-sm",
                   on ? "border-forest bg-forest text-white" : "border-line bg-white text-forest-text hover:border-forest/40",
                 )}
               >
@@ -61,27 +61,42 @@ export async function CategoryPills({ current, total }: { current: string; total
   );
 }
 
+/**
+ * Phones: categories + "shop by use" share ONE swipe row (the two components render as
+ * display:contents inside this rail). md+: the rail is a plain block and they stack as before.
+ */
+export function ChipRail({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="max-md:no-scrollbar max-md:-mx-4 max-md:mt-3 max-md:flex max-md:items-center max-md:gap-2 max-md:overflow-x-auto max-md:px-4 max-md:[mask-image:linear-gradient(90deg,#000_88%,transparent)] max-md:[scrollbar-width:none]">
+      {children}
+    </div>
+  );
+}
+
 /** "Shop by use" quick filters (same tags as the homepage tabs). Only uses that exist in this listing. */
 export function UseChips({ path, products }: { path: string; products: Product[] }) {
   const uses = shopByUse.filter((u) => products.some((p) => p.tags.includes(u.tag)));
   if (!uses.length) return null;
   return (
-    <div className="-mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
-      <span className="shrink-0 text-xs font-semibold text-ink-muted">Shop by use</span>
+    <div className="mt-2 max-md:contents md:mt-3">
+    <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 [scrollbar-width:none] max-md:contents md:mx-0 md:px-0 [&::-webkit-scrollbar]:hidden">
+      <span aria-hidden className="my-1.5 w-px shrink-0 self-stretch bg-line md:hidden" />
+      <span className="hidden shrink-0 text-xs font-semibold text-ink-muted md:inline">Shop by use</span>
       {uses.map((u) => (
         <Link
           key={u.tag}
           href={`${path}?use=${u.tag}`}
           scroll={false}
-          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text shadow-[0_1px_2px_rgba(0,0,0,.05)] transition-colors hover:border-forest hover:bg-co-brand-soft active:scale-[0.98]"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full border border-line bg-white px-3 text-[13px] font-semibold text-forest-text md:h-10 md:gap-1.5 md:px-4 md:text-sm shadow-[0_1px_2px_rgba(0,0,0,.05)] transition-colors hover:border-forest hover:bg-co-brand-soft active:scale-[0.98]"
         >
           <Plus className="size-3.5 text-forest" aria-hidden />
           {u.label}
-          <span className="font-hindi text-xs font-normal text-co-accent-ink" lang="hi">
+          <span className="font-hindi text-[11px] font-normal text-co-accent-ink md:text-xs" lang="hi">
             {u.labelHi}
           </span>
         </Link>
       ))}
+    </div>
     </div>
   );
 }
@@ -122,30 +137,31 @@ export function BelowGrid({ handle, title }: { handle: string; title: string }) 
     { Icon: Leaf, title: "Fresh batches", text: "Pressed and packed in small lots." },
   ];
   return (
-    <div className="mt-14 space-y-10">
-      <section aria-labelledby="why-h" className="rounded-3xl bg-white p-6 ring-1 ring-line md:p-8">
+    <div className="mt-10 space-y-5 md:mt-14 md:space-y-10">
+      <section aria-labelledby="why-h" className="rounded-3xl bg-white p-4 ring-1 ring-line md:p-8">
         <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 id="why-h" className="text-xl md:text-2xl">
+          <h2 id="why-h" className="text-lg md:text-2xl">
             Why wood-pressed?
           </h2>
           <Link href="/our-ghani" className="text-sm font-semibold text-forest hover:underline">
             See our ghani →
           </Link>
         </div>
-        <ul className="mt-5 grid gap-5 sm:grid-cols-3">
+        {/* Phones: three small tiles in one row (icon + name); md+: icon, name and line. */}
+        <ul className="mt-3 grid grid-cols-3 gap-2 md:mt-5 md:gap-5">
           {why.map(({ Icon, title: t, text }) => (
-            <li key={t} className="flex gap-3">
-              <Icon className="size-8 shrink-0" />
+            <li key={t} className="flex flex-col items-center gap-1.5 rounded-2xl bg-co-brand-soft/60 px-1.5 py-3 text-center md:flex-row md:items-start md:gap-3 md:bg-transparent md:p-0 md:text-left">
+              <Icon className="size-7 shrink-0 md:size-8" />
               <div>
-                <p className="font-semibold text-forest-text">{t}</p>
-                <p className="text-sm text-ink-muted">{text}</p>
+                <p className="text-[12.5px] leading-tight font-semibold text-forest-text md:text-base">{t}</p>
+                <p className="hidden text-sm text-ink-muted md:block">{text}</p>
               </div>
             </li>
           ))}
         </ul>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-3 md:gap-8 lg:grid-cols-2">
         <details className="group rounded-2xl bg-white p-5 ring-1 ring-line md:p-6">
           <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-forest-text">
             About our {title.toLowerCase()}

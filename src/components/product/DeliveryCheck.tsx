@@ -55,14 +55,14 @@ export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: 
   }, []);
 
   return (
-    <div className="mt-5">
+    <div className="mt-4">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (/^\d{6}$/.test(pin)) check(pin);
           else setRes({ ok: false, error: "Enter a valid 6-digit pincode." });
         }}
-        className="flex h-12 items-center rounded-full border border-line bg-white pl-4 focus-within:border-forest"
+        className="flex h-11 items-center rounded-full border border-line bg-white pl-4 focus-within:border-forest"
       >
         <MapPin className="size-4 shrink-0 text-ink-muted" />
         <label htmlFor="pdp-pin" className="sr-only">

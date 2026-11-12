@@ -6,7 +6,7 @@ import { revealImage } from "@/components/motion/Reveal";
 import { DUR, EASE, STAGGER, prefersReducedMotion } from "@/lib/motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, Play, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/shadcn/dialog";
 import { SmartImage, isPackshot } from "@/components/ui/SmartImage";
 import type { ProductImage } from "@/lib/commerce/types";
@@ -14,8 +14,25 @@ import { variantImage } from "@/lib/image-loader";
 import { cn } from "@/lib/utils/cn";
 import { useVariantImage } from "./VariantImage";
 
-/** Product stage: swatch glow + crossfading image (swipe on touch, arrows/keys), thumbnail rail. Hand-built on motion. */
-export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: ProductImage[]; title: string; swatch?: string; badge?: React.ReactNode }) {
+export type GalleryVideo = { src: string; poster: string; label: string };
+
+/**
+ * Product stage: swatch glow + crossfading image (swipe on touch, arrows/keys), thumbnail rail,
+ * optional short process video as the last slide (muted inline, loads only when opened). Hand-built on motion.
+ */
+export function Gallery({
+  images,
+  title,
+  swatch = "#d0b17a",
+  badge,
+  video,
+}: {
+  images: ProductImage[];
+  title: string;
+  swatch?: string;
+  badge?: React.ReactNode;
+  video?: GalleryVideo;
+}) {
   const [i, setI] = useState(0);
   const [dir, setDir] = useState(1);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
@@ -56,43 +73,47 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
       delay: (n: number) => (reduce ? 0 : n * STAGGER.thumbs),
     }).then(() => items.forEach((t) => (t.style.opacity = t.style.transform = "")));
   }, []);
-  const many = images.length > 1;
+  const total = images.length + (video ? 1 : 0);
+  const many = total > 1;
+  const isVideo = !!video && i === images.length;
   // Client packshots are 4:5 with their own backdrop: show them edge to edge, without the cut-out stage effects.
-  const full = isPackshot(img);
+  const full = !img || isPackshot(img);
   const go = (n: number) => {
-    const next = (n + images.length) % images.length;
+    const next = (n + total) % total;
     setDir(next > i ? 1 : -1);
     setI(next);
   };
-  if (!img) return null;
+  if (!images.length) return null;
 
   return (
-    <div className="lg:flex lg:items-start lg:gap-3">
+    // Desktop: the stage width follows the viewport height (4:5 photo fits above the fold) and the
+    // page grid gives the buy box whatever is left, so there's no dead gap between the two.
+    <div className="lg:flex lg:items-start lg:gap-3 lg:[--stage-w:min(calc((100svh-210px)*0.8),44vw,600px)]">
       <div
         ref={stageRef}
         data-img-reveal=""
-        className="group relative aspect-square cursor-zoom-in overflow-hidden rounded-[28px] border border-line bg-sunken lg:aspect-[4/5] lg:max-w-[calc((100svh-190px)*0.8)] lg:min-w-0 lg:flex-1"
+        className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-[28px] border border-line bg-sunken sm:max-lg:aspect-auto sm:max-lg:h-[min(56svh,500px)] sm:max-lg:bg-[#fbf5e5] lg:w-[var(--stage-w)] lg:shrink-0"
         role="region"
         aria-roledescription="carousel"
         aria-label={`${title} images`}
         tabIndex={many ? 0 : undefined}
         onPointerMove={(e) => {
-          if (e.pointerType !== "mouse" || window.innerWidth < 1024) return;
+          if (isVideo || e.pointerType !== "mouse" || window.innerWidth < 1024) return;
           const r = e.currentTarget.getBoundingClientRect();
           setZoom({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
         }}
         onPointerLeave={() => setZoom(null)}
         onClick={(e) => {
-          if ((e.target as HTMLElement).closest("button")) return;
+          if (isVideo || (e.target as HTMLElement).closest("button")) return;
           setBox(true);
         }}
         onKeyDown={(e) => {
-          if (e.key === "Enter") setBox(true);
+          if (e.key === "Enter" && !isVideo) setBox(true);
           if (e.key === "ArrowRight") go(i + 1);
           if (e.key === "ArrowLeft") go(i - 1);
         }}
       >
-        {!full && (
+        {!full && !isVideo && (
           <>
             <span aria-hidden className="absolute inset-[12%] rounded-full blur-3xl" style={{ background: `radial-gradient(circle, ${swatch}66 0%, transparent 70%)` }} />
             <span aria-hidden className="absolute inset-[10%] rounded-full border border-forest/5" />
@@ -100,7 +121,7 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
         )}
         <AnimatePresence initial={false} custom={dir} mode="popLayout">
           <motion.div
-            key={img.url}
+            key={isVideo ? "video" : img!.url}
             custom={dir}
             className={cn("absolute inset-0 grid place-items-center", !full && "p-[8%]")}
             initial={reduce ? false : { opacity: 0, x: dir * 40 }}
@@ -115,26 +136,42 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
               else if (info.offset.x > 60) go(i - 1);
             }}
           >
+            {isVideo ? (
+              <video
+                src={video.src}
+                poster={video.poster}
+                autoPlay={!reduce}
+                controls={!!reduce}
+                muted
+                loop
+                playsInline
+                preload="none"
+                aria-label={video.label}
+                className="size-full object-cover"
+              />
+            ) : (
             <SmartImage
               data-pdp-img=""
-              src={img.url}
-              alt={img.alt}
-              width={img.width}
-              height={img.height}
+              src={img!.url}
+              alt={img!.alt}
+              width={img!.width}
+              height={img!.height}
               priority={i === 0}
               sizes="(min-width: 1024px) 560px, 100vw"
               className={cn(
                 "pointer-events-none transition-transform duration-200 ease-out",
                 full
-                  ? "h-[88%] w-[88%] object-contain"
+                  ? "size-full object-cover sm:max-lg:object-contain"
                   : "size-full object-contain drop-shadow-[0_24px_30px_rgba(60,40,10,0.18)]",
               )}
               style={zoom && !reduce ? { transform: "scale(1.8)", transformOrigin: `${zoom.x}% ${zoom.y}%` } : undefined}
             />
+            )}
           </motion.div>
         </AnimatePresence>
-        {!full && <span aria-hidden className="absolute bottom-[7%] left-1/2 h-3 w-2/5 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md" />}
+        {!full && !isVideo && <span aria-hidden className="absolute bottom-[7%] left-1/2 h-3 w-2/5 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md" />}
         {badge && <div className="absolute top-4 left-4">{badge}</div>}
+        {!isVideo && (
         <button
           type="button"
           onClick={() => setBox(true)}
@@ -143,6 +180,7 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
         >
           <Maximize2 className="size-4" />
         </button>
+        )}
 
         {many && (
           <>
@@ -164,13 +202,13 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
               </button>
             ))}
             <span className="absolute right-4 bottom-4 rounded-full bg-white/85 px-2.5 py-1 text-xs font-semibold text-forest-text tabular-nums backdrop-blur">
-              {i + 1} / {images.length}
+              {i + 1} / {total}
             </span>
           </>
         )}
       </div>
 
-      <Dialog open={box} onOpenChange={setBox}>
+      <Dialog open={box && !!img} onOpenChange={setBox}>
         <DialogContent
           showCloseButton={false}
           className="max-w-none! h-[100svh] w-screen translate-none! top-0! left-0! rounded-none border-0 bg-page p-0"
@@ -179,15 +217,15 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
             if (e.key === "ArrowLeft") go(i - 1);
           }}
         >
-          <DialogTitle className="sr-only">{title}, image {i + 1} of {images.length}</DialogTitle>
+          <DialogTitle className="sr-only">{title}, image {i + 1} of {total}</DialogTitle>
           {/* Native pinch-zoom + scroll on phones; swipe via the arrows / keys. */}
           <div className="grid size-full touch-pinch-zoom place-items-center overflow-auto">
-            <SmartImage src={img.url} alt={img.alt} width={img.width} height={img.height} sizes="100vw" className="h-auto max-h-full w-auto max-w-full object-contain" />
+            {img && <SmartImage src={img.url} alt={img.alt} width={img.width} height={img.height} sizes="100vw" className="h-auto max-h-full w-auto max-w-full object-contain" />}
           </div>
           <button type="button" onClick={() => setBox(false)} aria-label="Close" className="absolute top-4 right-4 grid size-11 place-items-center rounded-full bg-white text-ink shadow">
             <X className="size-5" />
           </button>
-          {many && (
+          {images.length > 1 && (
             <>
               <button type="button" onClick={() => go(i - 1)} aria-label="Previous image" className="absolute top-1/2 left-3 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white text-ink shadow">
                 <ChevronLeft className="size-5" />
@@ -196,7 +234,7 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
                 <ChevronRight className="size-5" />
               </button>
               <span className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-ink tabular-nums shadow">
-                {i + 1} / {images.length}
+                {i + 1} / {total}
               </span>
             </>
           )}
@@ -204,7 +242,7 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
       </Dialog>
 
       {many && (
-        <div ref={thumbsRef} data-pdp-thumbs="" className="no-scrollbar mt-3 flex gap-2.5 overflow-x-auto lg:order-first lg:mt-0 lg:max-h-[calc(100svh-190px)] lg:flex-col lg:overflow-x-visible lg:overflow-y-auto">
+        <div ref={thumbsRef} data-pdp-thumbs="" className="no-scrollbar mt-3 flex gap-2.5 overflow-x-auto lg:order-first lg:mt-0 lg:max-h-[calc(var(--stage-w)*1.25)] lg:flex-col lg:overflow-x-visible lg:overflow-y-auto">
           {images.map((im, n) => (
             <button
               key={im.url}
@@ -220,6 +258,24 @@ export function Gallery({ images, title, swatch = "#d0b17a", badge }: { images: 
               <SmartImage src={im.url} alt="" width={64} height={80} className="size-full object-contain p-1" />
             </button>
           ))}
+          {video && (
+            <button
+              type="button"
+              onClick={() => go(images.length)}
+              aria-label={`Play video: ${video.label}`}
+              aria-current={isVideo}
+              className={cn(
+                "relative grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-sunken transition-colors",
+                isVideo ? "border-forest" : "border-transparent hover:border-line",
+              )}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- tiny local poster, no optimisation needed */}
+              <img src={video.poster} alt="" className="absolute inset-0 size-full object-cover" loading="lazy" />
+              <span className="relative grid size-7 place-items-center rounded-full bg-white/90 text-forest shadow-sm">
+                <Play className="size-3.5 fill-current" />
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>

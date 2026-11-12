@@ -16,12 +16,12 @@ export default function TrackOrderPage({
 }: PageProps<"/track-order">) {
   return (
     <div className="bg-page">
-      <div className="mx-auto max-w-2xl px-4 pt-8 pb-10 md:pt-12 md:pb-24">
-        <p className="font-hindi text-lg text-sale" lang="hi">
+      <div className="mx-auto max-w-2xl px-4 pt-6 pb-10 md:pt-12 md:pb-24">
+        <p className="font-hindi text-base text-sale md:text-lg" lang="hi">
           आपका ऑर्डर कहाँ है?
         </p>
-        <h1 className="text-3xl md:text-5xl">Track your order</h1>
-        <p className="mt-3 text-ink-muted">
+        <h1 className="text-[28px] leading-tight md:text-5xl">Track your order</h1>
+        <p className="mt-2 text-sm text-ink-muted md:mt-3 md:text-base">
           Use your order number and the phone used at checkout, or open the
           tracking link from your email.
         </p>
@@ -35,10 +35,6 @@ export default function TrackOrderPage({
         >
           <TrackingSection searchParams={searchParams} />
         </Suspense>
-        <p className="mt-6 text-center text-sm text-ink-muted">
-          Can&apos;t find it? Call or WhatsApp {site.phone}, {site.supportHours}
-          .
-        </p>
       </div>
     </div>
   );
@@ -55,9 +51,21 @@ async function TrackingSection({
     ? await lookupTrackingByToken(token)
     : { tracking: null, error: null };
   return (
-    <TrackOrderLookup
-      initialTracking={initial.tracking}
-      initialError={initial.error}
-    />
+    <>
+      <TrackOrderLookup
+        initialTracking={initial.tracking}
+        initialError={initial.error}
+      />
+      {/* The result card has its own help buttons; this line is for the empty form. */}
+      {!initial.tracking && (
+        <p className="mt-6 text-center text-sm text-ink-muted">
+          Can&apos;t find it? Call or WhatsApp{" "}
+          <a href={site.phoneHref} className="font-semibold text-forest-text whitespace-nowrap">
+            {site.phone}
+          </a>
+          , {site.supportHours}.
+        </p>
+      )}
+    </>
   );
 }

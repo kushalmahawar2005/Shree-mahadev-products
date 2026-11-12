@@ -1,4 +1,4 @@
-import { Reels, type ReelItem } from "@/components/home/Reels";
+import { ReelStories, Reels, type ReelItem } from "@/components/home/Reels";
 import { getHomeVideos } from "@/lib/home-videos";
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { Hero } from "@/components/home/Hero";
@@ -165,6 +165,8 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* Phones: reels as Instagram-style stories right above the hero. */}
+      <ReelStories reels={reelItems} />
       <Hero />
       <TopPicks tabs={pickTabs} />
       <RefinedVsGhani cta={promoStrip.cta} />
@@ -172,7 +174,7 @@ export default async function HomePage() {
       <BrandFilmSection youtube={videos.youtube} reels={filmReels} />
       <ShopByUse tabs={useTabs} />
       <ProofSection reports={[...proof.reports]} fssaiNo={proof.fssaiNo} fssaiValidTill={proof.fssaiValidTill} lab={proof.lab} />
-      {sectionReels.length > 0 && <Reels title="Straight from the ghani" reels={sectionReels} />}
+      {sectionReels.length > 0 && <Reels title="Straight from the ghani" reels={sectionReels} hideOnMobile />}
       <WhyChooseOil />
       <Spotlight
         products={all}

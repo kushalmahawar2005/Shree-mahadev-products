@@ -34,24 +34,24 @@ const GHANI = [
  */
 export function RefinedVsGhani({ cta }: { cta: { label: string; href: string } }) {
   return (
-    <section aria-labelledby="refined-vs-ghani" className="paper-grain relative overflow-hidden bg-ivory pt-10 pb-10 md:pt-14 md:pb-14">
+    <section aria-labelledby="refined-vs-ghani" className="paper-grain relative overflow-hidden bg-ivory pt-8 pb-8 md:pt-14 md:pb-14">
       <TornEdge />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
         {/* Hand-painted vine: closes the product carousel above and opens this story */}
-        <Image src={deco.vineDivider.src} alt="" aria-hidden width={deco.vineDivider.width} height={deco.vineDivider.height} sizes="(min-width: 768px) 760px, 90vw" className="mx-auto mb-5 h-auto w-[88%] max-w-[680px] md:mb-7" />
-        <Reveal className="mb-7 flex flex-col items-center gap-2 text-center md:mb-10">
-          <p lang="hi" className="font-hindi text-lg leading-none text-[#b07a10] md:text-xl">
+        <Image src={deco.vineDivider.src} alt="" aria-hidden width={deco.vineDivider.width} height={deco.vineDivider.height} sizes="(min-width: 768px) 760px, 90vw" className="mx-auto mb-3 h-auto w-[70%] max-w-[680px] md:mb-7 md:w-[88%]" />
+        <Reveal className="mb-5 flex flex-col items-center gap-1.5 text-center md:mb-10 md:gap-2">
+          <p lang="hi" className="font-hindi text-base leading-none text-[#b07a10] md:text-xl">
             पहले फ़र्क देखिए
           </p>
-          <h2 id="refined-vs-ghani" className="text-3xl md:text-[44px]">
+          <h2 id="refined-vs-ghani" className="text-[24px] md:text-[44px]">
             Refined vs Kachi Ghani
           </h2>
-          <p className="max-w-xl text-ink-muted">Same seed, two very different oils. Drag the line and see.</p>
+          <p className="max-w-xl text-sm text-ink-muted md:text-base">Same seed, two very different oils. Drag the line and see.</p>
         </Reveal>
 
         <div className="relative overflow-hidden rounded-3xl border border-line shadow-[0_24px_60px_-40px_rgba(7,47,27,0.55)]">
           <ReactCompareSlider
-            className="aspect-[4/5] w-full sm:aspect-[16/10] lg:aspect-[5/2]"
+            className="aspect-[4/3] w-full sm:aspect-[16/10] lg:aspect-[5/2]"
             transition=".7s cubic-bezier(.22,1,.36,1)"
             keyboardIncrement="5%"
             onlyHandleDraggable={false}
@@ -60,18 +60,38 @@ export function RefinedVsGhani({ cta }: { cta: { label: string; href: string } }
             itemTwo={<Side side="ghani" />}
           />
           {/* Side names, outside the clipped items so they never get cut by the divider */}
-          <span className="pointer-events-none absolute z-10 top-3 left-3 rounded-full bg-[#46505c]/85 px-3 py-1 text-[11px] font-bold tracking-[0.16em] text-white uppercase backdrop-blur-sm sm:top-5 sm:left-5 sm:text-xs">
+          <span className="pointer-events-none absolute z-10 top-3 left-3 rounded-full bg-[#46505c]/85 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-white uppercase backdrop-blur-sm sm:top-5 sm:left-5 sm:text-xs">
             Refined
           </span>
-          <span className="pointer-events-none absolute z-10 top-3 right-3 rounded-full bg-forest/90 px-3 py-1 text-[11px] font-bold tracking-[0.16em] text-[#F3C64A] uppercase backdrop-blur-sm sm:top-5 sm:right-5 sm:text-xs">
+          <span className="pointer-events-none absolute z-10 top-3 right-3 rounded-full bg-forest/90 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-[#F3C64A] uppercase backdrop-blur-sm sm:top-5 sm:right-5 sm:text-xs">
             Kachi ghani
           </span>
         </div>
 
-        <div className="mt-7 flex justify-center md:mt-9">
+        {/* Phones: the points sit under the painting (on desktop they float on each side). */}
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:hidden">
+          {[
+            { title: "Refined", items: REFINED, warm: false },
+            { title: "Kachi ghani", items: GHANI, warm: true },
+          ].map(({ title, items, warm }) => (
+            <div key={title} className={cn("rounded-2xl border p-3", warm ? "border-forest/15 bg-[#fff6e2]" : "border-line bg-white")}>
+              <p className={cn("mb-1.5 text-[11px] font-bold", warm ? "text-forest-text" : "text-[#3f4953]")}>{title}</p>
+              <ul className="space-y-1.5">
+                {items.slice(0, 3).map(({ icon: Icon, text }) => (
+                  <li key={text} className="flex items-start gap-1.5 text-[11px] leading-snug text-ink">
+                    <Icon className={cn("mt-px size-3.5 shrink-0", warm ? "text-[#b07a10]" : "text-[#5d6873]")} aria-hidden />
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 flex justify-center md:mt-9">
           <Link
             href={cta.href}
-            className="group inline-flex h-12 items-center gap-2 rounded-full bg-forest px-7 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-forest-mid"
+            className="group inline-flex h-10 items-center gap-2 rounded-full bg-forest px-5 text-xs font-bold md:h-12 md:px-7 md:text-sm tracking-wide text-white uppercase transition-colors hover:bg-forest-mid"
           >
             {cta.label}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
@@ -150,7 +170,7 @@ function Facts({
   return (
     <div
       className={cn(
-        "absolute w-[42%] rounded-xl border p-2 shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[330px] sm:rounded-2xl sm:p-4 lg:w-[420px] lg:p-5",
+        "absolute w-[42%] rounded-xl border p-2 max-sm:hidden shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[330px] sm:rounded-2xl sm:p-4 lg:w-[420px] lg:p-5",
         warm ? "border-white/50 bg-[#fff6e2]/55" : "border-white/60 bg-white/50",
         className,
       )}

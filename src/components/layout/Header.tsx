@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import { Flame, Search, Truck } from "lucide-react";
 import { formatMoney } from "@/lib/utils/money";
 import { StickyHeader, useHeaderCompact } from "@/components/motion/StickyHeader";
+import { getLenis } from "@/components/motion/scroll-lock";
 import { useCart } from "@/components/cart/CartProvider";
 import type { MenuGroup, NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
@@ -139,6 +140,11 @@ function HeaderBar({
   useEffect(() => () => clearTimers(), []);
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const goHomeTop = () => {
+    const lenis = getLenis();
+    if (lenis) lenis.scrollTo(0, { immediate: true });
+    else window.scrollTo({ top: 0, behavior: "instant" });
+  };
   // ONE indicator: the underline follows the hovered item, else the open menu's item, else the current page.
   const marked = hovered ?? nav.find((n) => n.menu && n.menu === mega)?.href ?? nav.find((n) => isActive(n.href))?.href ?? null;
 
@@ -156,17 +162,17 @@ function HeaderBar({
 
       {/* Main row: always on phones; on desktop it collapses into the compact nav row */}
       <Collapse open={!compact} desktopOnly>
-        <div className="mx-auto grid max-w-[1360px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 py-2 sm:px-5 lg:px-8 lg:py-2.5">
+        <div className="mx-auto grid max-w-[1360px] grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 py-2 sm:px-5 xl:px-8 xl:py-2.5">
           <div className="flex items-center">
-            <button type="button" className="-ml-2 grid size-11 place-items-center rounded-full hover:bg-forest/5 lg:hidden" aria-label="Open menu" onClick={onMenu}>
+            <button type="button" className="-ml-2 grid size-11 place-items-center rounded-full hover:bg-forest/5 xl:hidden" aria-label="Open menu" onClick={onMenu}>
               <MenuIcon />
             </button>
-            <div className="hidden w-full max-w-[300px] lg:block">
+            <div className="hidden w-full max-w-[300px] xl:block">
               <SearchBox recommended={recommended} all={allProducts} />
             </div>
           </div>
 
-          <Link href="/" className="justify-self-center" aria-label="Swadeshi Mahadev Products, home">
+          <Link href="/" onNavigate={goHomeTop} className="justify-self-center" aria-label="Swadeshi Mahadev Products, home">
             <motion.span
               className="block"
               initial={{ scale: 0.7, rotate: -25, opacity: 0 }}
@@ -175,18 +181,19 @@ function HeaderBar({
               whileTap={{ scale: 0.96 }}
               transition={{ type: "spring", stiffness: 260, damping: 16 }}
             >
-              <Image src={LOGO} alt="" width={80} height={80} priority unoptimized className="size-12 lg:size-[68px]" />
+              {/* The logo rolls like a wheel left and right, then rests (logo-roll in globals.css). */}
+              <Image src={LOGO} alt="" width={80} height={80} priority unoptimized className="logo-roll size-12 xl:size-[68px]" />
             </motion.span>
           </Link>
 
           <div className="flex items-center justify-end gap-1 sm:gap-2">
-            <button type="button" onClick={onSearch} className="grid size-11 place-items-center rounded-xl hover:bg-forest/5 lg:hidden" aria-label="Search">
+            <button type="button" onClick={onSearch} className="grid size-11 place-items-center rounded-xl hover:bg-forest/5 xl:hidden" aria-label="Search">
               <Search className="size-[22px]" strokeWidth={1.6} />
             </button>
-            <HeaderAction href="/track-order" label="Track" className="hidden lg:flex">
+            <HeaderAction href="/track-order" label="Track" className="hidden xl:flex">
               <Truck className="size-[22px]" strokeWidth={1.6} aria-hidden />
             </HeaderAction>
-            <HeaderAction href="/account" label="Account" className="hidden lg:flex">
+            <HeaderAction href="/account" label="Account" className="hidden xl:flex">
               <UserIcon className="size-[22px]" />
             </HeaderAction>
             <CartButton />
@@ -195,22 +202,22 @@ function HeaderBar({
       </Collapse>
 
       {/* Nav row (desktop). Compact: small logo · nav · search, account, cart in one h-16 row. */}
-      <nav ref={navRef} aria-label="Main" className="hidden lg:block" onMouseEnter={keepOpen} onMouseLeave={closeSoon}>
+      <nav ref={navRef} aria-label="Main" className="hidden xl:block" onMouseEnter={keepOpen} onMouseLeave={closeSoon}>
         <div className={cn("mx-auto flex max-w-[1360px] items-center px-8 transition-[height] duration-[250ms]", compact ? "h-16" : "h-12")}>
-          <div className={cn("flex w-[160px] shrink-0 items-center transition-opacity duration-[250ms]", compact ? "opacity-100" : "pointer-events-none opacity-0")} aria-hidden={!compact}>
-            <Link href="/" aria-label="Swadeshi Mahadev Products, home" tabIndex={compact ? 0 : -1}>
+          <div className={cn("shrink-0 items-center", compact ? "flex w-14" : "hidden")} aria-hidden={!compact}>
+            <Link href="/" onNavigate={goHomeTop} aria-label="Swadeshi Mahadev Products, home" tabIndex={compact ? 0 : -1}>
               <Image src={LOGO} alt="" width={40} height={40} unoptimized className="size-10" />
             </Link>
           </div>
 
-          <ul className={cn("flex flex-1 items-center justify-center gap-1", !compact && "border-t border-line")} onMouseLeave={() => setHovered(null)}>
+          <ul className={cn("flex min-w-0 flex-1 items-center justify-center gap-1", !compact && "border-t border-line")} onMouseLeave={() => setHovered(null)}>
             {nav.map((item) => {
               const active = isActive(item.href);
               const open = !!item.menu && mega === item.menu;
               return (
                 <li
                   key={item.href}
-                  className="relative"
+                  className="relative shrink-0"
                   onMouseEnter={() => {
                     setHovered(item.href);
                     if (item.menu) openSoon(item.menu);
@@ -240,7 +247,7 @@ function HeaderBar({
                         requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-mega-panel] a")?.focus());
                       }
                     }}
-                    className="relative inline-flex min-h-10 items-center gap-1.5 px-4 text-[16px] font-bold tracking-[-0.005em] text-black transition-colors duration-200 hover:text-forest"
+                    className="relative inline-flex min-h-12 shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 text-[14px] 2xl:px-4 2xl:text-[16px] font-bold tracking-[-0.005em] text-black transition-colors duration-200 hover:text-forest"
                   >
                     {item.icon === "bestseller" && <Flame className="size-4 text-mustard" strokeWidth={2} aria-hidden />}
                     {item.label}
@@ -259,7 +266,7 @@ function HeaderBar({
             })}
           </ul>
 
-          <div className={cn("flex w-[160px] shrink-0 items-center justify-end gap-1 transition-opacity duration-[250ms]", compact ? "opacity-100" : "pointer-events-none opacity-0")} aria-hidden={!compact}>
+          <div className={cn("shrink-0 items-center justify-end gap-1", compact ? "flex w-32" : "hidden")} aria-hidden={!compact}>
             <button type="button" onClick={onSearch} tabIndex={compact ? 0 : -1} className="grid size-10 place-items-center rounded-xl text-forest hover:bg-forest/5" aria-label="Search">
               <Search className="size-[22px]" strokeWidth={1.6} />
             </button>
@@ -284,12 +291,12 @@ function Collapse({ open, desktopOnly, children }: { open: boolean; desktopOnly?
     <div
       className={cn(
         "grid transition-[grid-template-rows,opacity] duration-[250ms] ease-out",
-        open ? "grid-rows-[1fr] opacity-100" : desktopOnly ? "grid-rows-[1fr] opacity-100 lg:grid-rows-[0fr] lg:opacity-0" : "grid-rows-[0fr] opacity-0",
+        open ? "grid-rows-[1fr] opacity-100" : desktopOnly ? "grid-rows-[1fr] opacity-100 xl:grid-rows-[0fr] xl:opacity-0" : "grid-rows-[0fr] opacity-0",
       )}
       aria-hidden={!open && !desktopOnly ? true : undefined}
     >
       {/* Clip only while collapsed: when open, dropdowns (search suggestions) must spill out below. */}
-      <div className={cn("min-h-0", open ? "overflow-visible" : desktopOnly ? "overflow-visible lg:overflow-hidden" : "overflow-hidden")}>{children}</div>
+      <div className={cn("min-h-0", open ? "overflow-visible" : desktopOnly ? "overflow-visible xl:overflow-hidden" : "overflow-hidden")}>{children}</div>
     </div>
   );
 }
@@ -325,7 +332,7 @@ export function CartButton({ className, compact = false, tabIndex }: { className
       <span key={`bounce-${addedTick}`} data-cart-target="" className={cn("grid size-7 place-items-center", addedTick && "cart-bounce")}>
         <BagIcon className="size-[22px]" />
       </span>
-      {!compact && <span className="hidden text-[11px] leading-none font-bold text-forest-text lg:block">Cart</span>}
+      {!compact && <span className="hidden text-[11px] leading-none font-bold text-forest-text xl:block">Cart</span>}
       {count > 0 && (
         <motion.span
           key={`count-${count}`}

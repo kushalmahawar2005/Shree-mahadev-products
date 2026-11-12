@@ -86,12 +86,12 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
     available.length === 0 ? (
       <Link
         href={href}
-        className="inline-flex h-11 w-full items-center justify-center rounded-full border border-forest px-4 text-sm font-medium text-forest transition-colors hover:bg-forest hover:text-white"
+        className="inline-flex h-8 w-full items-center justify-center rounded-full border border-forest px-4 text-[12.5px] sm:h-11 sm:text-sm font-medium text-forest transition-colors hover:bg-forest hover:text-white"
       >
         Coming soon · View details
       </Link>
     ) : (
-      <div className="space-y-2.5">
+      <div className="space-y-2 sm:space-y-2.5">
         <SizeChips
           sizes={available.map((v) => ({ id: v.id, title: v.title, soldOut: !!v.outOfStock }))}
           selectedId={selected?.id}
@@ -102,12 +102,12 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         {selected?.outOfStock ? (
           <NotifyMe key={selected.id} variantKey={selected.id} sizeLabel={`${shortTitle(product.title)} ${selected.title}`} compact />
         ) : line && !added ? (
-          <motion.div layout className="flex h-11 items-center gap-1 rounded-full bg-forest p-1 text-white" aria-label={`${line.quantity} in cart`}>
+          <motion.div layout className="flex h-8 items-center gap-1 rounded-full bg-forest p-0.5 text-white sm:h-11 sm:p-1" aria-label={`${line.quantity} in cart`}>
             <button
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity - 1))}
-              className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/20 disabled:opacity-60"
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Remove one"
             >
               <Minus className="size-4" />
@@ -137,7 +137,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity + 1))}
-              className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 transition-colors hover:bg-white/20 disabled:opacity-60"
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Add one more"
             >
               <Plus className="size-4" />
@@ -149,7 +149,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             type="button"
             disabled={busy}
             onClick={onAdd}
-            className="btn-shine inline-flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-3 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
+            className="btn-shine inline-flex h-8 w-full items-center justify-center gap-1.5 overflow-hidden rounded-full bg-forest px-3 text-[12.5px] sm:h-11 sm:gap-2 sm:text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
             aria-label={`Add ${product.title} ${selected?.title ?? ""} to cart`}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -161,7 +161,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
                 transition={{ duration: 0.2 }}
                 className="inline-flex items-center gap-2"
               >
-                {added ? <Check className="size-[18px]" strokeWidth={2.5} aria-hidden /> : <ShoppingCart className="size-[18px]" strokeWidth={2} aria-hidden />}
+                {added ? <Check className="size-4 sm:size-[18px]" strokeWidth={2.5} aria-hidden /> : <ShoppingCart className="size-4 sm:size-[18px]" strokeWidth={2} aria-hidden />}
                 <span className="sm:hidden">{added ? "Added" : "Add"}</span>
                 <span className="hidden sm:inline">{added ? "Added" : "Add to cart"}</span>
               </motion.span>
@@ -172,7 +172,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
     );
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(7,47,27,0.05)] transition-[box-shadow,transform] duration-300 md:hover:-translate-y-0.5 md:hover:shadow-[0_18px_34px_-22px_rgba(7,47,27,0.45)]">
+    <article className="group @container flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(7,47,27,0.05)] transition-[box-shadow,transform] duration-300 md:hover:-translate-y-0.5 md:hover:shadow-[0_18px_34px_-22px_rgba(7,47,27,0.45)]">
       {/* 1. Photo on a tinted stage inset from the white card */}
       <div className="relative p-1.5 sm:p-2">
         <Link
@@ -195,7 +195,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
               sizes="(min-width: 1024px) 300px, 48vw"
               className={cn(
                 "absolute inset-0 size-full [transition:opacity_0.3s_ease-in-out,visibility_0.3s,transform_0.5s_ease-out]",
-                cn(full ? "object-cover" : "object-contain p-[6%]", "md:group-hover:scale-[1.04]", stageImg),
+                cn(full ? "object-contain sm:object-cover" : "object-contain p-[6%]", "md:group-hover:scale-[1.04]", stageImg),
               )}
             />
           )}
@@ -211,22 +211,27 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             </span>
           ) : null}
           {badgeTag && (
-            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-forest px-2.5 py-1 text-[11px] font-semibold text-white shadow-sm">
-              <Sparkles className="size-3 text-mustard" aria-hidden />
-              {BADGES[badgeTag]}
+            <span className="shine-badge tag-breathe absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-forest px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm sm:top-2.5 sm:left-2.5 sm:px-2.5 sm:py-1 sm:text-[11px]">
+              <Sparkles className="size-2.5 text-mustard sm:size-3" aria-hidden />
+              {/* Narrow cards (under ~168px wide): icon only, so it never runs into the % off tag. */}
+              <span className="@max-[168px]:sr-only">{BADGES[badgeTag]}</span>
             </span>
+          )}
+          {/* Phones: the discount sits on the photo so price + MRP keep to one line. */}
+          {pctOff > 0 && (
+            <span className="shine-badge tag-breathe absolute top-2 right-2 rounded-full bg-co-success px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums sm:hidden">{pctOff}% off</span>
           )}
         </Link>
       </div>
 
-      <div className="flex flex-1 flex-col p-2.5 sm:p-4">
+      <div className="flex flex-1 flex-col px-2.5 pt-2 pb-2.5 sm:p-4">
         {/* 2. Name + Hindi name */}
         {/* Fixed two lines (English, then Hindi) so prices, chips and CTAs line up across cards */}
-        <h3 className="text-[13.5px] leading-snug font-bold text-ink sm:text-base">
+        <h3 className="text-[13px] leading-snug font-bold text-ink sm:text-base">
           <Link href={href} className="block truncate hover:text-forest hover:underline" title={shortTitle(product.title)}>
             {shortTitle(product.title)}
           </Link>
-          <span lang="hi" className="font-hindi block truncate text-[13px] font-normal text-sale sm:text-[15px]">
+          <span lang="hi" className="font-hindi block truncate text-[12px] font-normal text-sale sm:text-[15px]">
             {product.titleHi}
           </span>
         </h3>
@@ -238,26 +243,26 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
 
         {/* 5. Price: selling price first, MRP struck + % off, then the unit price (follows the size chip) */}
         {selected && (
-          <div className="pt-2 sm:pt-2.5" aria-live="polite">
-            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <span className="text-lg leading-none font-bold text-forest tabular-nums sm:text-2xl">{formatMoney(selected.price)}</span>
-              {save > 0 && <s className="text-xs text-ink-muted tabular-nums sm:text-sm">{formatMoney(selected.compareAtPrice!)}</s>}
+          <div className="pt-1.5 sm:pt-2.5" aria-live="polite">
+            <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 sm:gap-x-2">
+              <span className="text-[15px] leading-none font-bold text-forest tabular-nums sm:text-2xl">{formatMoney(selected.price)}</span>
+              {save > 0 && <s className="text-[11px] text-ink-muted tabular-nums sm:text-sm">{formatMoney(selected.compareAtPrice!)}</s>}
               {pctOff > 0 && (
-                <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[11px] font-semibold text-forest tabular-nums">{pctOff}% off</span>
+                <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[11px] font-semibold text-forest tabular-nums max-sm:hidden">{pctOff}% off</span>
               )}
             </p>
             {selected.outOfStock ? (
               <p className="mt-1 text-xs font-semibold text-sale">Out of stock</p>
             ) : (
               // Always one line tall (even for 100 ml packs) so every card's chips start on the same line.
-              <p className="mt-1 min-h-[1lh] text-xs text-ink-muted tabular-nums">{per ?? "\u00a0"}</p>
+              <p className="mt-1 min-h-[1lh] text-[11px] text-ink-muted tabular-nums sm:text-xs">{per ?? "\u00a0"}</p>
             )}
           </div>
         )}
 
         {/* 6. Sizes + add to cart / stepper (always visible) */}
         {/* Spare height (e.g. a card without stars) goes above the buttons, never between text and price. */}
-        <div className="mt-auto pt-2.5 sm:pt-3">{actions()}</div>
+        <div className="mt-auto pt-1.5 sm:pt-3">{actions()}</div>
       </div>
     </article>
   );

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils/cn";
 type Size = { id: string; title: string; soldOut?: boolean };
 
 const chipBase = "shrink-0 rounded-full border whitespace-nowrap transition-colors duration-200";
-const chipSize = { md: "h-9 px-3 text-[13px] md:text-sm", sm: "h-8 px-2.5 text-[12.5px]" } as const;
+const chipSize = { md: "h-7 px-2.5 text-[12px] md:h-9 md:px-3 md:text-sm", sm: "h-8 px-2.5 text-[12.5px]" } as const;
 const GAP = 6;
 
 /**

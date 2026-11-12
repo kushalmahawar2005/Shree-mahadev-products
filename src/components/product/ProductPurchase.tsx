@@ -25,10 +25,16 @@ type Props = Pick<Product, "handle" | "title" | "variants" | "defaultSize"> & {
   image?: string;
   /** Quick view: no delivery check, no sticky bar, no URL ?size. */
   compact?: boolean;
+  /** Offers row, shown right under the price. */
+  offers?: React.ReactNode;
+  /** Shown under the buttons (payment logos etc.). */
+  footer?: React.ReactNode;
+  /** "Only N left" below this many units (admin low-stock threshold). */
+  lowStock?: number;
 };
 
 /** Size cards + price + qty + Add to cart / Buy now + WhatsApp, with a sticky bar once the CTA scrolls away. */
-export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false }: Props) {
+export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10 }: Props) {
   const { add, open } = useCart();
   // Admin's "Shown first" size, else 1 L / 1 kg, else the first size on sale.
   const preferred = defaultVariant({ variants, defaultSize }, (list) => list.find((v) => v.sizeValue === 1000)) ?? variants[0];
@@ -97,13 +103,14 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
 
   return (
     <div>
-      <PriceBlock variant={variant} qty={qty} />
+      <PriceBlock variant={variant} qty={qty} lowStock={lowStock} />
+      {offers}
 
-      <fieldset className="mt-6">
-        <legend className="mb-2.5 text-sm font-semibold text-forest-text">
+      <fieldset className="mt-5 min-w-0">
+        <legend className="mb-1.5 text-sm font-semibold text-ink">
           Choose size <span className="font-normal text-ink-muted">· {variant.title}</span>
         </legend>
-        <div role="radiogroup" aria-label="Size" className="-mx-1 grid grid-cols-2 gap-2 overflow-hidden px-1 pt-2.5 pb-1 sm:grid-cols-4 lg:flex lg:overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div role="radiogroup" aria-label="Size" className="grid grid-cols-[repeat(auto-fit,minmax(82px,1fr))] gap-x-2 gap-y-4 pt-2.5 pb-1">
           {variants.map((v) => {
             const on = v.id === variant.id;
             const off = !v.availableForSale;
@@ -126,26 +133,24 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
                 aria-checked={on}
                 aria-label={`${v.title}${v.availableForSale ? "" : v.outOfStock ? ", out of stock" : ", price coming soon"}`}
                 className={cn(
-                  "relative flex min-w-[92px] flex-1 flex-col items-center rounded-2xl border-2 px-2 pt-3 pb-2.5 text-center transition-all disabled:cursor-not-allowed disabled:opacity-40",
+                  "relative flex min-w-[74px] flex-1 shrink-0 flex-col items-center rounded-xl border-[1.5px] px-1.5 pt-2.5 pb-2 text-center transition-all disabled:cursor-not-allowed disabled:opacity-40",
                   on ? "border-forest bg-co-brand-soft" : "border-line bg-white hover:border-forest/30",
                 )}
               >
                 {on && <motion.span layoutId={`size-check-${handle}`} className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-forest text-white"><Check className="size-3" strokeWidth={3} /></motion.span>}
-                <span className={cn("text-sm font-bold", v.outOfStock && "line-through", on ? "text-forest" : "text-ink")}>{v.title}</span>
+                <span className={cn("text-[13px] font-bold", v.outOfStock && "line-through", on ? "text-forest" : "text-ink")}>{v.title}</span>
                 {badge && (
                   <span className={cn("absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap", badge === "Best value" ? "bg-co-accent-soft text-co-accent-ink ring-1 ring-co-accent/30" : "bg-forest text-white")}>
                     {badge}
                   </span>
                 )}
-                <span className="mt-0.5 text-sm font-semibold text-ink tabular-nums">{v.outOfStock ? "Sold out" : v.price.amount ? formatMoney(v.price) : "Soon"}</span>
-                {v.price.amount > 0 && !v.outOfStock && unitPrice(v) && <span className="text-[11px] text-ink-muted tabular-nums">{unitPrice(v)}</span>}
+                <span className="mt-0.5 text-[13px] font-semibold text-ink tabular-nums">{v.outOfStock ? "Sold out" : v.price.amount ? formatMoney(v.price) : "Soon"}</span>
+                {v.price.amount > 0 && !v.outOfStock && unitPrice(v) && <span className="text-[10px] whitespace-nowrap text-ink-muted tabular-nums">{unitPrice(v)?.replace(" / 100 ", "/100 ")}</span>}
               </button>
             );
           })}
         </div>
       </fieldset>
-
-      {canBuy && !compact && <DeliveryCheck variant={variant} qty={qty} />}
 
       {variant.outOfStock ? (
         <div ref={ctaRef} className="mt-6 rounded-2xl border border-line bg-white p-4">
@@ -153,29 +158,29 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
           <NotifyMe key={variant.id} variantKey={variant.id} sizeLabel={`${title} ${variant.title}`} />
         </div>
       ) : (
-        <div ref={ctaRef} className="mt-6 space-y-3">
-          <div className="flex items-center gap-3">
+        <div ref={ctaRef} className="mt-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:flex-nowrap">
             <QtyStepper value={qty} min={1} onChange={setQty} label={title} disabled={!canBuy} />
             <button
               type="button"
               disabled={!canBuy || !!busy}
               onClick={addToCart}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-6 text-[15px] font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
+              className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-5 text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
             >
               {busy === "add" ? <LoadingDots /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
-              {!canBuy ? "Price coming soon" : added ? "Added · add more" : "Add to cart"}
+              {!canBuy ? "Price coming soon" : added ? "Added" : "Add to cart"}
             </button>
+            {canBuy && (
+              <button
+                type="button"
+                disabled={!!busy}
+                onClick={buyNow}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-co-accent px-5 text-[15px] font-semibold whitespace-nowrap text-ink transition-colors hover:brightness-95 disabled:opacity-60 sm:w-auto sm:flex-1"
+              >
+                {busy === "buy" ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Buy now
+              </button>
+            )}
           </div>
-          {canBuy && (
-            <button
-              type="button"
-              disabled={!!busy}
-              onClick={buyNow}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-forest bg-white text-[15px] font-semibold text-forest transition-colors hover:bg-co-brand-soft disabled:opacity-60"
-            >
-              {busy === "buy" ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Buy it now
-            </button>
-          )}
           {added && (
             <button type="button" onClick={open} className="w-full text-center text-sm font-semibold text-forest underline-offset-2 hover:underline">
               View cart
@@ -183,6 +188,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
           )}
         </div>
       )}
+      {canBuy && !compact && <DeliveryCheck variant={variant} qty={qty} />}
       <a
         href={whatsappLink(waMessage)}
         target="_blank"
@@ -191,6 +197,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
       >
         <WhatsAppIcon className="size-4 text-[#25d366]" /> Prefer WhatsApp? Order in chat
       </a>
+      {footer}
 
       {/* Sticky add-to-cart once the main CTA scrolls away */}
       <AnimatePresence>
@@ -241,11 +248,11 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
   );
 }
 
-function PriceBlock({ variant, qty }: { variant: ProductVariant; qty: number }) {
+function PriceBlock({ variant, qty, lowStock }: { variant: ProductVariant; qty: number; lowStock: number }) {
   const unit = unitPrice(variant);
   const save = variant.compareAtPrice ? variant.compareAtPrice.amount - variant.price.amount : 0;
   return (
-    <div aria-live="polite">
+    <div aria-live="polite" >
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div key={variant.availableForSale ? "price" : variant.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
           {variant.price.amount ? (
@@ -254,15 +261,15 @@ function PriceBlock({ variant, qty }: { variant: ProductVariant; qty: number }) 
                 value={variant.price.amount}
                 format={{ style: "currency", currency: "INR", maximumFractionDigits: 0 }}
                 locales="en-IN"
-                className="text-4xl font-extrabold text-ink tabular-nums"
+                className="text-[32px] leading-none font-extrabold tracking-tight text-ink tabular-nums"
               />
               {variant.compareAtPrice && save > 0 && (
                 <>
-                  <span className="text-ink-muted">
-                    MRP <s>{formatMoney(variant.compareAtPrice)}</s>
+                  <span className="text-sm text-ink-muted">
+                    MRP <s className="tabular-nums">{formatMoney(variant.compareAtPrice)}</s>
                   </span>
-                  <span className="text-sm font-semibold text-co-success">
-                    Save {formatMoney(save)} ({Math.round((save / variant.compareAtPrice.amount) * 100)}%)
+                  <span className="rounded-full bg-co-success-soft px-2.5 py-1 text-xs font-semibold text-co-success tabular-nums">
+                    {Math.round((save / variant.compareAtPrice.amount) * 100)}% off · save {formatMoney(save)}
                   </span>
                 </>
               )}
@@ -270,16 +277,23 @@ function PriceBlock({ variant, qty }: { variant: ProductVariant; qty: number }) 
           ) : (
             <p className="text-2xl font-semibold text-ink-muted">Price coming soon</p>
           )}
-          <p className="mt-1 text-sm text-ink-muted">
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <p className="text-[13px] text-ink-muted">
             {unit ? `${unit} · ` : ""}Inclusive of all taxes
             {qty > 1 && variant.price.amount ? ` · ${qty} for ${formatMoney(variant.price.amount * qty)}` : ""}
           </p>
-          {variant.availableForSale && (
-            <p className="mt-2 inline-flex items-center gap-2 text-[13px] font-semibold text-forest">
+          {variant.availableForSale && (variant.stock ?? Infinity) <= lowStock ? (
+            <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-co-accent-ink">
+              <span aria-hidden className="size-2 rounded-full bg-mustard ring-4 ring-mustard/20" />
+              Only {variant.stock} left · ships within 24 hours
+            </p>
+          ) : variant.availableForSale ? (
+            <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-forest">
               <span aria-hidden className="live-dot size-2 rounded-full bg-co-success ring-4 ring-co-success/15" />
               In stock · ships within 24 hours
             </p>
-          )}
+          ) : null}
+          </div>
         </motion.div>
       </AnimatePresence>
     </div>

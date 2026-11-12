@@ -144,7 +144,7 @@ export function VideoTile({
             initial={false}
             animate={!canHover || hover || reduce ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="line-clamp-1 max-w-full text-sm font-medium text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.5)] lg:text-base"
+            className="line-clamp-1 max-w-full text-xs font-medium text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.5)] sm:text-sm lg:text-base"
           >
             {title}
           </motion.p>
@@ -152,19 +152,19 @@ export function VideoTile({
             <Link
               href={product.href}
               title={chipPrice ? `${product.title} · ${chipPrice}` : product.title}
-              className="group/chip pointer-events-auto flex w-fit max-w-full items-center gap-2 rounded-full border border-white/10 bg-black/35 p-1.5 pr-3 text-white backdrop-blur-md transition-colors duration-300 hover:bg-white/15"
+              className="group/chip pointer-events-auto flex w-fit max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-black/35 p-1 pr-2.5 sm:gap-2 sm:p-1.5 sm:pr-3 text-white backdrop-blur-md transition-colors duration-300 hover:bg-white/15"
             >
-              <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f6efe2]">
+              <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f6efe2] sm:size-8">
                 {product.image ? (
                   <Image src={thumbUrl(product.image, 32)} alt="" width={32} height={32} unoptimized className="size-7 object-contain" />
                 ) : (
                   <span className="size-1.5 rounded-full bg-forest" />
                 )}
               </span>
-              {/* One line when it fits; otherwise the price wraps under the name (never truncated) */}
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-1 leading-tight">
-                <span className="text-sm font-medium">{product.title}</span>
-                {chipPrice && <span className="text-xs whitespace-nowrap text-white/75">· {chipPrice}</span>}
+              {/* Phones: name on one line (truncated) with the price under it. sm+: one line, price wraps if needed. */}
+              <span className="flex min-w-0 flex-col leading-tight sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-1">
+                <span className="truncate text-[12px] font-medium sm:overflow-visible sm:text-sm sm:whitespace-normal">{product.title}</span>
+                {chipPrice && <span className="text-[10px] whitespace-nowrap text-white/75 sm:text-xs"><span className="max-sm:hidden">· </span>{chipPrice}</span>}
               </span>
               <ArrowUpRight className="size-3.5 shrink-0 transition-transform duration-300 group-hover/chip:translate-x-0.5 group-hover/chip:-translate-y-0.5" />
             </Link>

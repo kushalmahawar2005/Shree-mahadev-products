@@ -180,6 +180,46 @@ export function OrderTimeline({
   );
 }
 
+/**
+ * Phones: the same progress as OrderTimeline in one short row (segmented bar + where it is now),
+ * so an order card isn't five rows tall. The full vertical timeline stays on the order page.
+ */
+export function OrderProgressMini({
+  current,
+  times = {},
+}: {
+  current: number;
+  times?: Partial<Record<number, string>>;
+}) {
+  const reduce = useReducedMotion();
+  const lastIdx = TIMELINE_STEPS.length - 1;
+  const at = Math.min(Math.max(current, 0), lastIdx);
+  const next = at < lastIdx ? TIMELINE_STEPS[at + 1] : null;
+  return (
+    <div aria-label={`Order progress: ${TIMELINE_STEPS[at]}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-sm font-semibold text-ink">
+          {TIMELINE_STEPS[at]}
+          {times[at] && <span className="font-normal text-ink-muted"> · {times[at]}</span>}
+        </p>
+        {next && <p className="shrink-0 text-xs text-ink-muted">Next: {next}</p>}
+      </div>
+      <div className="mt-2 grid grid-cols-5 gap-1" aria-hidden>
+        {TIMELINE_STEPS.map((label, i) => (
+          <span key={label} className="h-1.5 overflow-hidden rounded-full bg-co-border-strong/50">
+            <motion.span
+              className="block size-full origin-left rounded-full bg-forest"
+              initial={false}
+              animate={{ scaleX: i <= at ? 1 : 0 }}
+              transition={{ duration: reduce ? 0 : 0.4, delay: reduce ? 0 : i * 0.06 }}
+            />
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ───────────────────────── Generic bits ───────────────────────── */
 
 /** Confirmation for anything destructive (never window.confirm). */

@@ -93,7 +93,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
   ];
 
   return (
-    <section id="proof" className="paper-grain relative scroll-mt-24 overflow-hidden bg-[linear-gradient(180deg,#f8e8bb_0%,#f4dea0_100%)] pt-14 pb-14 md:pt-20 md:pb-20">
+    <section id="proof" className="paper-grain relative scroll-mt-24 overflow-hidden bg-[linear-gradient(180deg,#f8e8bb_0%,#f4dea0_100%)] pt-10 pb-10 md:pt-20 md:pb-20">
       {/* Top edge comes from the sage Shop-by-use band above (its flip edge is this section's colour) */}
       {/* Warm haldi band prop on the right margin (desktop): a painted matka, never over the cards */}
       <SectionArt
@@ -103,18 +103,19 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
         drift={24}
       />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
-        <div className="mb-8 flex flex-col items-center text-center md:mb-12">
+        <div className="mb-5 flex flex-col items-center text-center md:mb-12">
           <p className="font-hindi flex items-center gap-2 text-base text-[#8a4b0b] md:text-lg" lang="hi">
             <span aria-hidden className="h-px w-6 bg-[#8a4b0b]/50" />
             भरोसे का सबूत
             <span aria-hidden className="h-px w-6 bg-[#8a4b0b]/50" />
           </p>
-          <h2 className="mt-2 text-[30px] leading-[1.1] font-bold tracking-tight md:text-[44px]">Good oil, backed by proof</h2>
-          <p className="mt-3 max-w-xl text-[15px] text-[#5a4a32] md:text-base">Real reports and licences, issued to Mahadev Products. Open any of them.</p>
+          <h2 className="mt-1.5 text-[24px] leading-[1.1] font-bold tracking-tight md:mt-2 md:text-[44px]">Good oil, backed by proof</h2>
+          <p className="mt-2 max-w-xl text-sm text-[#5a4a32] md:mt-3 md:text-base">Real reports and licences, issued to Mahadev Products. Open any of them.</p>
         </div>
 
         {/* Equal-height cards: fixed 4:3 media + CTA pinned to the bottom, so titles and CTAs align */}
-        <ul className="grid gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+        {/* Phones: one row of three small cards. md+: card grid. */}
+        <ul className="grid grid-cols-3 gap-2 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
           {cards.map((c, n) => (
             <motion.li
               key={c.key}
@@ -129,7 +130,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
           ))}
         </ul>
 
-        <div className="mt-8 flex justify-center">
+        <div className="mt-5 flex justify-center md:mt-8">
           <Link href="/lab-reports" className="inline-flex items-center gap-1.5 text-sm font-semibold text-forest-text underline-offset-4 hover:underline">
             All lab reports <ArrowRight className="size-4" />
           </Link>

@@ -61,7 +61,7 @@ export function FilmShowcase({
   return (
     <>
       <div className={cn("grid gap-4 lg:gap-5", two.length && "lg:grid-cols-12")}>
-        <motion.div {...rise(0)} className={cn("aspect-[4/5] md:aspect-[16/10]", two.length && "lg:col-span-8")}>
+        <motion.div {...rise(0)} className={cn("aspect-[16/11] md:aspect-[16/10]", two.length && "lg:col-span-8")}>
           <VideoTile
             src={youtubeId ? undefined : FILM.src}
             poster={youtubeId ? `https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg` : FILM.poster}
@@ -75,14 +75,14 @@ export function FilmShowcase({
         </motion.div>
 
         {two.length > 0 && (
-          // Phone: snap carousel (80vw cards, next one peeks). md: two side by side at 4:5.
+          // Phone: two small cards side by side (3:4). md: two side by side at 4:5.
           // lg: two equal rows that fill the film's row height exactly (min-h-0 so content can't stretch it).
-          <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 md:mx-0 md:scroll-px-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 lg:col-span-4 lg:min-h-0 lg:grid-cols-1 lg:grid-rows-2 lg:gap-5">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:col-span-4 lg:min-h-0 lg:grid-cols-1 lg:grid-rows-2 lg:gap-5">
             {two.map((r, i) => (
               <motion.div
                 key={r.id}
                 {...rise(i + 1)}
-                className="aspect-[4/5] w-[80vw] shrink-0 snap-start md:w-auto lg:aspect-auto lg:min-h-0"
+                className="aspect-[3/4] md:aspect-[4/5] lg:aspect-auto lg:min-h-0"
               >
                 <VideoTile
                   src={cldVideo(r.videoUrl, 720)}

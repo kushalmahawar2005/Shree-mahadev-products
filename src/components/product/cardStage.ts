@@ -10,7 +10,8 @@ export function stageStyle(_swatch?: string): CSSProperties {
   return { backgroundColor: "#fbf5e5" };
 }
 
-export const stageClass = "relative isolate block aspect-[4/5] overflow-hidden rounded-xl";
+// Phones: square (shorter cards); the photo is shown whole (contain), see PickCard.
+export const stageClass = "relative isolate block aspect-square overflow-hidden rounded-xl sm:aspect-[4/5]";
 
 /** Extra classes for product photos inside the frame (none for now). */
 export const stageImg = "";

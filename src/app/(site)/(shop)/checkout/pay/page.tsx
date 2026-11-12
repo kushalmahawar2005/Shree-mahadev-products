@@ -60,7 +60,8 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
   const base =
     (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_SITE_URL) ||
     (host ? `${host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"}://${host}` : "http://localhost:3000");
-  const callback = `${base}/api/payu/callback`;
+  // Token on the URL lets the callback recover if the browser drops the POST body.
+  const callback = `${base}/api/payu/callback?t=${order.token}`;
   const fields = buildPayuForm({
     txnid,
     amount: order.total.toFixed(2),

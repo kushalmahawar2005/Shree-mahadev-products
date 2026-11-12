@@ -155,7 +155,7 @@ export function AnnouncementStrip({ items, intervalSec }: { items: Msg[]; interv
           <Item m={items[0]} compact />
         </div>
         {items.length > 1 && (
-          <Marquee pauseOnHover className="h-9 p-0 [--duration:28s] [--gap:1.75rem] motion-reduce:hidden">
+          <Marquee pauseOnHover className="h-9 p-0 [--duration:28s] [--gap:1.75rem] [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] motion-reduce:hidden">
             {items.map((m) => (
               <span key={m.text} className="inline-flex items-center gap-7">
                 <Item m={m} compact />

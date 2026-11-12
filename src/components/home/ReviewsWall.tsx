@@ -28,8 +28,8 @@ function ReviewCard({ r, i }: { r: PublicReview; i: number }) {
     <article className="relative flex w-[270px] flex-col rounded-3xl border border-line bg-white p-4 sm:w-[300px] sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)] md:w-[340px]">
       <Quote aria-hidden className="absolute top-4 right-4 size-8 fill-khaki-soft text-khaki-soft" />
       <Stars n={r.rating} />
-      {r.title && <h3 className="mt-3 text-lg leading-snug">{r.title}</h3>}
-      <p className="mt-1.5 line-clamp-4 text-sm leading-relaxed text-ink">{r.body}</p>
+      {r.title && <h3 className="mt-2.5 text-base leading-snug sm:mt-3 sm:text-lg">{r.title}</h3>}
+      <p className="mt-1.5 line-clamp-4 text-[13px] leading-relaxed text-ink sm:text-sm">{r.body}</p>
       <div className="mt-auto flex items-center gap-3 pt-4">
         <span className="grid size-10 shrink-0 place-items-center rounded-full text-sm font-bold text-white" style={{ background: TINTS[i % TINTS.length] }}>
           {initials(r.name)}
@@ -66,10 +66,10 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
     <section className="paper-grain relative overflow-hidden bg-page pt-10 pb-12 md:py-20">
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
         <div className="mb-5 flex flex-col items-center gap-2 text-center md:mb-10">
-          <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
-            <Star className="size-3.5 fill-current" /> Loved in Indian kitchens
+          <p lang="hi" className="font-hindi inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-sm text-sale md:text-base">
+            <Star className="size-3.5 fill-current" /> भारतीय रसोई की पसंद
           </p>
-          <h2 className="text-3xl md:text-[44px]">What customers say</h2>
+          <h2 className="text-[24px] md:text-[44px]">What customers say</h2>
         </div>
 
         <div className="grid items-center gap-4 sm:gap-6 lg:grid-cols-[300px_1fr]">
@@ -79,9 +79,9 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="relative flex items-center gap-4 overflow-hidden rounded-3xl bg-forest p-4 text-white sm:block sm:p-6"
+            className="relative flex items-center gap-3 overflow-hidden rounded-2xl bg-forest px-4 py-3 text-white sm:block sm:rounded-3xl sm:p-6"
           >
-            <p className="relative text-5xl leading-none font-extrabold tabular-nums sm:text-6xl sm:leading-tight">{avg.toFixed(1)}</p>
+            <p className="relative text-4xl leading-none font-extrabold tabular-nums sm:text-6xl sm:leading-tight">{avg.toFixed(1)}</p>
             <div className="relative min-w-0 flex-1">
               <Stars n={Math.round(avg)} className="sm:mt-2" />
               <p className="mt-1.5 text-[13px] text-white/75 sm:mt-2 sm:text-sm">
@@ -106,9 +106,10 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
           </motion.div>
 
           {/* Wall */}
-          <div className="relative min-w-0 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
+          <div className={cn("relative min-w-0", !(reduce || reviews.length < 3) && "[mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]")}>
             {reduce || reviews.length < 3 ? (
-              <div className="flex flex-wrap gap-4">
+              // Few reviews: a still list; on phones each card takes the full width.
+              <div className="flex flex-wrap gap-4 max-sm:[&>article]:w-full">
                 {reviews.map((r, i) => (
                   <ReviewCard key={r.id} r={r} i={i} />
                 ))}

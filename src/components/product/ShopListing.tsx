@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { useLoadingSignal } from "@/components/motion/LoadingBar";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { Loader2, SlidersHorizontal, X } from "lucide-react";
+import { ArrowUpDown, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { QuickView } from "./QuickView";
@@ -171,7 +171,7 @@ export function ShopListing({
     .map((u) => ({ ...u, n: countIn("use", (p) => p.tags.includes(u.tag)) }));
 
   const grid = (items: Product[], withPromo: boolean) => (
-    <ul className={cn("grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3", !group && "mt-5", cols === 4 && "xl:grid-cols-4")}>
+    <ul className={cn("grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-3", !group && "mt-3 md:mt-5", cols === 4 && "xl:grid-cols-4")}>
       <AnimatePresence mode="popLayout" initial={false}>
         {items.flatMap((p, i) => [
           ...(withPromo && i === 6 ? [<PromoTile key="promo" />] : []),
@@ -240,7 +240,7 @@ export function ShopListing({
   );
 
   return (
-    <div className="mt-6 grid gap-8 lg:grid-cols-[260px_1fr]">
+    <div className="mt-1 grid gap-8 md:mt-6 lg:grid-cols-[260px_1fr]">
       {/* Sidebar (desktop) */}
       <aside className="hidden lg:block">
         <div className="sticky top-[calc(var(--sticky-top,120px)+16px)] max-h-[calc(100dvh-var(--sticky-top,120px)-32px)] overflow-y-auto rounded-2xl border border-line bg-white p-5 transition-[top] duration-300 [scrollbar-width:thin]" data-lenis-prevent="">
@@ -258,10 +258,11 @@ export function ShopListing({
 
       <div className="min-w-0">
         {/* Toolbar */}
-        <div className="sticky top-[var(--sticky-top,64px)] z-20 -mx-4 flex flex-wrap items-center gap-3 border-b border-line bg-page/95 px-4 py-3 backdrop-blur transition-[top] duration-300 lg:mx-0 lg:px-0">
+        {/* Phones: [Filters] [Sort] as one row of equal buttons, the count small underneath. */}
+        <div className="sticky top-[var(--sticky-top,64px)] z-20 -mx-4 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-line bg-page/95 px-4 py-2 backdrop-blur transition-[top] duration-300 lg:mx-0 lg:gap-3 lg:px-0 lg:py-3">
           <Sheet open={sheet} onOpenChange={setSheet}>
             <SheetTrigger asChild>
-              <button type="button" className="inline-flex h-10 items-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text lg:hidden">
+              <button type="button" className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text lg:hidden">
                 <SlidersHorizontal className="size-4" /> Filters
                 {filterCount > 0 && <span className="grid size-5 place-items-center rounded-full bg-forest text-[11px] text-white">{filterCount}</span>}
               </button>
@@ -283,12 +284,12 @@ export function ShopListing({
             </SheetContent>
           </Sheet>
 
-          <p className="flex items-center gap-2 text-sm text-ink-muted" aria-live="polite">
+          <p className={cn("order-last flex basis-full items-center gap-2 text-xs text-ink-muted lg:order-none lg:flex lg:basis-auto lg:text-sm", shown.length === products.length && !pending && "max-lg:hidden")} aria-live="polite">
             {pending && <Loader2 className="size-3.5 animate-spin" />}
             Showing <span className="font-semibold text-forest-text tabular-nums">{shown.length}</span> of {products.length} products
           </p>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex flex-1 items-center gap-2 lg:ml-auto lg:flex-none">
             <div className="hidden items-center rounded-full border border-line bg-white p-0.5 xl:flex" role="group" aria-label="Grid density">
               {([3, 4] as const).map((n) => (
                 <button
@@ -304,7 +305,8 @@ export function ShopListing({
             </div>
             <span className="hidden text-sm text-ink-muted sm:inline">Sort by</span>
             <Select value={sort} onValueChange={(v) => setKey("sort", v === "best" ? "" : v)}>
-              <SelectTrigger className="h-10 min-w-[180px] rounded-full border-line bg-white" aria-label="Sort products">
+              <SelectTrigger className="h-10 w-full min-w-0 rounded-full border-line bg-white text-sm font-semibold text-forest-text lg:h-10 lg:w-auto lg:min-w-[180px] lg:font-normal lg:text-ink" aria-label="Sort products">
+                <ArrowUpDown className="size-4 shrink-0 text-forest lg:hidden" aria-hidden />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

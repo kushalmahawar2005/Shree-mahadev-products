@@ -672,7 +672,7 @@ export function CheckoutForm({
           pincode: getValues("pincode"),
         })
       }
-      className="grid gap-5 pb-6 lg:grid-cols-12 lg:gap-8 lg:pb-0"
+      className="grid grid-cols-[minmax(0,1fr)] gap-5 pb-6 lg:grid-cols-12 lg:gap-8 lg:pb-0"
     >
       {/* Mobile: collapsible order summary */}
       <Collapsible
@@ -717,7 +717,7 @@ export function CheckoutForm({
           <div className="divide-y divide-line rounded-3xl border border-line bg-white shadow-co-card px-5 md:px-6">
             <ReviewRow
               label="Contact"
-              value={`${titleCase(v.name)} · +91 ${v.phone}${v.email ? ` · ${v.email}` : ""}`}
+              value={[titleCase(v.name), `+91 ${v.phone}`, v.email].filter(Boolean)}
               onChange={() => setOpen("contact")}
             />
             <ReviewRow
@@ -1898,15 +1898,26 @@ function ReviewRow({
   onChange,
 }: {
   label: string;
-  value: string;
+  /** One string (wraps to 2 lines on phones) or one entry per line (each truncated). */
+  value: string | string[];
   onChange: () => void;
 }) {
   return (
     <div className="flex items-center gap-4 py-4">
       <span className="w-16 shrink-0 text-sm text-ink-muted">{label}</span>
-      <span className="min-w-0 flex-1 truncate text-sm text-ink" title={value}>
-        {value}
-      </span>
+      {Array.isArray(value) ? (
+        <span className="min-w-0 flex-1 text-sm text-ink" title={value.join(" · ")}>
+          {value.map((line) => (
+            <span key={line} className="block truncate">
+              {line}
+            </span>
+          ))}
+        </span>
+      ) : (
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm break-words text-ink sm:truncate" title={value}>
+          {value}
+        </span>
+      )}
       <button
         type="button"
         onClick={onChange}

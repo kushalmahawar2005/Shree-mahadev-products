@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { Search, SearchX } from "lucide-react";
+import { SearchX } from "lucide-react";
 import { MessageCircle } from "@/components/icons/duo";
+import { SearchBox } from "@/components/search/SearchBox";
 import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { getProducts, searchProducts } from "@/lib/commerce";
@@ -20,7 +21,7 @@ const POPULAR = ["Mustard oil", "Groundnut oil", "Raw honey", "Coconut oil", "Ba
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <div className="bg-page">
-      <div className="mx-auto max-w-[1360px] px-4 pt-8 pb-10 md:px-8 md:pt-12 md:pb-24">
+      <div className="mx-auto max-w-[1360px] px-4 pt-6 pb-10 md:px-8 md:pt-12 md:pb-24">
         <Suspense fallback={<SearchHeader />}>
           <Results searchParams={searchParams} />
         </Suspense>
@@ -92,28 +93,11 @@ function Grid({ products }: { products: Awaited<ReturnType<typeof getProducts>> 
 function SearchHeader({ q = "" }: { q?: string }) {
   return (
     <header className="mx-auto max-w-2xl text-center">
-      <p className="font-hindi text-lg text-sale" lang="hi">
+      <p className="font-hindi text-base text-sale md:text-lg" lang="hi">
         क्या ढूंढ रहे हैं?
       </p>
-      <h1 className="text-3xl md:text-5xl">Search the store</h1>
-      <form action="/search" role="search" className="relative mt-6">
-        <label htmlFor="q" className="sr-only">
-          Search products
-        </label>
-        <Search className="pointer-events-none absolute top-1/2 left-5 size-5 -translate-y-1/2 text-ink-muted" />
-        <input
-          id="q"
-          name="q"
-          type="search"
-          defaultValue={q}
-          placeholder="Try mustard, honey, baby massage"
-          autoFocus={!q}
-          className="h-14 w-full rounded-full border border-line bg-white pr-32 pl-13 text-base text-ink shadow-[0_14px_30px_-24px_rgba(7,47,27,0.5)] outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10"
-        />
-        <button type="submit" className="absolute top-1.5 right-1.5 h-11 rounded-full bg-forest px-6 text-sm font-bold text-white hover:bg-forest-mid">
-          Search
-        </button>
-      </form>
+      <h1 className="text-[28px] leading-tight md:text-5xl">Search the store</h1>
+      <SearchBox q={q} />
       <ul className="mt-4 flex flex-wrap justify-center gap-2">
         {POPULAR.map((t) => {
           const on = q.toLowerCase() === t.toLowerCase();
@@ -121,6 +105,8 @@ function SearchHeader({ q = "" }: { q?: string }) {
             <li key={t}>
               <Link
                 href={`/search?q=${encodeURIComponent(t)}`}
+                replace
+                scroll={false}
                 className={
                   on
                     ? "inline-flex h-8 items-center rounded-full bg-forest px-3.5 text-xs font-semibold text-white"

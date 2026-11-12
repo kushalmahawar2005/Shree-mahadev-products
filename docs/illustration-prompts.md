@@ -72,3 +72,68 @@ by product handle: `groundnut-oil.png`, `yellow-mustard-oil.png`, `black-mustard
 - No text, no logo, no faces, no extra bottles drawn in.
 - Centre-bottom empty (scenes only).
 - Colours stay in the palette: nothing neon, no pure black.
+
+---
+
+## PDP (product page) visuals — 2026-11-12
+
+Shared style line (paste at the end of every prompt):
+> Hand-painted Indian folk watercolour, soft paper texture, warm natural light, muted earthy palette
+> (cream, mustard yellow, deep forest green, terracotta), clean uncluttered composition, no text,
+> no logos, no watermark.
+
+Always attach as reference: a photo of our real **yellow steel kachi ghani machine** (no bullock,
+no wooden log ghani) and, for product shots, the real bottle packshot.
+
+### 1. PDP compare (pair, 16:10, 1672×1045) → `public/brand/compare/ghani.webp` + `refined.webp`
+Same camera angle, same horizon, same neem tree on the right in both, so they read as one place.
+- **Ghani (warm):** "A small village workshop in Rajasthan at golden hour. A modern yellow steel
+  kachi ghani oil press (like the reference photo) slowly pressing mustard seeds, golden oil pouring
+  from its spout into a brass pot. Jute sacks of seeds, clay pots, a neem tree on the right, soft
+  sunlight." + style line.
+- **Refined (cold):** "The same scene and framing, but an industrial oil refinery: steel tanks,
+  pipes, a chimney with smoke, pale thin oil pouring into a steel pot. Cold grey-blue palette,
+  overcast light, same neem tree on the right." + style line.
+
+### 2. Home checks (3 images, square 1:1, 1200×1200) → `public/images/pdp/check-*.webp`
+- `check-smell`: "A hand holding an open bottle of golden mustard oil near the nose, a few mustard
+  seeds and a small brass bowl on a wooden kitchen counter."
+- `check-cold`: "A small glass bowl of groundnut oil turned slightly cloudy and thick, beside an open
+  fridge door with soft cool light, kitchen setting."
+- `check-look`: "A clear glass bottle of golden oil held against window light, a thin layer of natural
+  sediment visible at the bottom."
+
+### 3. In-use gallery shots (portrait 4:5, 1200×1500), one or two per product → product images in admin
+Attach the product's packshot so the bottle/label matches.
+- Mustard: "Our mustard oil bottle beside an iron kadhai with a sizzling tadka of mustard seeds and dry
+  red chillies, steel spoons, rustic kitchen."
+- Mustard (pickle): "The bottle next to a ceramic achaar jar of mango pickle, raw mango slices, spices
+  on a cloth."
+- Groundnut: "The bottle beside a kadhai of golden pakode / namkeen, peanuts in a small bowl."
+- Coconut: "The bottle with halved coconuts and a small bowl of oil on a banana leaf."
+- Sesame: "The bottle with til laddoo and a bowl of sesame seeds."
+
+### 4. Method steps (optional upgrade, 4:5) → `public/illustrations/process/1..5`
+Current 5 illustrations work. If redone: farm → hand cleaning seeds on a chhalni → seeds going into the
+yellow kachi ghani → oil resting in steel drums + cloth filtering → hand-filling bottles. Same character
+(Dadi) can appear in 2–3 of them.
+
+### 5. Brand band (wide 21:9, 2100×900) → `public/images/pdp/story-band.webp`
+"Dusk at a small Rajasthani oil workshop: the yellow kachi ghani machine glowing under a warm bulb,
+sacks of mustard seeds, rows of filled oil bottles on a wooden shelf, mustard fields visible through
+the open door." Keep the left 45% calm (text sits there).
+
+### 6. PDP section ornaments (corner art, transparent PNG, ~1600×900) → `public/brand/deco/pdp-*.png`
+One small hand-painted ornament per band, top-right corner. Style line as above, **transparent
+background**, object only, no ground/shadow box. Stand-ins currently used from `deco` in brand-art.ts.
+- `pdp-method` (ivory band, now marigolds): "A small cluster of mustard flowers with a few seed pods and a
+  wooden ghani pestle leaning against them."
+- `pdp-compare` (green band, now mustard branch): "A bending branch of mustard plant with yellow flowers
+  and green pods, drooping from the top-right."
+- `pdp-checks` (mustard band, now matka): "A brass lota and a small glass oil bottle with golden oil, a
+  sprig of tulsi beside them."
+- `pdp-reviews` (ivory band, now birds): "Two Rajasthani folk-art sparrows on a twig holding a tiny
+  rolled letter."
+- `pdp-set` (green band, now rasoi set): "A neat row of a brass katori, a steel dabba and a jute
+  bag of seeds, like a kitchen set."
+- `pdp-story` (mustard band): "A hanging marigold-and-mango-leaf toran, short, for a corner."

@@ -105,7 +105,7 @@ export function TabbedCarousel({
                 aria-selected={on}
                 onClick={() => setActive(i)}
                 className={cn(
-                  "min-h-10 shrink-0 rounded-full px-5 text-sm font-semibold whitespace-nowrap transition-[background-color,color,box-shadow] duration-200",
+                  "min-h-9 shrink-0 rounded-full px-4 text-[13px] font-semibold md:min-h-10 md:px-5 md:text-sm whitespace-nowrap transition-[background-color,color,box-shadow] duration-200",
                   on ? "bg-white text-forest-text shadow-[0_1px_3px_rgba(7,47,27,0.15)]" : "text-forest-text/70 hover:text-forest-text",
                 )}
               >
@@ -147,7 +147,7 @@ export function TabbedCarousel({
               {tab.products.map((p) => (
                 <div
                   key={p.handle}
-                  className="w-[44%] shrink-0 snap-start sm:w-[31%] md:w-[calc((100%-2rem)/3)] lg:w-[calc((100%-3rem)/4)]"
+                  className="w-[40%] shrink-0 snap-start sm:w-[31%] md:w-[calc((100%-2rem)/3)] lg:w-[calc((100%-3rem)/4)]"
                 >
                   <PickCard product={p} />
                 </div>
@@ -176,7 +176,7 @@ export function TabbedCarousel({
         <Link
           href={tab.viewAll}
           aria-label={`See all ${tab.label} products`}
-          className="group/see inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-line bg-white pr-5 pl-6 text-[15px] font-bold text-forest-text shadow-[0_6px_18px_-12px_rgba(7,47,27,0.35)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-[0_14px_28px_-16px_rgba(7,47,27,0.45)]"
+          className="group/see inline-flex h-10 shrink-0 items-center gap-2 rounded-full border border-line bg-white pr-4 pl-5 text-sm md:h-12 md:pr-5 md:pl-6 md:text-[15px] font-bold text-forest-text shadow-[0_6px_18px_-12px_rgba(7,47,27,0.35)] transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:border-forest/30 hover:shadow-[0_14px_28px_-16px_rgba(7,47,27,0.45)]"
         >
           See All
           <span className="relative grid size-5 place-items-center overflow-hidden">

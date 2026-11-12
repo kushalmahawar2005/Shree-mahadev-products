@@ -43,22 +43,24 @@ export function ProofCard({
     : { rest: { rotate: -3, y: 0 }, hover: { rotate: 0, y: -6 } };
   const back: Variants = reduce ? { rest: { rotate: 3 }, hover: { rotate: 3 } } : { rest: { rotate: 3, y: 0 }, hover: { rotate: 5, y: -2 } };
 
+  // Phones show a one-word action under the small card.
+  const short = media.kind === "doc" ? "View" : "Watch";
   const ctaClass =
-    "inline-flex h-11 items-center gap-2 self-start rounded-full border border-forest/20 px-4 text-sm font-semibold text-forest-text transition-colors duration-300 hover:border-forest hover:bg-forest hover:text-white";
+    "inline-flex items-center gap-0.5 self-start text-[11px] font-semibold text-forest max-md:underline-offset-2 max-md:hover:underline md:h-11 md:gap-2 md:rounded-full md:border md:border-forest/20 md:px-4 md:text-sm md:text-forest-text transition-colors duration-300 md:hover:border-forest md:hover:bg-forest md:hover:text-white";
 
   return (
     <motion.article
       initial="rest"
       animate="rest"
       whileHover="hover"
-      className="group flex h-full flex-col rounded-3xl border border-white/70 bg-white p-3 shadow-[0_18px_40px_-28px_rgba(120,80,10,0.45)] transition-shadow duration-500 hover:shadow-[0_34px_60px_-30px_rgba(120,80,10,0.6)] md:p-4"
+      className="group flex h-full flex-col gap-2 rounded-2xl border border-white/70 bg-white p-1.5 shadow md:gap-0 md:rounded-3xl md:p-4-[0_18px_40px_-28px_rgba(120,80,10,0.45)] transition-shadow duration-500 hover:shadow-[0_34px_60px_-30px_rgba(120,80,10,0.6)] md:p-4"
     >
       {/* Media: fixed 4:3 so every card's text starts on the same line */}
       <button
         type="button"
         onClick={onOpenMedia}
         aria-label={`Open: ${media.alt}`}
-        className="relative block aspect-[4/3] w-full overflow-hidden rounded-2xl bg-[#f6efe2] outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
+        className="relative block aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-[#f6efe2] md:aspect-[4/3] md:rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
       >
         {media.kind === "doc" ? (
           <>
@@ -110,25 +112,27 @@ export function ProofCard({
         width={112}
         height={112}
         sizes="56px"
-        className="relative z-10 -mt-7 ml-4 size-14 rounded-full bg-white object-contain shadow-md ring-4 ring-white"
+        className="relative z-10 -mt-7 ml-4 hidden size-14 rounded-full md:block bg-white object-contain shadow-md ring-4 ring-white"
       />
 
-      <div className="flex flex-1 flex-col px-1 pt-3 pb-1 md:px-2">
-        <h3 className="text-xl font-semibold text-forest-text">{title}</h3>
-        <p className="mt-1.5 flex items-start gap-1.5 text-sm text-ink-muted tabular-nums">
-          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-forest" aria-hidden />
-          <span>{fact}</span>
+      <div className="flex min-w-0 flex-1 flex-col px-1 pb-1 md:px-2 md:pt-3">
+        <h3 className="line-clamp-2 text-[12.5px] leading-tight font-semibold text-forest-text md:line-clamp-none md:text-xl">{title}</h3>
+        <p className="mt-1.5 hidden items-start gap-1.5 text-sm text-ink-muted tabular-nums md:flex">
+          <CheckCircle2 className="mt-px size-3.5 shrink-0 text-forest md:mt-0.5 md:size-4" aria-hidden />
+          <span className="line-clamp-1 md:line-clamp-none">{fact}</span>
         </p>
-        <p className="mt-3 line-clamp-2 text-[15px] leading-relaxed text-pretty text-[#4b3a22]">{text}</p>
+        <p className="mt-3 line-clamp-2 hidden text-[15px] leading-relaxed text-pretty text-[#4b3a22] md:block">{text}</p>
 
-        <div className="mt-auto pt-5">
+        <div className="mt-auto pt-1.5 md:pt-5">
           {cta.href ? (
             <Link href={cta.href} className={ctaClass}>
-              {cta.label} <ArrowRight className="size-4" />
+              <span className="md:hidden">{short}</span>
+              <span className="max-md:hidden">{cta.label}</span> <ArrowRight className="size-3 md:size-4" />
             </Link>
           ) : (
             <button type="button" onClick={cta.onClick} className={ctaClass}>
-              {cta.label} <ArrowRight className="size-4" />
+              <span className="md:hidden">{short}</span>
+              <span className="max-md:hidden">{cta.label}</span> <ArrowRight className="size-3 md:size-4" />
             </button>
           )}
         </div>

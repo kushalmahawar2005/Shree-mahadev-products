@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils/cn";
 import {
   ConfirmDialog,
   OrderStatusBadge,
+  OrderProgressMini,
   OrderTimeline,
 } from "./shared";
 import { arrivingBy, stepOf } from "@/lib/account/order-status";
@@ -50,7 +51,7 @@ const CANCELLABLE = new Set([
 ]);
 
 const btn =
-  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold transition-colors";
+  "inline-flex h-11 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-semibold whitespace-nowrap transition-colors";
 const primary = `${btn} bg-forest text-white hover:bg-forest-mid`;
 const secondary = `${btn} border border-line bg-white text-ink hover:border-co-border-strong`;
 const ghost = `${btn} text-ink-muted hover:bg-page hover:text-ink`;
@@ -79,7 +80,7 @@ export function OrderCard({
     Object.entries(o.stepTimes).map(([k, v]) => [k, v ? formatDateTime(v) : v]),
   );
   return (
-    <article className="rounded-3xl border border-line bg-white p-5 shadow-co-card md:p-6">
+    <article className="rounded-3xl border border-line bg-white p-4 shadow-co-card sm:p-5 md:p-6">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="flex flex-wrap items-center gap-2">
@@ -104,9 +105,14 @@ export function OrderCard({
       </header>
 
       {variant === "full" && step >= 0 && (
-        <div className="mt-5 rounded-2xl bg-page/60 p-4">
-          <OrderTimeline current={step} times={times} />
-        </div>
+        <>
+          <div className="mt-4 rounded-2xl bg-page/60 px-3.5 py-3 md:hidden">
+            <OrderProgressMini current={step} times={times} />
+          </div>
+          <div className="mt-5 hidden rounded-2xl bg-page/60 p-4 md:block">
+            <OrderTimeline current={step} times={times} />
+          </div>
+        </>
       )}
 
       <div className="mt-4 flex items-center gap-3">
@@ -227,11 +233,13 @@ function OrderActions({
         <>
           {/* Plain <a>: the pay page must load fully so its PayU auto-post isn't cancelled by the router. */}
           <a href={`/checkout/pay?t=${o.token}`} className={primary}>
-            <CreditCard className="size-4" /> Complete payment{" "}
-            {formatMoney(o.total)}
+            <CreditCard className="size-4" />
+            {/* Phones: short label so it fits beside "Cancel order". */}
+            <span className="sm:hidden">Pay {formatMoney(o.total)}</span>
+            <span className="max-sm:hidden">Complete payment {formatMoney(o.total)}</span>
           </a>
           {cancelBtn}
-          {o.expiresInHours !== null && <span className="text-xs text-ink-muted">Auto-cancels in {Math.max(0, o.expiresInHours)}h if unpaid</span>}
+          {o.expiresInHours !== null && <span className="text-xs text-ink-muted max-sm:order-first max-sm:basis-full">Auto-cancels in {Math.max(0, o.expiresInHours)}h if unpaid</span>}
         </>
       );
       break;

@@ -4,7 +4,7 @@ import { ShopListing } from "@/components/product/ShopListing";
 import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
-import { BelowGrid, CategoryPills, ItemListJsonLd, TrustRow, UseChips } from "@/components/product/ListingExtras";
+import { BelowGrid, CategoryPills, ChipRail, ItemListJsonLd, TrustRow, UseChips } from "@/components/product/ListingExtras";
 import { getProducts } from "@/lib/commerce";
 import { pageMetadata } from "@/lib/utils/seo";
 
@@ -33,12 +33,14 @@ export default async function ShopPage() {
         <div className="mt-3 flex flex-wrap items-end justify-between gap-2">
           <div>
             <h1 className="text-2xl md:text-3xl">Shop all</h1>
-            <p className="mt-1 text-sm text-ink-muted">Oils, honey and sweeteners, made slowly in Bijainagar.</p>
+            <p className="mt-1 hidden text-sm text-ink-muted md:block">Oils, honey and sweeteners, made slowly in Bijainagar.</p>
           </div>
         </div>
         <TrustRow />
-        <CategoryPills current="shop" total={products.length} />
-        <UseChips path="/shop" products={products} />
+        <ChipRail>
+          <CategoryPills current="shop" total={products.length} />
+          <UseChips path="/shop" products={products} />
+        </ChipRail>
         <ItemListJsonLd products={products} />
         <Suspense fallback={<div className="mt-10 h-96" />}>
           <ShopListing products={products} group />

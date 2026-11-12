@@ -82,7 +82,7 @@ async function CheckoutContent() {
 
 function CheckoutSkeleton() {
   return (
-    <div className="grid gap-8 lg:grid-cols-12">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-12">
       <div className="space-y-4 lg:col-span-7">
         {[0, 1, 2].map((i) => (
           <Skeleton key={i} className="h-40 rounded-3xl bg-white/70" />

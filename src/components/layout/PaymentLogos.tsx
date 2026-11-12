@@ -11,7 +11,7 @@ import { Bank, HandCoins } from "@phosphor-icons/react/dist/ssr";
 export function PaymentLogos({ only, size = "md" }: { only?: string[]; size?: "sm" | "md" } = {}) {
   const list = only ? LOGOS.filter((l) => only.includes(l.name)) : LOGOS;
   return (
-    <ul className={size === "sm" ? "flex items-center gap-1" : "flex flex-wrap items-center gap-1.5 sm:gap-2"} aria-label="Payment methods we accept">
+    <ul className={size === "sm" ? "flex flex-wrap items-center justify-center gap-1" : "flex flex-wrap items-center gap-1.5 sm:gap-2"} aria-label="Payment methods we accept">
       {list.map(({ name, el }) => (
         <li
           key={name}

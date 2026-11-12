@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, Minus, Pause, Play, Plus, ShoppingBag, ShoppingCart, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Loader2, Minus, Pause, Play, Plus, ShoppingBag, ShoppingCart, Volume2, VolumeX, X } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { lockScroll, unlockScroll } from "@/components/motion/scroll-lock";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -44,8 +44,33 @@ const EASE = [0.22, 1, 0.36, 1] as const;
  * phone snap with a peek). Cards share the compact overlay of the brand-film tiles and play on
  * hover (desktop) or when mostly in view (touch). A card opens the full-screen reel viewer.
  */
-export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
-  const [open, setOpen] = useState<number | null>(null);
+export function Reels({
+  title,
+  reels,
+  align = "center",
+  dark = false,
+  hideOnMobile = false,
+  eyebrow = "घानी से सीधा",
+  subtitle = "Real moments from our ghani. Tap any reel to watch.",
+}: {
+  title: string;
+  reels: ReelItem[];
+  /** "left": product-page variant (left-aligned header, PDP container, no paper texture). */
+  align?: "center" | "left";
+  /** Light text for a dark (forest) band behind the section. */
+  dark?: boolean;
+  /** Hide the whole section on phones (home: phones get <ReelStories> above the hero instead). */
+  hideOnMobile?: boolean;
+  eyebrow?: string;
+  subtitle?: string;
+}) {
+  const left = align === "left";
+  const [open, setOpenRaw] = useState<number | null>(null);
+  const [seen, setSeen] = useState<Set<number>>(() => new Set());
+  const setOpen = (i: number | null) => {
+    setOpenRaw(i);
+    if (i !== null) setSeen((s) => new Set(s).add(reels[i]?.id ?? -999));
+  };
   const [api, setApi] = useState<CarouselApi>();
   const [edge, setEdge] = useState({ prev: false, next: false });
 
@@ -64,16 +89,16 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
 
   return (
     <LayoutGroup id="reels">
-      <section className="paper-grain relative overflow-hidden bg-page pt-14 pb-14 md:pt-20 md:pb-20">
-        <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
-          <div className="relative flex flex-col items-center text-center">
-            <p className="font-hindi flex items-center gap-2 text-base text-sale md:text-lg" lang="hi">
-              <span aria-hidden className="h-px w-6 bg-sale/50" />
-              घानी से सीधा
-              <span aria-hidden className="h-px w-6 bg-sale/50" />
+      <section className={cn("relative overflow-hidden", hideOnMobile && "hidden md:block", left ? "py-12 md:py-16" : "paper-grain bg-page pt-14 pb-14 md:pt-20 md:pb-20")}>
+        <div className={cn("relative mx-auto", left ? "max-w-7xl px-6 md:px-8" : "max-w-[1360px] px-4 md:px-8")}>
+          <div className={cn("relative flex flex-col", left ? "items-start text-left md:pr-28" : "items-center text-center")}>
+            <p className={cn("font-hindi flex items-center gap-2 text-base md:text-lg", dark ? "text-[#E8C879]" : left ? "text-co-accent-ink" : "text-sale")} lang="hi">
+              {!left && <span aria-hidden className="h-px w-6 bg-sale/50" />}
+              {eyebrow}
+              {!left && <span aria-hidden className="h-px w-6 bg-sale/50" />}
             </p>
-            <h2 className="mt-2 text-[30px] leading-[1.1] font-bold tracking-tight md:text-[44px]">{title}</h2>
-            <p className="mt-3 max-w-xl text-[15px] text-ink-muted md:text-base">Real moments from our ghani. Tap any reel to watch.</p>
+            <h2 className={cn("mt-1 leading-[1.1] tracking-tight", left ? cn("text-[26px] tracking-[-0.02em] md:text-[34px]", dark ? "text-white" : "text-ink") : "mt-2 text-[30px] font-bold md:text-[44px]")}>{title}</h2>
+            <p className={cn("mt-2 max-w-xl text-[15px] md:text-base", dark ? "text-white/70" : "text-ink-muted")}>{subtitle}</p>
             {/* Arrows: top-right of the section (desktop), only when the row can scroll */}
             {(edge.prev || edge.next) && (
               <div className="absolute right-0 bottom-0 hidden gap-2 lg:flex">
@@ -87,11 +112,14 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
             )}
           </div>
 
+          {/* Phones: Instagram-style story circles; tap opens the same full-screen viewer. */}
+          <StoryRow reels={reels} dark={dark} onOpen={setOpen} seen={seen} />
+
           <Carousel
             setApi={setApi}
             opts={{ align: "start", containScroll: "trimSnaps" }}
             // No edge fade (owner: plain cut-off card reads better than a blurred edge)
-            className="-mx-4 mt-8 px-4 md:mx-0 md:mt-10 md:px-0"
+            className="-mx-4 mt-8 hidden px-4 md:mx-0 md:mt-10 md:block md:px-0"
           >
             {/* A short list (fits on screen) sits centred on desktop instead of hugging the left */}
             <CarouselContent className={cn("-ml-3 md:-ml-5", !edge.prev && !edge.next && "md:justify-center")}>
@@ -126,10 +154,78 @@ export function Reels({ title, reels }: { title: string; reels: ReelItem[] }) {
   );
 }
 
+/** Phones only: the reels as a story strip at the very top of the page (above the hero). */
+export function ReelStories({ reels }: { reels: ReelItem[] }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const [seen, setSeen] = useState<Set<number>>(() => new Set());
+  if (!reels.length) return null;
+  return (
+    <div className="border-b border-line bg-page px-4 pt-3 pb-2 md:hidden">
+      <StoryRow
+        reels={reels}
+        dark={false}
+        seen={seen}
+        flush
+        onOpen={(i) => {
+          setOpen(i);
+          setSeen((s) => new Set(s).add(reels[i]?.id ?? -999));
+        }}
+      />
+      <ReelViewer reels={reels} start={open} onClose={() => setOpen(null)} />
+    </div>
+  );
+}
+
+/** Story circles (phones only): gradient ring until watched, short label under each. */
+function StoryRow({
+  reels,
+  dark,
+  onOpen,
+  seen,
+  flush = false,
+}: {
+  reels: ReelItem[];
+  dark: boolean;
+  onOpen: (i: number) => void;
+  seen: Set<number>;
+  /** No top margin (used as the page-top strip). */
+  flush?: boolean;
+}) {
+  const oneProduct = new Set(reels.map((r) => r.product?.handle)).size === 1;
+  return (
+    <ul className={cn("no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1 md:hidden", !flush && "mt-6")}>
+      {reels.map((r, i) => {
+        const watched = seen.has(r.id);
+        // Every reel on one product (PDP): name the clip, not the product, so the circles differ.
+        const label = r.product && !oneProduct ? shortTitle(r.product.title).replace(/\s+Oil$/, "") : r.caption || "Our ghani";
+        return (
+          <li key={r.id} className="shrink-0">
+            <button type="button" onClick={() => onOpen(i)} className="flex w-[76px] flex-col items-center gap-1.5" aria-label={`Watch: ${r.caption || label}`}>
+              <span
+                className={cn(
+                  "rounded-full p-[2.5px] transition-opacity",
+                  watched ? (dark ? "bg-white/25" : "bg-line") : "bg-[conic-gradient(from_200deg,#E8C879,#C9952B,#F3C64A,#1F7A45,#E8C879)]",
+                )}
+              >
+                <span className={cn("block rounded-full p-[2.5px]", dark ? "bg-[#0E3B26]" : "bg-page")}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- small video poster frame from Cloudinary */}
+                  <img src={cldVideoPoster(r.videoUrl, 160)} alt="" loading="lazy" className="size-[66px] rounded-full object-cover" />
+                </span>
+              </span>
+              <span className={cn("w-full truncate text-center text-[11px] font-medium", dark ? "text-white/85" : "text-ink")}>{label}</span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /**
- * Full-screen reel viewer (shadcn Dialog): sound on, tap to pause, real progress bar, swipe
- * up/down (phone) or arrow keys / side arrows (desktop) between reels, and a product card with a
- * size picker + add to cart that turns into a − qty + stepper (the cart shows its own toast).
+ * Full-screen story viewer (shadcn Dialog), Instagram-style: one progress bar per story, tap the
+ * right side for next / left side for previous, hold to pause, swipe left/right, auto-advance and
+ * close after the last one. Arrow keys / side arrows on desktop. Product card with a size picker +
+ * add to cart that turns into a − qty + stepper (the cart shows its own toast).
  */
 function ReelViewer({ reels, start, onClose }: { reels: ReelItem[]; start: number | null; onClose: () => void }) {
   const open = start !== null;
@@ -144,7 +240,7 @@ function ReelViewer({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
             data-lenis-prevent=""
           >
             <DialogTitle className="sr-only">Reels</DialogTitle>
-            <DialogDescription className="sr-only">Swipe up or down, or use the arrow keys, to move between reels.</DialogDescription>
+            <DialogDescription className="sr-only">Tap the right or left side, swipe, or use the arrow keys to move between stories. Hold to pause.</DialogDescription>
             <ViewerBody key={start} reels={reels} start={start} onClose={onClose} />
           </DialogPrimitive.Content>
         </DialogPortal>
@@ -165,7 +261,9 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
 
   const go = (d: 1 | -1) => {
     const n = i + d;
-    if (n < 0 || n >= reels.length) return;
+    // Past the last story closes the viewer (like Instagram); before the first does nothing.
+    if (n >= reels.length) return onClose();
+    if (n < 0) return;
     setDir(d);
     setI(n);
     setProgress(0);
@@ -188,6 +286,32 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
     // eslint-disable-next-line react-hooks/exhaustive-deps -- go reads the current index each render
   }, [i]);
 
+  // Tap = next/previous by side; press and hold = pause until released.
+  const press = useRef<{ x: number; y: number; t: number; held: boolean; timer?: ReturnType<typeof setTimeout> } | null>(null);
+  const onDown = (e: React.PointerEvent) => {
+    const p = { x: e.clientX, y: e.clientY, t: Date.now(), held: false } as NonNullable<typeof press.current>;
+    p.timer = setTimeout(() => {
+      p.held = true;
+      video.current?.pause();
+      setPaused(true);
+    }, 220);
+    press.current = p;
+  };
+  const onUp = (e: React.PointerEvent) => {
+    const p = press.current;
+    press.current = null;
+    if (!p) return;
+    clearTimeout(p.timer);
+    if (p.held) {
+      void video.current?.play();
+      setPaused(false);
+      return;
+    }
+    if (Math.abs(e.clientX - p.x) > 12 || Math.abs(e.clientY - p.y) > 12) return; // a swipe, not a tap
+    const box = e.currentTarget.getBoundingClientRect();
+    go(e.clientX - box.left < box.width / 3 ? -1 : 1);
+  };
+
   const togglePlay = () => {
     const v = video.current;
     if (!v) return;
@@ -204,8 +328,8 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
 
   return (
     <div className="flex h-full w-full items-center justify-center gap-6 sm:p-6" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <button type="button" aria-label="Previous reel" disabled={i === 0} onClick={() => go(-1)} className={side}>
-        <ChevronUp className="size-5" />
+      <button type="button" aria-label="Previous story" disabled={i === 0} onClick={() => go(-1)} className={side}>
+        <ChevronLeft className="size-5" />
       </button>
 
       <motion.div
@@ -218,16 +342,17 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
           <motion.div
             key={reel.id}
             custom={dir}
-            initial={reduce ? false : { y: `${dir * 100}%` }}
-            animate={{ y: 0 }}
-            exit={reduce ? undefined : { y: `${dir * -100}%` }}
+            initial={reduce ? false : { x: `${dir * 100}%` }}
+            animate={{ x: 0 }}
+            exit={reduce ? undefined : { x: `${dir * -100}%` }}
             transition={{ duration: 0.35, ease: EASE }}
-            drag={reduce ? false : "y"}
-            dragConstraints={{ top: 0, bottom: 0 }}
+            drag={reduce ? false : "x"}
+            dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.25}
             onDragEnd={(_, info) => {
-              if (info.offset.y < -80) go(1);
-              else if (info.offset.y > 80) go(-1);
+              if (info.offset.x < -70) go(1);
+              else if (info.offset.x > 70) go(-1);
+              else if (info.offset.y > 120) onClose(); // pull down to close
             }}
             className="absolute inset-0"
           >
@@ -241,11 +366,21 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
               preload="metadata"
               disablePictureInPicture
               onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))}
-              onEnded={() => (i < reels.length - 1 ? go(1) : setPaused(true))}
+              onEnded={() => go(1)}
               className="absolute inset-0 size-full object-cover"
             />
-            {/* tap anywhere on the video: pause / play */}
-            <button type="button" aria-label={paused ? "Play" : "Pause"} onClick={togglePlay} className="absolute inset-0 cursor-pointer" />
+            {/* Tap left third: previous · tap elsewhere: next · hold: pause */}
+            <div
+              role="presentation"
+              onPointerDown={onDown}
+              onPointerUp={onUp}
+              onPointerCancel={() => {
+                if (press.current) clearTimeout(press.current.timer);
+                press.current = null;
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="absolute inset-0 cursor-pointer touch-pan-y select-none [-webkit-touch-callout:none]"
+            />
             <AnimatePresence>
               {paused && (
                 <motion.span
@@ -264,9 +399,13 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
         <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/55 to-transparent" />
         <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
 
-        {/* real playback progress */}
-        <div className="absolute inset-x-3 top-3 h-[3px] overflow-hidden rounded-full bg-white/25">
-          <span className="block h-full origin-left rounded-full bg-white" style={{ transform: `scaleX(${progress})` }} />
+        {/* One bar per story: done = full, current = real playback progress, upcoming = empty */}
+        <div className="absolute inset-x-3 top-3 flex gap-1">
+          {reels.map((r, n) => (
+            <span key={r.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/30">
+              <span className="block h-full origin-left rounded-full bg-white" style={{ transform: `scaleX(${n < i ? 1 : n === i ? progress : 0})` }} />
+            </span>
+          ))}
         </div>
         <div className="absolute inset-x-3 top-6 flex items-center justify-between">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-white">
@@ -298,16 +437,12 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
             </a>
           )}
           {/* phone hint */}
-          {reels.length > 1 && (
-            <p className="flex items-center justify-center gap-1 text-[11px] text-white/60 sm:hidden">
-              <ChevronUp className="size-3" /> Swipe for more
-            </p>
-          )}
+          {reels.length > 1 && <p className="text-center text-[11px] text-white/60 sm:hidden">Tap to skip · Hold to pause</p>}
         </div>
       </motion.div>
 
-      <button type="button" aria-label="Next reel" disabled={i === reels.length - 1} onClick={() => go(1)} className={side}>
-        <ChevronDown className="size-5" />
+      <button type="button" aria-label="Next story" disabled={i === reels.length - 1} onClick={() => go(1)} className={side}>
+        <ChevronRight className="size-5" />
       </button>
     </div>
   );

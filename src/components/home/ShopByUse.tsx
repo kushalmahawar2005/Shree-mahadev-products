@@ -86,19 +86,19 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
   const arrow = "grid size-11 place-items-center rounded-full border border-line bg-white/90 text-forest-text shadow-[0_10px_24px_-12px_rgba(7,47,27,0.45)] transition-[opacity,transform] duration-300 hover:scale-105 disabled:pointer-events-none disabled:opacity-35";
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-[linear-gradient(180deg,#e9edd2_0%,#dfe5c3_100%)] pt-14 pb-16 md:pt-20 md:pb-24">
+    <section className="paper-grain relative overflow-hidden bg-[linear-gradient(180deg,#e9edd2_0%,#dfe5c3_100%)] pt-10 pb-10 md:pt-20 md:pb-24">
       {/* Soft sage band between the forest film band and the haldi proof band */}
       <TornEdge color="var(--color-forest-deep)" />
       <TornEdge flip color="#f8e8bb" />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
-        <div className="mb-6 flex flex-col items-center text-center md:mb-10">
+        <div className="mb-5 flex flex-col items-center text-center md:mb-10">
           <p className="font-hindi flex items-center gap-2 text-base text-sale md:text-lg" lang="hi">
             <span aria-hidden className="h-px w-6 bg-sale/50" />
             हर पकवान का अपना तेल
             <span aria-hidden className="h-px w-6 bg-sale/50" />
           </p>
-          <h2 className="mt-2 text-[30px] leading-[1.1] font-bold tracking-tight md:text-[44px]">Shop by use</h2>
-          <p className="mt-3 max-w-xl text-[15px] text-ink-muted md:text-base">Tell us what you&apos;re cooking. We&apos;ll show the oil that suits it.</p>
+          <h2 className="mt-1.5 text-[24px] leading-[1.1] font-bold tracking-tight md:mt-2 md:text-[44px]">Shop by use</h2>
+          <p className="mt-2 max-w-xl text-sm text-ink-muted md:mt-3 md:text-base">Tell us what you&apos;re cooking. We&apos;ll show the oil that suits it.</p>
         </div>
 
         {/* Use picker (centre) + carousel arrows (right, desktop). Phones: the tab row scrolls with snap. */}
@@ -120,7 +120,7 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
                     aria-selected={on}
                     onClick={() => setActive(i)}
                     className={cn(
-                      "relative flex h-9 snap-start items-center gap-1.5 rounded-full border px-3.5 text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-forest/50 focus-visible:ring-offset-2 md:h-auto md:justify-center md:gap-2.5 md:border-0 md:bg-transparent md:px-5 md:py-3",
+                      "relative flex h-8 snap-start items-center gap-1.5 rounded-full border px-3 text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-forest/50 focus-visible:ring-offset-2 md:h-auto md:justify-center md:gap-2.5 md:border-0 md:bg-transparent md:px-5 md:py-3",
                       on ? "border-transparent" : "border-line bg-white/70 hover:bg-forest/5 md:hover:bg-forest/5",
                     )}
                   >
@@ -133,10 +133,10 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
                       />
                     )}
                     <span className={cn("relative shrink-0 transition-colors duration-150", on ? "text-[#e8c879]" : "text-forest")}>
-                      <I strokeWidth={1.75} className={cn("size-5 md:size-6", on ? "fill-[#e8c879]/20" : "fill-[#E9D29A]/60")} />
+                      <I strokeWidth={1.75} className={cn("size-4 md:size-6", on ? "fill-[#e8c879]/20" : "fill-[#E9D29A]/60")} />
                     </span>
                     <span className="relative leading-tight">
-                      <span className={cn("block text-[13px] font-semibold whitespace-nowrap transition-colors md:text-sm md:font-bold", on ? "text-white" : "text-forest-text")}>{t.label}</span>
+                      <span className={cn("block text-[12px] font-semibold whitespace-nowrap transition-colors md:text-sm md:font-bold", on ? "text-white" : "text-forest-text")}>{t.label}</span>
                       <span className={cn("font-hindi block text-[13px] whitespace-nowrap transition-colors max-md:hidden", on ? "text-[#e8c879]" : "text-sale")} lang="hi">
                         {t.labelHi}
                       </span>
@@ -156,13 +156,22 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:mt-5 sm:gap-4 lg:grid-cols-[320px_1fr] lg:gap-5">
-          {/* Story panel: crossfades + slides on tab change */}
+        <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-4 lg:grid-cols-[320px_1fr] lg:gap-5">
+          {/* Phones: one slim tip row + "See all" instead of the big panel (the chip already names the use). */}
+          <div className="flex items-start gap-2 rounded-2xl bg-white/60 px-3 py-2.5 sm:hidden">
+            <Lightbulb className="mt-0.5 size-4 shrink-0 text-[#b07a10]" aria-hidden />
+            <p className="flex-1 text-[12px] leading-snug text-ink">{tab.tip}</p>
+            <Link href={tab.viewAll} className="shrink-0 text-[12px] font-semibold whitespace-nowrap text-forest underline-offset-2 hover:underline">
+              See all
+            </Link>
+          </div>
+
+          {/* Story panel: crossfades + slides on tab change (sm+) */}
           <AnimatePresence mode="wait" initial={false}>
             <motion.aside
               key={tab.key}
               {...swap}
-              className="relative flex flex-col overflow-hidden rounded-3xl bg-forest p-3.5 text-white sm:p-6"
+              className="relative flex flex-col overflow-hidden rounded-3xl bg-forest p-3.5 text-white max-sm:hidden sm:p-6"
             >
               {/* soft lamp-light in the panel corner */}
               <span aria-hidden className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-[radial-gradient(closest-side,rgba(232,200,121,0.18),transparent)]" />

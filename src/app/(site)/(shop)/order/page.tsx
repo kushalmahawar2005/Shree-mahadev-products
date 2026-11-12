@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 
 export default function OrderPage({ searchParams }: PageProps<"/order">) {
   return (
-    <div className="co-theme mx-auto max-w-[1000px] px-4 pt-8 pb-10 text-ink md:px-8 md:pt-12 md:pb-24">
+    <div className="co-theme mx-auto max-w-[1000px] px-4 pt-6 pb-10 text-ink md:px-8 md:pt-12 md:pb-24">
       <Suspense fallback={<div className="h-96 animate-pulse rounded-3xl bg-white/60" />}>
         <OrderContent searchParams={searchParams} />
       </Suspense>
@@ -76,6 +76,7 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
   const a = order.address;
   const step = STEP_OF[order.status];
   const celebrate = order.status === "paid" || order.status === "cod_pending" || order.status === "confirmed";
+  const itemCount = order.items.reduce((n, i) => n + i.quantity, 0);
   const PayIcon = order.paymentMethod === "cod" ? Banknote : CreditCard;
 
   return (
@@ -93,37 +94,38 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
 
       {/* Hero */}
       <section className="flex flex-col items-center text-center">
-        <span className={cn("grid size-20 place-items-center rounded-full", tone.halo)}>
-          <span className={cn("grid size-14 place-items-center rounded-full shadow-[0_10px_24px_-12px_rgba(7,47,27,0.6)]", tone.ring)}>
-            <ToneIcon className="size-7" strokeWidth={2.5} />
+        <span className={cn("grid size-16 place-items-center rounded-full md:size-20", tone.halo)}>
+          <span className={cn("grid size-11 place-items-center md:size-14 rounded-full shadow-[0_10px_24px_-12px_rgba(7,47,27,0.6)]", tone.ring)}>
+            <ToneIcon className="size-6 md:size-7" strokeWidth={2.5} />
           </span>
         </span>
-        <p className="mt-5 inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-ink-muted">
+        <p className="mt-4 inline-flex md:mt-5 items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-ink-muted">
           Order <span className="font-mono text-forest-text">{order.orderNo}</span>
         </p>
-        <h1 className="mt-3 max-w-xl text-3xl md:text-[40px] md:leading-tight">{h.title}</h1>
-        <p className="mt-2 max-w-lg text-ink-muted">{h.note}</p>
+        <h1 className="mt-3 max-w-xl text-balance text-[26px] leading-tight md:text-[40px]">{h.title}</h1>
+        <p className="mt-2 max-w-lg text-sm text-pretty text-ink-muted md:text-base">{h.note}</p>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
+        {/* Phones: two equal full-width buttons; larger screens: centred pills. */}
+        <div className="mt-6 grid w-full grid-cols-2 gap-2.5 sm:flex sm:w-auto sm:flex-wrap sm:justify-center sm:gap-3">
           {order.status === "payment_failed" ? (
             <>
               {/* Plain <a>: the pay page must load fully so its PayU auto-post isn't cancelled by the router. */}
-              <a href={`/checkout/pay?t=${order.token}`} className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-forest px-7 text-sm font-bold text-white hover:bg-forest-mid">
+              <a href={`/checkout/pay?t=${order.token}`} className="btn-shine inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-sm font-bold text-white hover:bg-forest-mid sm:px-7">
                 <RotateCcw className="size-4" /> Try payment again
               </a>
               <a
                 href={whatsappLink(`Hi, my payment for order ${order.orderNo} failed.`)}
-                className="inline-flex h-12 items-center gap-2 rounded-full border border-line bg-white px-6 text-sm font-semibold text-forest-text hover:border-forest/40"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text hover:border-forest/40 sm:px-6"
               >
                 <MessageCircle className="size-4" /> Order on WhatsApp
               </a>
             </>
           ) : (
             <>
-              <Link href={`/track-order?t=${order.token}`} className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-forest px-7 text-sm font-bold text-white hover:bg-forest-mid">
-                <Truck className="size-4" /> Track this order
+              <Link href={`/track-order?t=${order.token}`} className="btn-shine inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-sm font-bold text-white hover:bg-forest-mid sm:px-7">
+                <Truck className="size-4" /> Track order
               </Link>
-              <Link href="/shop" className="inline-flex h-12 items-center rounded-full border border-line bg-white px-6 text-sm font-semibold text-forest-text hover:border-forest/40">
+              <Link href="/shop" className="inline-flex h-12 items-center justify-center rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text hover:border-forest/40 sm:px-6">
                 Continue shopping
               </Link>
             </>
@@ -133,18 +135,18 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
 
       {/* Progress */}
       {step !== undefined && (
-        <section className="mt-10 rounded-3xl border border-line bg-white p-5 md:p-7">
+        <section className="mt-8 rounded-3xl border border-line bg-white px-3 py-4 md:mt-10 md:p-7">
           <ol className="grid grid-cols-4">
             {STEPS.map((s, i) => {
               const done = i <= step;
               const I = s.icon;
               return (
                 <li key={s.label} className="relative flex flex-col items-center gap-2 text-center">
-                  {i > 0 && <span className={cn("absolute top-5 right-1/2 h-0.5 w-full -translate-y-1/2", i <= step ? "bg-forest" : "bg-line")} />}
-                  <span className={cn("relative z-10 grid size-10 place-items-center rounded-full border-2", done ? "border-forest bg-forest text-white" : "border-line bg-white text-ink-muted", i === step && "ring-4 ring-forest/15")}>
+                  {i > 0 && <span className={cn("absolute top-[18px] right-1/2 h-0.5 md:top-5 w-full -translate-y-1/2", i <= step ? "bg-forest" : "bg-line")} />}
+                  <span className={cn("relative z-10 grid size-9 place-items-center rounded-full border-2 md:size-10", done ? "border-forest bg-forest text-white" : "border-line bg-white text-ink-muted", i === step && "ring-4 ring-forest/15")}>
                     <I className="size-4" />
                   </span>
-                  <span className={cn("text-xs font-semibold md:text-sm", done ? "text-forest-text" : "text-ink-muted")}>{s.label}</span>
+                  <span className={cn("text-[11px] font-semibold md:text-sm", done ? "text-forest-text" : "text-ink-muted")}>{s.label}</span>
                 </li>
               );
             })}
@@ -159,16 +161,18 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
       )}
 
       {order.status === "pending_payment" && (
-        <p className="mt-8 flex items-start gap-2 rounded-2xl border border-warm-line bg-warm px-4 py-3 text-sm text-ink">
+        <p className="mt-6 flex items-start gap-2 rounded-2xl md:mt-8 border border-warm-line bg-warm px-4 py-3 text-sm text-ink">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-mustard" /> Refresh this page in a minute. If it still says waiting, WhatsApp us with order {order.orderNo}.
         </p>
       )}
 
-      <div className="mt-6 grid items-start gap-5 md:grid-cols-[1.4fr_1fr]">
+      <div className="mt-4 grid grid-cols-[minmax(0,1fr)] items-start gap-4 md:mt-6 md:grid-cols-[1.4fr_1fr] md:gap-5">
         {/* Items */}
         <section className="rounded-3xl border border-line bg-white">
-          <h2 className="border-b border-line px-5 py-4 text-lg">Items</h2>
-          <ul className="divide-y divide-line px-5">
+          <h2 className="flex items-baseline justify-between border-b border-line px-4 py-3.5 text-base md:px-5 md:py-4 md:text-lg">
+            Items <span className="text-xs font-normal text-ink-muted">{itemCount} {itemCount === 1 ? "item" : "items"}</span>
+          </h2>
+          <ul className="divide-y divide-line px-4 md:px-5">
             {order.items.map((i) => {
               const img = imageOf(i.productHandle);
               return (
@@ -188,7 +192,7 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
               );
             })}
           </ul>
-          <dl className="space-y-2 border-t border-line px-5 py-4 text-sm">
+          <dl className="space-y-2 border-t border-line px-4 py-4 text-sm md:px-5">
             <Row label="Subtotal" value={formatMoney(order.subtotal)} />
             {order.discount > 0 && <Row label={order.couponCode ? `Coupon (${order.couponCode})` : "Discount"} value={`−${formatMoney(order.discount)}`} accent />}
             <Row label="Shipping" value={order.shipping ? formatMoney(order.shipping) : "Free"} accent={!order.shipping} />
@@ -202,38 +206,40 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
 
         {/* Delivery + payment */}
         <div className="space-y-5">
-          <section className="rounded-3xl border border-line bg-white p-5">
-            <h2 className="flex items-center gap-2 text-lg">
-              <MapPin className="size-4 text-forest/60" /> Delivering to
-            </h2>
-            <address className="mt-3 text-sm leading-relaxed text-ink not-italic">
-              <span className="font-semibold">{a.name}</span>
-              <br />
-              {a.line1}
-              {a.line2 ? `, ${a.line2}` : ""}
-              <br />
-              {a.city}, {a.state} {a.pincode}
-              <br />
-              <span className="text-ink-muted">{a.phone}</span>
-            </address>
+          <section className="divide-y divide-line rounded-3xl border border-line bg-white">
+            <div className="p-4 md:p-5">
+              <h2 className="flex items-center gap-2 text-base md:text-lg">
+                <MapPin className="size-4 text-forest/60" /> Delivering to
+              </h2>
+              <address className="mt-2 text-sm leading-relaxed break-words text-ink not-italic">
+                <span className="font-semibold">{a.name}</span>
+                <br />
+                {a.line1}
+                {a.line2 ? `, ${a.line2}` : ""}
+                <br />
+                {a.city}, {a.state} {a.pincode}
+                <br />
+                <span className="text-ink-muted">{a.phone}</span>
+              </address>
+            </div>
+            <div className="flex items-center justify-between gap-3 p-4 md:p-5">
+              <h2 className="flex items-center gap-2 text-base md:text-lg">
+                <PayIcon className="size-4 text-forest/60" /> Payment
+              </h2>
+              <p className="text-right text-sm text-ink">{order.paymentMethod === "cod" ? "Cash on delivery" : order.paymentMethod === "offline" ? "Paid offline" : "Online (PayU)"}</p>
+            </div>
           </section>
-          <section className="rounded-3xl border border-line bg-white p-5">
-            <h2 className="flex items-center gap-2 text-lg">
-              <PayIcon className="size-4 text-forest/60" /> Payment
-            </h2>
-            <p className="mt-2 text-sm text-ink">{order.paymentMethod === "cod" ? "Cash on delivery" : order.paymentMethod === "offline" ? "Paid offline" : "Online (PayU)"}</p>
-          </section>
-          <section className="rounded-3xl bg-forest p-5 text-white">
+          <section className="rounded-3xl bg-forest p-4 text-white md:p-5">
             <p className="font-semibold">Need help with this order?</p>
             <p className="mt-1 text-sm text-white/70">{site.supportHours}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <a
                 href={whatsappLink(`Hi, I have a question about order ${order.orderNo}.`)}
-                className="inline-flex h-10 items-center gap-2 rounded-full bg-[#e8c879] px-4 text-sm font-bold text-forest-deep hover:bg-white"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#e8c879] px-4 text-sm font-bold text-forest-deep hover:bg-white"
               >
                 <MessageCircle className="size-4" /> WhatsApp
               </a>
-              <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="inline-flex h-10 items-center gap-2 rounded-full border border-white/30 px-4 text-sm font-semibold hover:bg-white/10">
+              <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-4 text-sm font-semibold hover:bg-white/10">
                 <Phone className="size-4" /> Call
               </a>
             </div>

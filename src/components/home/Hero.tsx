@@ -24,7 +24,7 @@ export async function Hero() {
       </section>
 
       <div
-        className="relative overflow-hidden bg-forest py-2.5 md:py-4"
+        className="relative hidden overflow-hidden bg-forest py-2.5 md:block md:py-4"
         aria-label="What makes our oil different"
       >
         <ReflectionSweep />

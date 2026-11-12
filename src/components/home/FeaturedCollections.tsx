@@ -51,25 +51,26 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
   if (!tiles.length) return null;
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-page pt-12 pb-8 md:py-20">
+    <section className="paper-grain relative overflow-hidden bg-page pt-10 pb-8 md:py-20">
       <TornEdge color="var(--color-ivory)" />
       {/* Mustard branch bending in from the top-left */}
       <SectionArt art={deco.mustardBranch} className="-top-3 -left-8 w-[220px] opacity-95 md:-top-2 md:w-[400px] lg:w-[480px]" sizes="(min-width: 1024px) 480px, (min-width: 768px) 400px, 220px" />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
-        <div className="mb-8 flex flex-col items-center gap-2 text-center md:mb-10">
-          <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
-            <span className="size-1.5 rounded-full bg-mustard" /> From our ghani to your rasoi
+        <div className="mb-6 flex flex-col items-center gap-1.5 text-center md:mb-10 md:gap-2">
+          <p lang="hi" className="font-hindi inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-sm text-sale md:text-base">
+            <span className="size-1.5 rounded-full bg-mustard" /> हमारी घानी से आपकी रसोई तक
           </p>
-          <h2 className="text-3xl md:text-[44px]">Shop by category</h2>
-          <p className="max-w-xl text-ink-muted">Everything we make, slow and honest. Pick where you want to start.</p>
+          <h2 className="text-[24px] md:text-[44px]">Shop by category</h2>
+          <p className="max-w-xl text-sm text-ink-muted md:text-base">Everything we make, slow and honest. Pick where you want to start.</p>
         </div>
 
-        <ul className="grid auto-rows-[240px] grid-cols-2 gap-3 md:gap-4 lg:auto-rows-[250px] lg:grid-cols-4">
+        <ul className="grid auto-rows-[168px] grid-cols-2 gap-2.5 sm:auto-rows-[240px] sm:gap-3 md:gap-4 lg:auto-rows-[250px] lg:grid-cols-4">
           {tiles.map((t, i) => {
             const light = t.tone.ink === "light";
-            // Every tile is full-width on phones (hair oils is hidden, so seeds has no row partner).
-            const fullOnMobile = !!t.href || t.key === "cake" || t.key === "seeds";
-            const half = !fullOnMobile; // half-width tile on mobile/tablet
+            // Phones: oils (hero) full width, the other four as a 2×2 grid. Tablet keeps the old rule.
+            const fullOnTablet = !!t.href || t.key === "cake" || t.key === "seeds";
+            const phoneHalf = t.span !== "hero";
+            const half = !fullOnTablet; // half-width tile on tablet
             // Sweeteners photo is square: keep it whole on the right instead of cropping it wide.
             const widePhoto = t.span === "wide" && t.key !== "jaggery";
             const body = (
@@ -94,9 +95,10 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                       // square sweeteners photo in a wide tile: enlarge it (anchored bottom-right, tile clips the rest)
                       t.key === "jaggery" && "h-[150%]",
                       t.key === "oils" && "max-lg:h-auto max-lg:w-full max-lg:[mask-image:linear-gradient(to_bottom,transparent,black_12%,black)]",
+                      phoneHalf && "max-sm:aspect-auto max-sm:h-[58%] max-sm:w-full max-sm:[mask-image:linear-gradient(to_bottom,transparent,black_18%,black)]",
                     )}
                   >
-                    <Image src={t.cover} alt="" fill sizes="(min-width: 1360px) 640px, (min-width: 1024px) 50vw, 100vw" className={cn("object-right-bottom", widePhoto ? "object-cover" : "object-contain")} />
+                    <Image src={t.cover} alt="" fill sizes="(min-width: 1360px) 640px, (min-width: 1024px) 50vw, 100vw" className={cn("object-right-bottom", widePhoto ? "object-cover" : "object-contain", phoneHalf && "max-sm:object-cover max-sm:object-bottom")} />
                   </span>
                 )}
 
@@ -107,6 +109,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     className={cn(
                       "absolute inset-y-0 right-0 w-[62%] mask-l-from-45% transition-transform duration-700 ease-[var(--ease-premium)] group-hover:scale-[1.04]",
                       half && "max-lg:w-[80%]",
+                      phoneHalf && "max-sm:inset-y-auto max-sm:bottom-0 max-sm:h-[58%] max-sm:w-full max-sm:mask-t-from-60%",
                       !t.href && "opacity-80",
                     )}
                   >
@@ -128,23 +131,28 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                   </span>
                 )}
 
+                {/* Phones: soft shade behind the title so it reads over the photo. */}
+                {t.span === "hero" && t.cover && <span aria-hidden className="absolute inset-x-0 top-0 z-[5] h-1/3 bg-gradient-to-b from-black/35 to-transparent sm:hidden" />}
+
                 {/* copy */}
                 <span
                   className={cn(
                     "relative z-10 flex h-full flex-col p-4 md:p-6",
                     t.cover ? "max-w-full" : "max-w-[60%]",
                     half && "max-lg:max-w-full max-lg:p-3.5",
+                    phoneHalf && "max-sm:max-w-full max-sm:p-3",
                   )}
                 >
-                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-none md:text-lg", half && "max-lg:text-sm", light ? "text-[#e8c879]" : "text-sale")} lang="hi">
+                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-none md:text-lg", half && "max-lg:text-sm", phoneHalf && "max-sm:gap-1.5 max-sm:text-[12px]", light ? "text-[#e8c879]" : "text-sale")} lang="hi">
                     <span aria-hidden className={cn("h-px w-5", half && "max-lg:w-3", light ? "bg-[#e8c879]/70" : "bg-sale/60")} />
                     {t.titleHi}
                   </span>
                   <span
                     className={cn(
                       "mt-1 font-bold leading-tight",
-                      t.span === "hero" ? "max-w-[85%] text-[26px] md:max-w-[70%] md:text-[32px]" : "text-xl md:text-2xl",
+                      t.span === "hero" ? "max-w-[85%] text-[22px] sm:text-[26px] md:max-w-[70%] md:text-[32px]" : "text-xl md:text-2xl",
                       half && "max-lg:text-lg",
+                      phoneHalf && "max-sm:text-[15px]",
                       t.key === "jaggery" && "max-w-[190px]",
                       light ? "text-white" : "text-forest-text",
                     )}
@@ -162,6 +170,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     className={cn(
                       "mt-1.5 line-clamp-3 text-[13px] leading-snug md:mt-2 md:text-sm",
                       half ? "max-lg:hidden" : t.span !== "hero" && "max-md:hidden",
+                      "max-sm:hidden",
                       t.span === "small" && "lg:hidden",
                       t.cover && "max-w-[42%] max-lg:max-w-[85%]",
                       light ? "text-white/75" : "text-ink-muted",
@@ -177,19 +186,20 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                           className={cn(
                             "grid size-10 place-items-center rounded-full transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5",
                             half && "max-lg:size-9",
+                            "max-sm:size-8",
                             light ? "bg-white text-forest" : "bg-forest text-white",
                           )}
                         >
-                          <ArrowUpRight className="size-5" />
+                          <ArrowUpRight className="size-5 max-sm:size-4" />
                         </span>
                         {t.count ? (
-                          <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
+                          <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm max-sm:px-2 max-sm:py-1 max-sm:text-[10px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
                             {t.count} {t.unit}
                           </span>
                         ) : null}
                       </>
                     ) : (
-                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold", half && "max-lg:px-2.5 max-lg:text-[11px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
+                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold", half && "max-lg:px-2.5 max-lg:text-[11px]", phoneHalf && "max-sm:px-2 max-sm:py-1 max-sm:text-[10px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
                         <Clock className="size-3.5" /> Coming soon
                       </span>
                     )}
@@ -204,7 +214,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
             return (
               <motion.li
                 key={t.key}
-                className={cn(SPAN[t.span], fullOnMobile && "col-span-2", t.span === "hero" && "max-lg:row-span-2")}
+                className={cn(SPAN[t.span], fullOnTablet && "sm:max-lg:col-span-2", t.span === "hero" && "col-span-2 max-lg:row-span-2")}
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
@@ -224,10 +234,10 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
           })}
         </ul>
 
-        <div className="mt-8 flex justify-center">
+        <div className="mt-6 flex justify-center md:mt-8">
           <Link
             href="/shop"
-            className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-forest px-7 text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-forest-mid"
+            className="btn-shine inline-flex h-10 items-center gap-2 overflow-hidden rounded-full bg-forest px-5 text-xs md:h-12 md:px-7 md:text-sm font-bold tracking-wide text-white uppercase transition-colors hover:bg-forest-mid"
           >
             Shop all products <ArrowUpRight className="size-4" />
           </Link>

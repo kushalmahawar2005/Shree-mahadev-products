@@ -609,6 +609,50 @@ html.js-motion:not(.motion-failsafe) [data-banner-img]:not([data-revealed]) img 
 .live-dot { animation: live-pulse 1.6s ease infinite; }
 @keyframes blink-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 .blink-soft { animation: blink-soft 1.6s ease-in-out infinite; }
+/* Product-card tags (Bestseller, % off): blink (fully hide, then show again) to catch the eye. */
+@keyframes tag-breathe { 0%, 30%, 100% { opacity: 1; } 55%, 65% { opacity: 0; } }
+.tag-breathe { animation: tag-breathe 2s ease-in-out infinite; }
+/* Header logo (phones): idle, then rolls left and back, idle, rolls right and back. */
+/* Header logo: a playful 16s routine of different moves, each followed by a short rest:
+   small roll left -> full roll right -> hop with squash -> full roll left -> wiggle -> flip-jump.
+   Rolls keep rotation matched to travel (26px ~ 42deg) so they read as a wheel, not a slide.
+   Transform only, so no layout shift. --roll-x/--roll-r shrink on phones to clear the header icons. */
+@keyframes logo-roll {
+  /* 1. small roll left and back */
+  0% { transform: none; animation-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); }
+  4% { transform: translateX(calc(var(--roll-x) * -0.5)) rotate(calc(var(--roll-r) * -0.5)); animation-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); }
+  8%, 12% { transform: none; animation-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); }
+  /* 2. full roll right and back */
+  18% { transform: translateX(var(--roll-x)) rotate(var(--roll-r)); animation-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); }
+  24%, 28% { transform: none; animation-timing-function: ease-out; }
+  /* 3. hop: crouch, jump, squash on landing */
+  30% { transform: scale(1.06, 0.9); animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1); }
+  34% { transform: translateY(calc(var(--hop) * -1)) scale(0.96, 1.05); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  38% { transform: scale(1.07, 0.9); animation-timing-function: ease-out; }
+  40%, 44% { transform: none; animation-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); }
+  /* 4. full roll left and back */
+  50% { transform: translateX(calc(var(--roll-x) * -1)) rotate(calc(var(--roll-r) * -1)); animation-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); }
+  56%, 60% { transform: none; animation-timing-function: ease-in-out; }
+  /* 5. wiggle */
+  62% { transform: rotate(-12deg); animation-timing-function: ease-in-out; }
+  64% { transform: rotate(10deg); animation-timing-function: ease-in-out; }
+  66% { transform: rotate(-6deg); animation-timing-function: ease-in-out; }
+  68%, 74% { transform: none; animation-timing-function: ease-out; }
+  /* 6. crouch, then a flip-jump (full spin in the air) */
+  76% { transform: scale(1.06, 0.9); animation-timing-function: cubic-bezier(0.2, 0.8, 0.4, 1); }
+  81% { transform: translateY(calc(var(--hop) * -1.2)) rotate(180deg); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  86% { transform: scale(1.07, 0.9) rotate(360deg); animation-timing-function: ease-out; }
+  88%, 100% { transform: rotate(360deg); }
+}
+.logo-roll {
+  --roll-x: 16px; /* phones: stays clear of menu, search and cart icons */
+  --roll-r: 26deg;
+  --hop: 8px;
+  animation: logo-roll 16s linear infinite;
+  will-change: transform;
+}
+@media (min-width: 768px) { .logo-roll { --roll-x: 26px; --roll-r: 42deg; --hop: 14px; } }
+.logo-roll:hover { animation-play-state: paused; }
 @keyframes wiggle {
   0%, 100% { transform: none; }
   20% { transform: scale(1.15) rotate(-10deg); }
@@ -636,7 +680,7 @@ html.js-motion:not(.motion-failsafe) [data-banner-img]:not([data-revealed]) img 
 @keyframes modal-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 .modal-in { animation: modal-in 0.25s var(--ease-menu-slide) both; }
 @media (prefers-reduced-motion: reduce) {
-  .live-dot, .blink-soft, .wiggle, .play-ripple, .shine-badge::after { animation: none !important; }
+  .live-dot, .blink-soft, .wiggle, .play-ripple, .shine-badge::after, .tag-breathe, .logo-roll { animation: none !important; }
 }
 html.js-motion:not(.motion-failsafe) [data-pdp-thumbs]:not([data-revealed]) > * { opacity: 0; }
 

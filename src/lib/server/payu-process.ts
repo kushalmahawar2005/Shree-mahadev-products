@@ -98,3 +98,28 @@ export async function verifyOrderPayment(orderId: number): Promise<"paid" | "fai
   if (!r) return "none";
   return reconcileOne({ id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount });
 }
+
+/**
+ * Browser came back from PayU without the form fields (some browsers drop the POST body when an
+ * https page posts to an http/localhost return URL). We only know the order token from the URL, so
+ * ask PayU directly about each open attempt; mark paid only when PayU itself confirms it.
+ * Anything else is left untouched for the webhook / reconcile cron.
+ */
+export async function confirmOrderFromPayu(orderToken: string): Promise<"paid" | "pending" | "none"> {
+  const [rows] = await db().query<RowDataPacket[]>(
+    `SELECT p.id, p.order_id, p.txnid, p.amount FROM payments p JOIN orders o ON o.id = p.order_id
+     WHERE o.token = ? AND p.status IN ('initiated','pending') ORDER BY p.id DESC LIMIT 5`,
+    [orderToken],
+  );
+  if (!rows.length) return "none";
+  for (const r of rows) {
+    const v = await verifyPaymentWithPayu(r.txnid);
+    if (v?.status === "success" && v.amount === r.amount) {
+      await markPaid(r.id, r.order_id, { mihpayid: v.mihpayid, mode: "return-verify" });
+      await notifyOrder(r.order_id, "payment_received");
+      await queueOrderWhatsApp(r.order_id, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
+      return "paid";
+    }
+  }
+  return "pending";
+}

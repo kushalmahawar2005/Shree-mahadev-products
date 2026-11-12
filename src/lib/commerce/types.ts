@@ -10,6 +10,8 @@ export type ProductVariant = {
   availableForSale: boolean;
   /** Priced and on sale, but stock is 0 (shows "Out of stock" + "Notify me"). */
   outOfStock?: boolean;
+  /** Units left (null = not tracked). Drives the "Only N left" line. */
+  stock?: number | null;
   sku?: string;
 };
 

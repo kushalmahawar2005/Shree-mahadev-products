@@ -64,7 +64,7 @@ export function StickyHeader({ children, className }: { children: React.ReactNod
   return (
     <CompactContext.Provider value={compact}>
       {/* Spacer: holds the full header height in the flow */}
-      <div aria-hidden style={{ height: full || undefined }} className={cn(!full && "h-[136px] lg:h-[214px]")} />
+      <div aria-hidden style={{ height: full || undefined }} className={cn(!full && "h-[112px] xl:h-[214px]")} />
       <header
         ref={el}
         data-compact={compact || undefined}

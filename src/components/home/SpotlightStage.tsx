@@ -55,7 +55,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
 
   return (
     <div onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocusCapture={() => setHold(true)} onBlurCapture={() => setHold(false)}>
-      <div className="relative overflow-hidden rounded-[32px] text-white shadow-[0_40px_80px_-50px_rgba(7,47,27,0.8)]">
+      <div className="relative overflow-hidden rounded-3xl text-white md:rounded-[32px] shadow-[0_40px_80px_-50px_rgba(7,47,27,0.8)]">
         {/* colour mood crossfades per product */}
         <AnimatePresence initial={false}>
           <motion.div
@@ -70,7 +70,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
         </AnimatePresence>
         <span aria-hidden className="absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
 
-        <div className={cn("relative grid items-center gap-2 p-5 md:gap-10 md:p-12", s.image && "md:grid-cols-[1.05fr_1fr]")}>
+        <div className={cn("relative grid items-center gap-2 p-4 md:gap-10 md:p-12", s.image && "md:grid-cols-[1.05fr_1fr]")}>
           {/* Stage (only when the item has a photo) */}
           {s.image && (
           <div className="relative mx-auto aspect-square w-full max-w-[220px] sm:max-w-[320px] md:max-w-[420px]">
@@ -124,24 +124,24 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[#e8c879] uppercase backdrop-blur max-md:hidden">
                 <Sparkles className="size-3.5" /> In the spotlight
               </span>
-              <p className="font-hindi text-base text-[#e8c879] md:mt-4 md:text-lg" lang="hi">
+              <p className="font-hindi text-sm text-[#e8c879] md:mt-4 md:text-lg" lang="hi">
                 {s.titleHi}
               </p>
-              <h3 className="text-[28px] leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
+              <h3 className="text-[22px] leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
               {s.rating && s.reviewCount ? (
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-white/80">
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-white/80 md:mt-2 md:text-sm">
                   <Star className="size-4 fill-[#f5b400] text-[#f5b400]" /> {s.rating.toFixed(1)} · {s.reviewCount} review{s.reviewCount === 1 ? "" : "s"}
                 </p>
               ) : null}
-              <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85 md:mt-4 md:text-lg">{s.text}</p>
-              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#e8c879]/40 px-3 py-1 text-xs font-semibold text-[#e8c879] md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm">
+              <p className="mt-2 max-w-md text-[13px] leading-relaxed text-white/85 md:mt-4 md:text-lg">{s.text}</p>
+              <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#e8c879]/40 px-2.5 py-1 text-[11px] font-semibold text-[#e8c879] md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm">
                 <Check className="size-3.5 md:size-4" /> {s.note}
               </span>
 
-              <div className="mt-5 flex w-full flex-wrap items-center gap-2.5 md:mt-7 md:w-auto md:gap-3">
+              <div className="mt-4 flex w-full flex-wrap items-center gap-2 md:mt-7 md:w-auto md:gap-3">
                 {s.variant && (
                   <p className="mr-2 flex items-baseline gap-2 max-md:basis-full">
-                    <span className="text-[28px] font-extrabold text-white tabular-nums md:text-3xl">{formatMoney(s.variant.price)}</span>
+                    <span className="text-[24px] font-extrabold text-white tabular-nums md:text-3xl">{formatMoney(s.variant.price)}</span>
                     {s.variant.mrp && s.variant.mrp > s.variant.price && <s className="text-sm text-white/55">{formatMoney(s.variant.mrp)}</s>}
                     <span className="text-xs text-white/60">{s.variant.title}</span>
                   </p>
@@ -160,13 +160,13 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                         setBusy(false);
                       }
                     }}
-                    className="btn-shine inline-flex h-11 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-[13px] font-bold md:h-12 md:flex-none md:px-6 md:text-sm tracking-wide text-forest-deep uppercase transition-colors hover:bg-white disabled:opacity-70"
+                    className="btn-shine inline-flex h-10 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-[13px] font-bold md:h-12 md:flex-none md:px-6 md:text-sm text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
                   >
                     {busy ? <Loader2 className="size-4 animate-spin" /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
                     {added ? "Added" : "Add to cart"}
                   </button>
                 )}
-                <Link href={`/products/${s.handle}`} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 px-4 text-[13px] font-semibold text-white md:h-12 md:px-5 md:text-sm transition-colors hover:bg-white/10">
+                <Link href={`/products/${s.handle}`} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/30 px-4 text-[13px] font-semibold text-white md:h-12 md:px-5 md:text-sm transition-colors hover:bg-white/10">
                   Know more <ArrowRight className="size-4" />
                 </Link>
               </div>
@@ -176,7 +176,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
       </div>
 
       {/* Thumbnail rail with autoplay progress */}
-      <div className="-mx-4 mt-5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:px-0">
+      <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 md:mt-5 [scrollbar-width:none] md:mx-0 md:px-0">
         <div role="tablist" aria-label="Spotlight products" className="flex w-max gap-2.5 md:mx-auto">
           {items.map((it, n) => {
             const on = n === i;
@@ -188,16 +188,21 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                 aria-selected={on}
                 onClick={() => pick(n)}
                 className={cn(
-                  "relative flex w-52 items-center gap-3 overflow-hidden rounded-2xl border bg-white/80 p-2 pr-3 text-left backdrop-blur transition-all",
+                  "relative flex w-44 items-center gap-2.5 overflow-hidden rounded-2xl border bg-white/80 px-3 py-2.5 text-left md:w-52 md:gap-3 md:p-2 md:pr-3 backdrop-blur transition-all",
                   on ? "border-forest shadow-[0_12px_24px_-16px_rgba(7,47,27,0.6)]" : "border-line opacity-80 hover:opacity-100",
                 )}
               >
-                <span className="grid size-12 shrink-0 place-items-center rounded-xl" style={{ background: `radial-gradient(circle, ${it.swatch}66, #f6efe2 70%)` }}>
-                  {it.image && <SmartImage src={it.image.url} alt="" width={48} height={48} className="size-10 object-contain" />}
-                </span>
+                {it.image ? (
+                  <span className="grid size-12 shrink-0 place-items-center rounded-xl" style={{ background: `radial-gradient(circle, ${it.swatch}66, #f6efe2 70%)` }}>
+                    <SmartImage src={it.image.url} alt="" width={48} height={48} className="size-10 object-contain" />
+                  </span>
+                ) : (
+                  // No photo (owner's call): a small dot in the oil's colour instead of an empty frame.
+                  <span aria-hidden className="size-3 shrink-0 rounded-full ring-4" style={{ background: it.swatch, boxShadow: `0 0 0 4px ${it.swatch}33` }} />
+                )}
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-forest-text">{it.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</span>
-                  <span className="block truncate text-xs text-ink-muted">{it.note}</span>
+                  <span className="block truncate text-[13px] font-semibold text-forest-text md:text-sm">{it.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</span>
+                  <span className="block truncate text-[11px] text-ink-muted md:text-xs">{it.note}</span>
                 </span>
                 {on && !reduce && (
                   <span

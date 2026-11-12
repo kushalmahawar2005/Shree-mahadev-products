@@ -6,7 +6,7 @@ import { ShopListing } from "@/components/product/ShopListing";
 import { RecentlyViewed } from "@/components/product/RecentlyViewed";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
-import { BelowGrid, CategoryPills, ItemListJsonLd, TrustRow, UseChips } from "@/components/product/ListingExtras";
+import { BelowGrid, CategoryPills, ChipRail, ItemListJsonLd, TrustRow, UseChips } from "@/components/product/ListingExtras";
 import { getCollection, getCollections, getProducts } from "@/lib/commerce";
 import { getCollectionRedirect } from "@/lib/server/collections";
 import { breadcrumbJsonLd, jsonLdString, pageMetadata } from "@/lib/utils/seo";
@@ -42,7 +42,7 @@ export default async function CollectionPage({ params }: PageProps<"/collections
 
   return (
     <div className="bg-page">
-      <div className="mx-auto max-w-[1360px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
+      <div className="mx-auto max-w-[1360px] px-4 pt-4 pb-10 md:px-8 md:pt-8 md:pb-24">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -70,17 +70,19 @@ export default async function CollectionPage({ params }: PageProps<"/collections
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <h1 className="mt-3 text-2xl md:text-3xl">{collection.title}</h1>
-        {collection.description && <p className="mt-1 max-w-2xl text-sm text-ink-muted">{collection.description}</p>}
+        <h1 className="mt-2 text-[22px] leading-tight md:mt-3 md:text-3xl">{collection.title}</h1>
+        {collection.description && <p className="mt-1 hidden max-w-2xl text-sm text-ink-muted md:block">{collection.description}</p>}
         <TrustRow />
-        <CategoryPills current={handle} total={all.length} />
-        <UseChips path={`/collections/${handle}`} products={collection.products} />
+        <ChipRail>
+          <CategoryPills current={handle} total={all.length} />
+          <UseChips path={`/collections/${handle}`} products={collection.products} />
+        </ChipRail>
         <ItemListJsonLd products={collection.products} />
         <Suspense fallback={<div className="mt-10 h-96" />}>
           <ShopListing products={collection.products} hideCategory={single} />
         </Suspense>
         <BelowGrid handle={handle} title={collection.title} />
-        <div className="-mx-6 md:-mx-8">
+        <div className="-mx-4 md:-mx-8">
           <RecentlyViewed products={(await getProducts()).filter((p) => p.priceRange.min.amount > 0).map(toPickProduct)} />
         </div>
       </div>
