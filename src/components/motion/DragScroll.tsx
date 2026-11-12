@@ -151,7 +151,8 @@ function ArrowButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={dir === "prev" ? "Scroll left" : "Scroll right"}
-      className="pointer-events-auto grid size-11 place-items-center rounded-full border border-line bg-white text-forest transition-[opacity,background-color] duration-200 hover:bg-khaki-soft disabled:pointer-events-none disabled:opacity-0"
+      data-dir={dir}
+      className="arrow-swap pointer-events-auto grid size-11 overflow-hidden place-items-center rounded-full border border-line bg-white text-forest transition-[opacity,background-color] duration-200 hover:bg-khaki-soft disabled:pointer-events-none disabled:opacity-0"
     >
       <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
         <path d={dir === "prev" ? "M15 18l-6-6 6-6" : "M9 6l6 6-6 6"} strokeLinecap="round" strokeLinejoin="round" />

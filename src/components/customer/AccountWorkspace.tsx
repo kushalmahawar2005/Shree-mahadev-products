@@ -1,8 +1,13 @@
 "use client";
 
+import { cutoutUrl } from "@/lib/image-loader";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { ArrowRight, Loader2, LogOut, MapPin, Package, Phone, Plus, RotateCcw, ShieldCheck, UserRound } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { ArrowRight, Check, ChevronRight, Loader2, LogOut, Plus, RotateCcw } from "lucide-react";
+import { BadgeCheck, BookOpen, Boxes, MapPin, MessageCircle, Package, Phone, ShieldCheck, Store, Truck, UserRound, type DuoIcon } from "@/components/icons/duo";
+import { SmartImage } from "@/components/ui/SmartImage";
+import { whatsappLink } from "@/data/site";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
 import { logoutCustomerAction, reorderAction, requestCustomerOtpAction, saveCustomerAddressAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
@@ -12,7 +17,8 @@ import { cn } from "@/lib/utils/cn";
 
 const field =
   "h-12 w-full rounded-xl border border-line bg-white px-4 text-[15px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10";
-type Order = { id: number; orderNo: string; status: string; total: number; createdAt: string; token?: string };
+type OrderItem = { title: string; variant: string; qty: number; image: string | null; handle: string };
+type Order = { id: number; orderNo: string; status: string; total: number; createdAt: string; token?: string; items?: OrderItem[] };
 type Address = { name: string; phone: string; line1: string; city: string; state: string; pincode: string };
 
 const STATUS: Record<string, { label: string; tone: string }> = {
@@ -39,14 +45,16 @@ export function AccountWorkspace({ customer, orders = [], addresses = [] }: { cu
   return <Dashboard customer={customer} orders={orders} addresses={addresses} />;
 }
 
-/** Phone + OTP sign-in (shadcn input-otp). */
-function SignIn() {
+/** Phone + OTP sign-in (shadcn input-otp). `next`: where to go after signing in. */
+export function SignIn({ next }: { next?: string } = {}) {
   const [pending, start] = useTransition();
   const [phone, setPhone] = useState("");
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  // Local dev only: the mock OTP the server returned (no SMS gateway yet).
+  const [devCode, setDevCode] = useState("");
 
   const send = () =>
     start(async () => {
@@ -54,6 +62,9 @@ function SignIn() {
       const r = await requestCustomerOtpAction({ phone });
       if (!r.ok) return setError(r.error ?? "Couldn't send the OTP.");
       setPhone(r.phone ?? phone);
+      const mockCode = "devCode" in r ? (r.devCode ?? "") : "";
+      setDevCode(mockCode);
+      setCode(mockCode);
       setSent(true);
     });
   const verify = () =>
@@ -61,13 +72,15 @@ function SignIn() {
       setError("");
       const r = await verifyCustomerOtpAction({ phone, code, name });
       if (!r.ok) return setError(r.error ?? "That code didn't work.");
-      window.location.reload();
+      // Full load so the header (account + cart) reflects the new session.
+      if (next) window.location.assign(next);
+      else window.location.reload();
     });
 
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-line bg-white p-6 shadow-[0_24px_48px_-36px_rgba(7,47,27,0.5)] md:p-8">
-      <span className="grid size-12 place-items-center rounded-2xl bg-khaki-soft text-forest">
-        <UserRound className="size-6" />
+      <span className="shrink-0 text-forest">
+        <UserRound className="size-10" />
       </span>
       <h2 className="mt-4 text-2xl">{sent ? "Enter the OTP" : "Sign in with your phone"}</h2>
       <p className="mt-1 text-sm text-ink-muted">
@@ -115,6 +128,11 @@ function SignIn() {
               </InputOTPGroup>
             </InputOTP>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name (first time only)" autoComplete="name" className={field} />
+            {devCode && (
+              <p className="rounded-xl border border-dashed border-warm-line bg-warm px-3 py-2 text-center text-xs text-ink-muted">
+                Test mode: no SMS is sent. Your OTP is <span className="font-bold tracking-widest text-ink">{devCode}</span> (filled in for you).
+              </p>
+            )}
           </>
         )}
         {error && (
@@ -138,11 +156,26 @@ function SignIn() {
   );
 }
 
+type Tab = "overview" | "orders" | "addresses";
+
+/** Order progress for the tracker: index into STEPS, or -1 when the order is not moving (unpaid, cancelled…). */
+const STEPS = ["Placed", "Packed", "Shipped", "Delivered"] as const;
+const STEP: Record<string, number> = { paid: 0, confirmed: 0, cod_pending: 0, packed: 1, shipped: 2, delivered: 3 };
+const ACTIVE = new Set(["pending_payment", "paid", "confirmed", "cod_pending", "packed", "shipped"]);
+const CLOSED = new Set(["cancelled", "payment_failed", "rto", "refunded", "partially_refunded"]);
+const statusOf = (s: string) => STATUS[s] ?? { label: s.replace(/_/g, " "), tone: "bg-subtle text-ink-muted" };
+
+/**
+ * Signed-in account: profile card + sidebar menu (desktop) or tabs (phone), with Overview (latest order
+ * tracker, quick actions, default address), Orders (filterable cards with product photos) and Addresses.
+ */
 function Dashboard({ customer, orders, addresses }: { customer: { name: string; phone: string; email: string }; orders: Order[]; addresses: Address[] }) {
+  const [tab, setTab] = useState<Tab>("overview");
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const spent = orders.filter((o) => !["cancelled", "payment_failed", "pending_payment"].includes(o.status)).reduce((s, o) => s + o.total, 0);
+  const firstName = customer.name.trim().split(/\s+/)[0] || "there";
 
   const reorder = (id: number) => {
     setBusyId(id);
@@ -158,130 +191,420 @@ function Dashboard({ customer, orders, addresses }: { customer: { name: string; 
     });
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Profile */}
-      <section className="flex flex-wrap items-center gap-4 rounded-3xl bg-forest p-6 text-white">
-        <span className="grid size-14 place-items-center rounded-full bg-[#e8c879] text-xl font-extrabold text-forest-deep">{customer.name.trim()[0]?.toUpperCase() ?? "?"}</span>
-        <div className="min-w-0 flex-1">
-          <p className="font-hindi text-sm text-[#e8c879]" lang="hi">
-            नमस्ते
-          </p>
-          <h2 className="truncate text-2xl text-white">{customer.name || "Welcome"}</h2>
-          <p className="flex items-center gap-1.5 text-sm text-white/70">
-            <Phone className="size-3.5" /> +91 {customer.phone}
-          </p>
-        </div>
-        <div className="flex gap-6 text-sm">
-          <div>
-            <p className="text-2xl font-extrabold tabular-nums">{orders.length}</p>
-            <p className="text-white/60">Orders</p>
-          </div>
-          <div>
-            <p className="text-2xl font-extrabold tabular-nums">{formatMoney(spent)}</p>
-            <p className="text-white/60">Spent</p>
-          </div>
-        </div>
-        <form action={logoutCustomerAction}>
-          <button className="inline-flex h-10 items-center gap-2 rounded-full border border-white/25 px-4 text-sm font-semibold hover:bg-white/10">
-            <LogOut className="size-4" /> Log out
-          </button>
-        </form>
-      </section>
+  const tabs: { key: Tab; label: string; icon: DuoIcon; count?: number }[] = [
+    { key: "overview", label: "Overview", icon: UserRound },
+    { key: "orders", label: "My orders", icon: Package, count: orders.length },
+    { key: "addresses", label: "Addresses", icon: MapPin, count: addresses.length },
+  ];
+  const card = { pending, busyId, onReorder: reorder };
 
-      {error && (
-        <p role="alert" className="rounded-xl bg-alert-soft px-3 py-2 text-sm text-alert">
-          {error}
-        </p>
+  return (
+    <div className="grid gap-5 lg:grid-cols-[280px_1fr] lg:items-start lg:gap-8">
+      {/* ── Sidebar: profile + menu ── */}
+      <aside className="space-y-4 lg:sticky lg:top-32">
+        <section className="relative overflow-hidden rounded-3xl bg-forest p-5 text-white shadow-[0_24px_48px_-36px_rgba(7,47,27,0.7)]">
+          <span aria-hidden className="absolute -top-16 -right-16 size-44 rounded-full bg-white/[0.05]" />
+          <div className="relative flex items-center gap-3.5">
+            <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#e8c879] text-xl font-extrabold text-forest-deep ring-4 ring-white/10">
+              {customer.name.trim()[0]?.toUpperCase() ?? "?"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-hindi text-sm leading-tight text-[#e8c879]" lang="hi">
+                नमस्ते
+              </p>
+              <p className="truncate text-xl font-bold text-white">{customer.name || "Welcome"}</p>
+              <p className="flex items-center gap-1.5 text-[13px] text-white/70">
+                +91 {customer.phone}
+                <BadgeCheck className="size-4 text-[#e8c879]" aria-label="Verified number" />
+              </p>
+            </div>
+            <form action={logoutCustomerAction} className="lg:hidden">
+              <button aria-label="Log out" className="grid size-10 place-items-center rounded-full border border-white/20 text-white/80 hover:bg-white/10">
+                <LogOut className="size-4" />
+              </button>
+            </form>
+          </div>
+          {customer.email && <p className="relative mt-3 truncate text-[13px] text-white/60">{customer.email}</p>}
+          <dl className="relative mt-4 grid grid-cols-3 divide-x divide-white/10 rounded-2xl bg-white/[0.07] py-3 text-center">
+            {[
+              [String(orders.length), "Orders"],
+              [formatMoney(spent), "Spent"],
+              [String(addresses.length), "Addresses"],
+            ].map(([v, l]) => (
+              <div key={l} className="min-w-0 px-1">
+                <dt className="sr-only">{l}</dt>
+                <dd className="truncate text-lg font-extrabold tabular-nums">{v}</dd>
+                <dd className="text-[11px] tracking-wide text-white/60 uppercase">{l}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <nav aria-label="Account" className="hidden rounded-3xl border border-line bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,.04)] lg:block">
+          {tabs.map((t) => {
+            const on = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                aria-current={on ? "page" : undefined}
+                className={cn(
+                  "relative flex h-11 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold transition-colors",
+                  on ? "text-forest-text" : "text-ink-muted hover:bg-subtle hover:text-forest-text",
+                )}
+              >
+                {on && <motion.span layoutId="acct-side" className="absolute inset-0 rounded-2xl bg-khaki-soft" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+                <t.icon className="relative size-5 text-forest" />
+                <span className="relative flex-1">{t.label}</span>
+                {t.count ? <span className="relative rounded-full bg-white px-2 py-0.5 text-xs font-bold text-forest-text tabular-nums">{t.count}</span> : null}
+              </button>
+            );
+          })}
+          <div className="mx-3 my-2 h-px bg-line" />
+          {HELP.map((h) => (
+            <Link key={h.href} href={h.href} className="flex h-10 items-center gap-3 rounded-2xl px-3 text-sm text-ink-muted transition-colors hover:bg-subtle hover:text-forest-text">
+              <h.icon className="size-[18px] text-forest" /> {h.label}
+            </Link>
+          ))}
+          <div className="mx-3 my-2 h-px bg-line" />
+          <form action={logoutCustomerAction}>
+            <button className="flex h-10 w-full items-center gap-3 rounded-2xl px-3 text-left text-sm font-semibold text-alert transition-colors hover:bg-alert-soft">
+              <LogOut className="size-[18px]" /> Log out
+            </button>
+          </form>
+        </nav>
+      </aside>
+
+      {/* ── Content ── */}
+      <div className="min-w-0">
+        <header className="mb-5 hidden lg:block">
+          <p className="font-hindi text-lg text-sale" lang="hi">
+            मेरा खाता
+          </p>
+          <h1 className="text-4xl">Namaste, {firstName}</h1>
+          <p className="mt-1 text-ink-muted">Your orders, addresses and details, all in one place.</p>
+        </header>
+        <h1 className="sr-only lg:hidden">My account</h1>
+
+        {/* Phone tabs */}
+        <div role="tablist" aria-label="Account sections" className="mb-4 grid grid-cols-3 gap-1 rounded-full border border-line bg-white p-1 lg:hidden">
+          {tabs.map((t) => {
+            const on = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                role="tab"
+                type="button"
+                aria-selected={on}
+                onClick={() => setTab(t.key)}
+                className={cn("relative h-10 rounded-full text-[13px] font-semibold transition-colors", on ? "text-white" : "text-forest-text")}
+              >
+                {on && <motion.span layoutId="acct-tab" className="absolute inset-0 rounded-full bg-forest" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
+                <span className="relative">
+                  {t.key === "orders" ? "Orders" : t.label}
+                  {t.count ? <span className={cn("ml-1 tabular-nums", on ? "text-[#e8c879]" : "text-ink-muted")}>{t.count}</span> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {error && (
+          <p role="alert" className="mb-4 rounded-xl bg-alert-soft px-3 py-2 text-sm text-alert">
+            {error}
+          </p>
+        )}
+
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+            {tab === "overview" && <Overview orders={orders} addresses={addresses} card={card} go={setTab} />}
+            {tab === "orders" && <OrdersTab orders={orders} card={card} />}
+            {tab === "addresses" && <AddressesTab addresses={addresses} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+const HELP: { href: string; label: string; icon: DuoIcon }[] = [
+  { href: "/track-order", label: "Track an order", icon: Truck },
+  { href: "/faq", label: "Help & FAQs", icon: BookOpen },
+  { href: "/contact", label: "Contact us", icon: Phone },
+];
+
+type CardActions = { pending: boolean; busyId: number | null; onReorder: (id: number) => void };
+
+function Overview({ orders, addresses, card, go }: { orders: Order[]; addresses: Address[]; card: CardActions; go: (t: Tab) => void }) {
+  const latest = orders[0];
+  const quick: { href: string; title: string; text: string; icon: DuoIcon; external?: boolean }[] = [
+    { href: "/track-order", title: "Track an order", text: "Live courier status", icon: Truck },
+    { href: "/shop", title: "Shop again", text: "Oils, honey, jaggery", icon: Store },
+    { href: "/bulk-orders", title: "Bulk orders", text: "Tins for shops & events", icon: Boxes },
+    { href: whatsappLink("Hi, I need help with my order."), title: "Chat with us", text: "WhatsApp, 9am–6pm", icon: MessageCircle, external: true },
+  ];
+  return (
+    <div className="space-y-5">
+      {latest ? (
+        <section>
+          <SectionHead title="Latest order" action={orders.length > 1 ? { label: "All orders", onClick: () => go("orders") } : undefined} />
+          <OrderCard order={latest} featured {...card} />
+        </section>
+      ) : (
+        <EmptyOrders />
       )}
 
-      {/* Orders */}
-      <section className="rounded-3xl border border-line bg-white">
-        <h3 className="flex items-center gap-2 border-b border-line px-5 py-4 text-lg">
-          <Package className="size-5 text-forest/60" /> My orders
-        </h3>
-        {orders.length ? (
-          <ul className="divide-y divide-line">
-            {orders.map((o) => {
-              const st = STATUS[o.status] ?? { label: o.status.replace(/_/g, " "), tone: "bg-subtle text-ink-muted" };
-              return (
-                <li key={o.id} className="flex flex-wrap items-center gap-3 px-5 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-mono text-sm font-semibold text-forest-text">{o.orderNo}</p>
-                    <p className="text-xs text-ink-muted">{date(o.createdAt)}</p>
-                  </div>
-                  <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold", st.tone)}>{st.label}</span>
-                  <span className="w-20 text-right text-sm font-bold tabular-nums">{formatMoney(o.total)}</span>
-                  <div className="flex gap-2">
-                    {o.token && (
-                      <Link href={`/order?t=${o.token}`} className="inline-flex h-9 items-center gap-1 rounded-full border border-line px-3 text-xs font-semibold text-forest-text hover:border-forest/40">
-                        View <ArrowRight className="size-3.5" />
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => reorder(o.id)}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-forest px-3 text-xs font-bold text-white hover:bg-forest-mid disabled:opacity-60"
-                    >
-                      {busyId === o.id ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reorder
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div className="px-5 py-12 text-center">
-            <p className="font-semibold text-forest-text">No orders yet</p>
-            <Link href="/shop" className="mt-3 inline-flex h-10 items-center rounded-full bg-forest px-5 text-sm font-bold text-white">
-              Start shopping
-            </Link>
-          </div>
-        )}
+      <section>
+        <SectionHead title="Quick actions" />
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {quick.map((q) => (
+            <li key={q.title}>
+              <Link
+                href={q.href}
+                {...(q.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="group flex h-full flex-col gap-2 rounded-2xl border border-line bg-white p-4 transition-[border-color,box-shadow] hover:border-forest/30 hover:shadow-[0_14px_30px_-24px_rgba(7,47,27,0.5)]"
+              >
+                <q.icon className="size-8 text-forest" />
+                <span>
+                  <span className="flex items-center gap-1 text-sm font-bold text-forest-text">
+                    {q.title} <ChevronRight className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+                  </span>
+                  <span className="block text-xs text-ink-muted">{q.text}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      {/* Addresses */}
-      <section className="rounded-3xl border border-line bg-white p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="flex items-center gap-2 text-lg">
-            <MapPin className="size-5 text-forest/60" /> Saved addresses
-          </h3>
-          <AddAddress />
-        </div>
-        {addresses.length ? (
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {addresses.map((a, i) => (
-              <li key={i} className="rounded-2xl border border-line bg-subtle p-4 text-sm leading-relaxed">
-                <p className="font-semibold text-ink">{a.name}</p>
-                <p className="text-ink">
-                  {a.line1}, {a.city}
-                </p>
-                <p className="text-ink">
-                  {a.state} {a.pincode}
-                </p>
-                <p className="text-ink-muted">{a.phone}</p>
-              </li>
-            ))}
-          </ul>
+      <section>
+        <SectionHead title="Default address" action={{ label: addresses.length ? "Manage" : "Add", onClick: () => go("addresses") }} />
+        {addresses[0] ? (
+          <AddressCard a={addresses[0]} isDefault />
         ) : (
-          <p className="mt-3 text-sm text-ink-muted">No saved addresses yet.</p>
+          <p className="rounded-2xl border border-dashed border-line bg-white/60 px-4 py-5 text-sm text-ink-muted">No saved address yet. Add one for one-tap checkout.</p>
         )}
       </section>
     </div>
   );
 }
 
-function AddAddress() {
+function OrdersTab({ orders, card }: { orders: Order[]; card: CardActions }) {
+  const filters = [
+    { key: "all", label: "All", test: () => true },
+    { key: "active", label: "Active", test: (o: Order) => ACTIVE.has(o.status) },
+    { key: "delivered", label: "Delivered", test: (o: Order) => o.status === "delivered" },
+    { key: "closed", label: "Cancelled", test: (o: Order) => CLOSED.has(o.status) },
+  ];
+  const [f, setF] = useState("all");
+  const shown = orders.filter(filters.find((x) => x.key === f)!.test);
+  if (!orders.length) return <EmptyOrders />;
+  return (
+    <div className="space-y-4">
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:px-0">
+        {filters.map((x) => {
+          const n = orders.filter(x.test).length;
+          const on = f === x.key;
+          return (
+            <button
+              key={x.key}
+              type="button"
+              onClick={() => setF(x.key)}
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+                on ? "border-forest bg-forest text-white" : "border-line bg-white text-forest-text hover:border-forest/30",
+              )}
+            >
+              {x.label}
+              <span className={cn("tabular-nums", on ? "text-[#e8c879]" : "text-ink-muted")}>{n}</span>
+            </button>
+          );
+        })}
+      </div>
+      {shown.length ? (
+        shown.map((o) => <OrderCard key={o.id} order={o} {...card} />)
+      ) : (
+        <p className="rounded-2xl border border-dashed border-line bg-white/60 px-4 py-8 text-center text-sm text-ink-muted">No orders here.</p>
+      )}
+    </div>
+  );
+}
+
+function OrderCard({ order: o, featured, pending, busyId, onReorder }: { order: Order; featured?: boolean } & CardActions) {
+  const st = statusOf(o.status);
+  const step = STEP[o.status] ?? -1;
+  const items = o.items ?? [];
+  const units = items.reduce((s, i) => s + i.qty, 0);
+  const lead = items[0];
+  return (
+    <article className="overflow-hidden rounded-3xl border border-line bg-white shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+      <header className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line bg-subtle/60 px-4 py-3 sm:px-5">
+        <p className="font-mono text-sm font-bold text-forest-text">{o.orderNo}</p>
+        <span className="text-xs text-ink-muted">· {date(o.createdAt)}</span>
+        <span className={cn("ml-auto rounded-full px-2.5 py-1 text-xs font-semibold", st.tone)}>{st.label}</span>
+      </header>
+
+      {featured && step >= 0 && (
+        <ol className="flex px-2 pt-4 sm:px-6" aria-label={`Progress: ${STEPS[step]}`}>
+          {STEPS.map((s, i) => (
+            <li key={s} className="relative flex flex-1 flex-col items-center gap-1.5 text-center">
+              {i > 0 && <span aria-hidden className={cn("absolute top-[9px] right-1/2 h-0.5 w-full", i <= step ? "bg-forest" : "bg-line")} />}
+              <span className={cn("relative grid size-5 place-items-center rounded-full border-2", i <= step ? "border-forest bg-forest text-white" : "border-line bg-white")}>
+                {i <= step && <Check className="size-3" strokeWidth={3} />}
+              </span>
+              <span className={cn("text-[11px] font-semibold sm:text-xs", i <= step ? "text-forest-text" : "text-ink-muted")}>{s}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      <div className="flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-5">
+        <div className="flex shrink-0 -space-x-3">
+          {items.slice(0, 3).map((it, i) => (
+            <span key={i} className="relative grid size-14 place-items-center overflow-hidden rounded-2xl border-2 border-white bg-[#f6efe2] shadow-sm" style={{ zIndex: 3 - i }}>
+              {it.image ? <SmartImage src={cutoutUrl(it.image)} alt="" width={56} height={56} className="size-full object-contain p-1" /> : <Package className="size-6 text-forest/60" />}
+            </span>
+          ))}
+          {items.length > 3 && (
+            <span className="relative z-0 grid size-14 place-items-center rounded-2xl border-2 border-white bg-khaki-soft text-xs font-bold text-forest-text">+{items.length - 3}</span>
+          )}
+          {!items.length && (
+            <span className="grid size-14 place-items-center rounded-2xl bg-[#f6efe2]">
+              <Package className="size-6 text-forest/60" />
+            </span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          {lead ? (
+            <>
+              <p className="line-clamp-1 text-sm font-semibold text-ink">
+                {lead.title} <span className="font-normal text-ink-muted">{lead.variant}</span>
+                {lead.qty > 1 && <span className="font-normal text-ink-muted"> × {lead.qty}</span>}
+              </p>
+              <p className="text-xs text-ink-muted">{items.length > 1 ? `+ ${items.length - 1} more · ${units} items` : `${units} item${units === 1 ? "" : "s"}`}</p>
+            </>
+          ) : (
+            <p className="text-sm text-ink-muted">Order {o.orderNo}</p>
+          )}
+        </div>
+        <p className="shrink-0 text-base font-extrabold text-forest-text tabular-nums sm:text-lg">{formatMoney(o.total)}</p>
+      </div>
+
+      <footer className="flex gap-2 border-t border-line px-4 py-3 sm:justify-end sm:px-5">
+        {o.token && (
+          <Link
+            href={`/order?t=${o.token}`}
+            className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full border border-line px-4 text-[13px] font-semibold text-forest-text transition-colors hover:border-forest/40 sm:flex-none"
+          >
+            {o.status === "shipped" ? (
+              <>
+                <Truck className="size-4 text-forest" /> Track
+              </>
+            ) : o.status === "pending_payment" ? (
+              <>Complete payment</>
+            ) : (
+              <>
+                View details <ArrowRight className="size-3.5" />
+              </>
+            )}
+          </Link>
+        )}
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onReorder(o.id)}
+          className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-full bg-forest px-4 text-[13px] font-bold text-white transition-colors hover:bg-forest-mid disabled:opacity-60 sm:flex-none"
+        >
+          {busyId === o.id ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />} Buy again
+        </button>
+      </footer>
+    </article>
+  );
+}
+
+function AddressesTab({ addresses }: { addresses: Address[] }) {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {addresses.map((a, i) => (
+        <li key={i}>
+          <AddressCard a={a} isDefault={i === 0} />
+        </li>
+      ))}
+      <li>
+        <AddAddress variant="card" />
+      </li>
+    </ul>
+  );
+}
+
+function AddressCard({ a, isDefault }: { a: Address; isDefault?: boolean }) {
+  return (
+    <div className="h-full rounded-2xl border border-line bg-white p-4 text-sm leading-relaxed shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+      <div className="mb-1.5 flex items-center gap-2">
+        <MapPin className="size-5 text-forest" />
+        <p className="font-bold text-ink">{a.name}</p>
+        {isDefault && <span className="ml-auto rounded-full bg-khaki-soft px-2 py-0.5 text-[11px] font-bold text-forest-text">Default</span>}
+      </div>
+      <p className="text-ink">
+        {a.line1}, {a.city}
+      </p>
+      <p className="text-ink">
+        {a.state} {a.pincode}
+      </p>
+      <p className="mt-1 text-ink-muted">+91 {a.phone}</p>
+    </div>
+  );
+}
+
+function SectionHead({ title, action }: { title: string; action?: { label: string; onClick: () => void } }) {
+  return (
+    <div className="mb-2.5 flex items-center justify-between">
+      <h2 className="font-body text-base font-bold text-forest-text">{title}</h2>
+      {action && (
+        <button type="button" onClick={action.onClick} className="inline-flex items-center gap-0.5 text-[13px] font-semibold text-forest hover:underline">
+          {action.label} <ChevronRight className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EmptyOrders() {
+  return (
+    <div className="rounded-3xl border border-line bg-white px-5 py-10 text-center">
+      <Package className="mx-auto size-12 text-forest" />
+      <p className="mt-3 text-lg font-bold text-forest-text">No orders yet</p>
+      <p className="mt-1 text-sm text-ink-muted">Your first bottle of slow-pressed oil is a tap away.</p>
+      <Link href="/shop" className="mt-4 inline-flex h-11 items-center gap-2 rounded-full bg-forest px-6 text-sm font-bold text-white hover:bg-forest-mid">
+        Start shopping <ArrowRight className="size-4" />
+      </Link>
+    </div>
+  );
+}
+
+function AddAddress({ variant = "button" }: { variant?: "button" | "card" }) {
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState("");
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold text-forest-text hover:border-forest/40">
-          <Plus className="size-3.5" /> Add address
-        </button>
+        {variant === "card" ? (
+          <button
+            type="button"
+            className="flex h-full min-h-32 w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line bg-white/50 p-4 text-sm font-semibold text-forest-text transition-colors hover:border-forest/40 hover:bg-white"
+          >
+            <span className="grid size-10 place-items-center rounded-full border border-line bg-white">
+              <Plus className="size-5 text-forest" />
+            </span>
+            Add a new address
+          </button>
+        ) : (
+          <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line px-3 text-xs font-semibold text-forest-text hover:border-forest/40">
+            <Plus className="size-3.5" /> Add address
+          </button>
+        )}
       </DialogTrigger>
       <DialogContent className="rounded-3xl bg-white sm:max-w-lg">
         <DialogHeader>

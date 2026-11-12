@@ -8,10 +8,10 @@ const base =
   "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 min-h-11";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-forest text-white hover:bg-forest-mid",
+  primary: "btn-slant text-white",
   secondary: "border border-forest text-forest hover:bg-forest hover:text-white",
   ghost: "text-forest hover:bg-khaki-soft",
-  light: "bg-white text-forest-deep hover:bg-khaki-soft",
+  light: "btn-slant btn-slant-light text-forest-deep",
 };
 
 const sizes: Record<Size, string> = {

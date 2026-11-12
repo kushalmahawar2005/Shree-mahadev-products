@@ -9,6 +9,10 @@ export type HeroSlide = {
   mobileSrc?: string;
   alt: string;
   href: string;
+  /** Optional text over the image (banners usually have text baked in). Use "\n" to break heading lines. */
+  heading?: string;
+  subheading?: string;
+  ctas?: { label: string; href: string }[];
 };
 
 export const heroSlides: HeroSlide[] = [

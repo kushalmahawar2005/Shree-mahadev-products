@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, MapPin } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { MapPin } from "@/components/icons/duo";
 import { Reveal } from "@/components/motion/Reveal";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { FactsStrip, FilmFrame, NeverDo, StoryCta } from "@/components/story/StoryBits";
@@ -21,8 +22,8 @@ const mapHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComp
 
 export default function AboutPage() {
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -63,7 +64,7 @@ export default function AboutPage() {
         </div>
 
         {founder && (
-          <Reveal className="mt-14 grid gap-6 rounded-3xl border border-line bg-white p-6 md:grid-cols-[auto_1fr] md:p-10">
+          <Reveal className="mt-10 md:mt-14 grid gap-6 rounded-3xl border border-line bg-white p-6 md:grid-cols-[auto_1fr] md:p-10">
             <span className="grid size-16 place-items-center rounded-full bg-forest text-2xl font-extrabold text-[#e8c879]">{founder.name[0]}</span>
             <div>
               <h2 className="text-2xl md:text-3xl">A note from our ghani</h2>
@@ -79,7 +80,7 @@ export default function AboutPage() {
         )}
 
         {/* Promise */}
-        <Reveal className="mt-14 grid gap-8 rounded-3xl bg-forest p-6 text-white md:p-10 lg:grid-cols-[1fr_1.3fr] lg:items-center">
+        <Reveal className="mt-10 md:mt-14 grid gap-8 rounded-3xl bg-forest p-6 text-white md:p-10 lg:grid-cols-[1fr_1.3fr] lg:items-center">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.18em] text-[#e8c879] uppercase">Our promise</p>
             <h2 className="mt-2 text-3xl text-white md:text-4xl">What we never do</h2>
@@ -89,7 +90,7 @@ export default function AboutPage() {
         </Reveal>
 
         {/* Visit */}
-        <Reveal className="mt-14 grid gap-4 md:grid-cols-[1.4fr_1fr]">
+        <Reveal className="mt-10 md:mt-14 grid gap-4 md:grid-cols-[1.4fr_1fr]">
           <section className="rounded-3xl border border-line bg-white p-6 md:p-8">
             <h2 className="flex items-center gap-2 text-2xl">
               <MapPin className="size-5 text-forest/60" /> Visit us
@@ -113,7 +114,7 @@ export default function AboutPage() {
           </Link>
         </Reveal>
 
-        <div className="mt-14">
+        <div className="mt-10 md:mt-14">
           <StoryCta />
         </div>
       </div>

@@ -37,7 +37,7 @@ export function ProofBand() {
             We would rather show you than tell you.
           </p>
         </Reveal>
-        <Stagger className="mt-10 grid gap-5 md:grid-cols-3">
+        <Stagger variant="linear" className="mt-10 grid gap-5 md:grid-cols-3">
           {items.map((it) => (
             <StaggerItem
               key={it.title}

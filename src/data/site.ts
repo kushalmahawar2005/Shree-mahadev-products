@@ -33,6 +33,9 @@ export const site = {
   codAvailable: true,
   // TODO(client): social media links
   socials: [] as { label: string; href: string }[],
+  /** Festive marigold toran hung once under the header (see FestiveToran). Shown only while
+   *  `enabled` and today (IST) is within [start, end]; it hides itself after the season. */
+  festive: { enabled: false, start: "2026-10-15", end: "2026-11-30" },
 } as const;
 
 export const fullAddress = `${site.address.line1}, ${site.address.city} ${site.address.postalCode}, Dist. ${site.address.district}, ${site.address.state}`;

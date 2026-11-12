@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarClock, Container as Tin, FlaskConical, Phone, Store, Truck } from "lucide-react";
+import { CalendarClock, Tin, FlaskConical, Phone, Store, Truck } from "@/components/icons/duo";
 import { BulkForm } from "@/components/BulkForm";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { getProducts } from "@/lib/commerce";
@@ -24,8 +24,8 @@ export default async function BulkOrdersPage() {
     .filter((p) => p.sizes.length);
 
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -56,8 +56,8 @@ export default async function BulkOrdersPage() {
                 { I: Store, t: "Resellers welcome", d: "Ask about trade pricing" },
               ].map(({ I, t, d }) => (
                 <li key={t} className="flex items-start gap-3 rounded-2xl border border-line bg-white p-4">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-khaki-soft text-forest">
-                    <I className="size-5" />
+                  <span className="shrink-0 text-forest">
+                    <I className="size-8" />
                   </span>
                   <span>
                     <span className="block text-sm font-bold text-forest-text">{t}</span>

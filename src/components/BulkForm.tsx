@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Loader2, MessageCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { CheckCircle2, MessageCircle } from "@/components/icons/duo";
 import { cn } from "@/lib/utils/cn";
 import { whatsappLink } from "@/data/site";
 import { submitBulkInquiryAction } from "@/lib/inquiry-actions";

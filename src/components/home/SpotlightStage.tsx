@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowRight, Check, Loader2, ShoppingBag, Sparkles, Star } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { ArrowRight, Check, Loader2, ShoppingBag, Star } from "lucide-react";
+import { Sparkles } from "@/components/icons/duo";
 import { useCart } from "@/components/cart/CartProvider";
 import { SmartImage } from "@/components/ui/SmartImage";
 import { flyToCart } from "@/lib/fly-to-cart";
@@ -68,9 +70,10 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
         </AnimatePresence>
         <span aria-hidden className="absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
 
-        <div className="relative grid items-center gap-6 p-6 md:grid-cols-[1.05fr_1fr] md:gap-10 md:p-12">
-          {/* Stage */}
-          <div className="relative mx-auto aspect-square w-full max-w-[420px]">
+        <div className={cn("relative grid items-center gap-2 p-5 md:gap-10 md:p-12", s.image && "md:grid-cols-[1.05fr_1fr]")}>
+          {/* Stage (only when the item has a photo) */}
+          {s.image && (
+          <div className="relative mx-auto aspect-square w-full max-w-[220px] sm:max-w-[320px] md:max-w-[420px]">
             <motion.span
               key={s.handle + "-glow"}
               aria-hidden
@@ -106,6 +109,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
             </AnimatePresence>
             <span aria-hidden className="absolute bottom-[6%] left-1/2 h-4 w-1/2 -translate-x-1/2 rounded-[50%] bg-black/30 blur-md" />
           </div>
+          )}
 
           {/* Story */}
           <AnimatePresence mode="wait" initial={false}>
@@ -117,27 +121,27 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-start"
             >
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[#e8c879] uppercase backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[#e8c879] uppercase backdrop-blur max-md:hidden">
                 <Sparkles className="size-3.5" /> In the spotlight
               </span>
-              <p className="font-hindi mt-4 text-lg text-[#e8c879]" lang="hi">
+              <p className="font-hindi text-base text-[#e8c879] md:mt-4 md:text-lg" lang="hi">
                 {s.titleHi}
               </p>
-              <h3 className="text-3xl leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
+              <h3 className="text-[28px] leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
               {s.rating && s.reviewCount ? (
                 <p className="mt-2 flex items-center gap-1.5 text-sm text-white/80">
                   <Star className="size-4 fill-[#f5b400] text-[#f5b400]" /> {s.rating.toFixed(1)} · {s.reviewCount} review{s.reviewCount === 1 ? "" : "s"}
                 </p>
               ) : null}
-              <p className="mt-4 max-w-md text-base leading-relaxed text-white/85 md:text-lg">{s.text}</p>
-              <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#e8c879]/40 px-3.5 py-1.5 text-sm font-semibold text-[#e8c879]">
-                <Check className="size-4" /> {s.note}
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85 md:mt-4 md:text-lg">{s.text}</p>
+              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-[#e8c879]/40 px-3 py-1 text-xs font-semibold text-[#e8c879] md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm">
+                <Check className="size-3.5 md:size-4" /> {s.note}
               </span>
 
-              <div className="mt-7 flex flex-wrap items-center gap-3">
+              <div className="mt-5 flex w-full flex-wrap items-center gap-2.5 md:mt-7 md:w-auto md:gap-3">
                 {s.variant && (
-                  <p className="mr-2 flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-white tabular-nums">{formatMoney(s.variant.price)}</span>
+                  <p className="mr-2 flex items-baseline gap-2 max-md:basis-full">
+                    <span className="text-[28px] font-extrabold text-white tabular-nums md:text-3xl">{formatMoney(s.variant.price)}</span>
                     {s.variant.mrp && s.variant.mrp > s.variant.price && <s className="text-sm text-white/55">{formatMoney(s.variant.mrp)}</s>}
                     <span className="text-xs text-white/60">{s.variant.title}</span>
                   </p>
@@ -156,13 +160,13 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                         setBusy(false);
                       }
                     }}
-                    className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-6 text-sm font-bold tracking-wide text-forest-deep uppercase transition-colors hover:bg-white disabled:opacity-70"
+                    className="btn-shine inline-flex h-11 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-[13px] font-bold md:h-12 md:flex-none md:px-6 md:text-sm tracking-wide text-forest-deep uppercase transition-colors hover:bg-white disabled:opacity-70"
                   >
                     {busy ? <Loader2 className="size-4 animate-spin" /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
                     {added ? "Added" : "Add to cart"}
                   </button>
                 )}
-                <Link href={`/products/${s.handle}`} className="inline-flex h-12 items-center gap-1.5 rounded-full border border-white/30 px-5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                <Link href={`/products/${s.handle}`} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/30 px-4 text-[13px] font-semibold text-white md:h-12 md:px-5 md:text-sm transition-colors hover:bg-white/10">
                   Know more <ArrowRight className="size-4" />
                 </Link>
               </div>

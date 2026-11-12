@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/shadcn/popover";
 import { cn } from "@/lib/utils/cn";
 
 type Size = { id: string; title: string; soldOut?: boolean };
 
-const chip =
-  "h-8 shrink-0 rounded-full border px-3 text-[13px] whitespace-nowrap transition-colors duration-200 md:text-sm";
+const chipBase = "shrink-0 rounded-full border whitespace-nowrap transition-colors duration-200";
+const chipSize = { md: "h-9 px-3 text-[13px] md:text-sm", sm: "h-8 px-2.5 text-[12.5px]" } as const;
 const GAP = 6;
 
 /**
@@ -18,15 +19,21 @@ export function SizeChips({
   selectedId,
   onSelect,
   label,
+  max,
+  size = "md",
 }: {
   sizes: Size[];
   selectedId?: string;
   onSelect: (id: string) => void;
   label: string;
+  /** Never show more than this many chips before "+N". */
+  max?: number;
+  size?: keyof typeof chipSize;
 }) {
+  const chip = cn(chipBase, chipSize[size]);
   const wrap = useRef<HTMLDivElement>(null);
   const measure = useRef<HTMLDivElement>(null);
-  const [fit, setFit] = useState(sizes.length);
+  const [fit, setFit] = useState(Math.min(sizes.length, max ?? sizes.length));
   const [open, setOpen] = useState(false);
 
   // Measure every chip (hidden copy) and the "+N" chip, then work out how many fit.
@@ -47,31 +54,14 @@ export function SizeChips({
         used += w;
         n++;
       }
-      setFit(Math.max(1, n));
+      setFit(Math.max(1, Math.min(n, max ?? n)));
     };
     calc();
     const ro = new ResizeObserver(calc);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [sizes]);
+  }, [sizes, max, size]);
 
-  useEffect(() => {
-    if (!open) return;
-    const close = (e: MouseEvent | KeyboardEvent) => {
-      if (
-        e instanceof KeyboardEvent
-          ? e.key === "Escape"
-          : !wrap.current?.contains(e.target as Node)
-      )
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, [open]);
 
   // Visible chips: first `fit`, with the selected one swapped into the last slot if it overflows.
   let visible = sizes.slice(0, fit);
@@ -128,52 +118,43 @@ export function SizeChips({
           );
         })}
         {hidden > 0 && (
-          <button
-            type="button"
-            aria-haspopup="listbox"
-            aria-expanded={open}
-            onClick={() => setOpen((o) => !o)}
-            className={cn(
-              chip,
-              "border-khaki bg-white text-forest-text hover:border-forest",
-            )}
-            aria-label={`${hidden} more sizes`}
-          >
-            +{hidden}
-          </button>
-        )}
-      </div>
-
-      {open && (
-        <ul
-          role="listbox"
-          aria-label={label}
-          className="absolute bottom-full left-0 z-20 mb-2 max-h-56 min-w-36 overflow-y-auto rounded-xl border border-line bg-white p-1 shadow-[0_12px_32px_-12px_rgba(7,47,27,0.35)]"
-        >
-          {sizes.map((s) => (
-            <li key={s.id}>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
               <button
                 type="button"
-                role="option"
-                aria-selected={s.id === selectedId}
-                onClick={() => {
-                  onSelect(s.id);
-                  setOpen(false);
-                }}
-                className={cn(
-                  "flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 text-left text-sm",
-                  s.id === selectedId
-                    ? "bg-khaki-soft font-semibold text-forest-text"
-                    : "hover:bg-khaki-soft/60",
-                )}
+                className={cn(chip, "border-khaki bg-white text-forest-text hover:border-forest")}
+                aria-label={`${hidden} more sizes`}
               >
-                <span className={cn(s.soldOut && "line-through")}>{s.title}</span>
-                {s.soldOut ? <span className="text-xs text-ink-muted">Sold out</span> : s.id === selectedId && <span aria-hidden>✓</span>}
+                +{hidden}
               </button>
-            </li>
-          ))}
-        </ul>
-      )}
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" className="w-auto min-w-40 rounded-xl border-line bg-white p-1 shadow-[0_12px_32px_-12px_rgba(7,47,27,0.35)]">
+              <ul role="listbox" aria-label={label} className="max-h-56 overflow-y-auto">
+                {sizes.map((s) => (
+                  <li key={s.id}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={s.id === selectedId}
+                      onClick={() => {
+                        onSelect(s.id);
+                        setOpen(false);
+                      }}
+                      className={cn(
+                        "flex min-h-10 w-full items-center justify-between gap-3 rounded-lg px-3 text-left text-sm",
+                        s.id === selectedId ? "bg-khaki-soft font-semibold text-forest-text" : "hover:bg-khaki-soft/60",
+                      )}
+                    >
+                      <span className={cn(s.soldOut && "line-through")}>{s.title}</span>
+                      {s.soldOut ? <span className="text-xs text-ink-muted">Sold out</span> : s.id === selectedId && <span aria-hidden>✓</span>}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        )}
+      </div>
     </div>
   );
 }

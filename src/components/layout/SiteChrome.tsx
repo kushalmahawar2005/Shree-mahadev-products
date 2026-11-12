@@ -62,6 +62,6 @@ function idx(h: string) {
 }
 
 export async function SiteCartDrawer() {
-  const upsells = await getProducts({ collection: "bestsellers", first: 4 });
-  return <CartDrawer upsells={upsells} />;
+  const [upsells, catalog] = await Promise.all([getProducts({ collection: "bestsellers", first: 4 }), getProducts()]);
+  return <CartDrawer upsells={upsells} catalog={catalog} />;
 }

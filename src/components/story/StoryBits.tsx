@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Ban, Droplets, Factory, FlaskConical, Flame, Leaf, MapPin, Package, Palette, Sun, Timer } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { BadgeCheck, Ban, Droplets, Factory, FlaskConical, Flame, Leaf, MapPin, Package, Palette, Sun, Timer } from "@/components/icons/duo";
 import { Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { proof } from "@/data/home";
 import { site } from "@/data/site";
@@ -15,9 +16,9 @@ export function FactsStrip() {
   return (
     <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {facts.map(({ I, t, d }) => (
-        <li key={t} className="flex items-start gap-3 rounded-2xl border border-line bg-white p-4">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-khaki-soft text-forest">
-            <I className="size-5" />
+        <li key={t} className="flex flex-col items-start gap-2 rounded-2xl border border-line bg-white p-4 sm:flex-row sm:gap-3">
+          <span className="shrink-0 text-forest">
+            <I className="size-8" />
           </span>
           <span className="min-w-0">
             <span className="block text-sm font-bold text-forest-text">{t}</span>
@@ -39,16 +40,16 @@ export const processSteps = [
 
 export function ProcessTimeline() {
   return (
-    <Stagger as="ol" className="grid gap-4 md:grid-cols-4">
+    <Stagger variant="linear" as="ol" className="grid gap-4 md:grid-cols-4">
       {processSteps.map((s, i) => (
-        <StaggerItem as="li" key={s.title} className="relative rounded-3xl border border-line bg-white p-6">
+        <StaggerItem as="li" key={s.title} className="relative rounded-3xl border border-line bg-white p-5 md:p-6">
           <span className="flex items-center justify-between">
-            <span className="grid size-11 place-items-center rounded-2xl bg-forest text-[#e8c879]">
-              <s.I className="size-5" />
+            <span className="shrink-0 text-forest">
+              <s.I className="size-9" />
             </span>
             <span className="text-4xl font-extrabold text-khaki/40 tabular-nums">{String(i + 1).padStart(2, "0")}</span>
           </span>
-          <h3 className="mt-5 text-xl">{s.title}</h3>
+          <h3 className="mt-3 text-lg md:mt-5 md:text-xl">{s.title}</h3>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">{s.text}</p>
         </StaggerItem>
       ))}
@@ -67,8 +68,8 @@ export function NeverDo() {
     <ul className="grid gap-3 sm:grid-cols-2">
       {items.map(({ I, t, d }) => (
         <li key={t} className="flex items-start gap-3 rounded-2xl bg-white/10 p-4">
-          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10 text-[#e8c879]">
-            <I className="size-5" />
+          <span className="shrink-0 text-[#e8c879]">
+            <I className="size-8" />
           </span>
           <span>
             <span className="block font-bold text-white">{t}</span>

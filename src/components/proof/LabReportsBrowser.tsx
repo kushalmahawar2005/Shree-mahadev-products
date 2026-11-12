@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { BadgeCheck, ChevronLeft, ChevronRight, Download, FileText, FlaskConical, Search, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { ChevronLeft, ChevronRight, Download, Search, X } from "lucide-react";
+import { BadgeCheck, FileText, FlaskConical } from "@/components/icons/duo";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/shadcn/dialog";
 import type { LabReport } from "@/components/home/ProofSection";
 

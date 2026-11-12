@@ -1,4 +1,4 @@
-import { AlignLeft, ChevronDown as LChevronDown, Search, ShoppingBag, Store, UserRound, X } from "lucide-react";
+import { AlignLeft, ChevronDown as LChevronDown, Search, ShoppingBag, Store, X } from "lucide-react";
 
 type P = { className?: string };
 
@@ -7,7 +7,14 @@ type P = { className?: string };
 const sw = 1.6;
 export const SearchIcon = ({ className = "size-6" }: P) => <Search className={className} strokeWidth={sw} aria-hidden />;
 export const BagIcon = ({ className = "size-6" }: P) => <ShoppingBag className={className} strokeWidth={sw} aria-hidden />;
-export const UserIcon = ({ className = "size-6" }: P) => <UserRound className={className} strokeWidth={sw} aria-hidden />;
+// Account: person outline with a saffron bolt, hand-drawn SVG (no library icon has the bolt).
+export const UserIcon = ({ className = "size-6" }: P) => (
+  <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
+    <circle cx="9.5" cy="7.5" r="3.75" stroke="currentColor" strokeWidth={sw * 1.15} />
+    <path d="M3 20.25v-.75a6.5 6.5 0 0 1 9.6-5.7" stroke="currentColor" strokeWidth={sw * 1.15} strokeLinecap="round" />
+    <path d="M18.6 10.5 14.4 16.4h3.1l-1 5.1 4.6-6.4h-3.2l.7-4.6Z" fill="#F0A020" stroke="#F0A020" strokeWidth={0.6} strokeLinejoin="round" />
+  </svg>
+);
 export const MenuIcon = ({ className = "size-6" }: P) => <AlignLeft className={className} strokeWidth={sw} aria-hidden />;
 export const CloseIcon = ({ className = "size-6" }: P) => <X className={className} strokeWidth={sw} aria-hidden />;
 export const ShopIcon = ({ className = "size-6" }: P) => <Store className={className} strokeWidth={sw} aria-hidden />;

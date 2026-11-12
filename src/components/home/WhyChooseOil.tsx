@@ -1,0 +1,208 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useRef, useState } from "react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { ArrowRight, Check } from "lucide-react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { TornEdge } from "@/components/ui/TornEdge";
+import { cn } from "@/lib/utils/cn";
+
+/** Caption under the illustration. Change the name here. */
+export const DADI_CAPTION = "Dadi ji, the heart of Mahadev Products";
+const DADI_QUOTE = "जैसा हमारे ज़माने में बनता था, वैसा ही शुद्ध।";
+
+type Step = { title: string; titleHi: string; text: string; img: string };
+/** The client's real five-step process (from their catalog). Illustrations in /public/illustrations/process/. */
+const STEPS: Step[] = [
+  { title: "Farm sourced", titleHi: "खेत से बीज", text: "Seeds sourced directly from farmers", img: "1-farm" },
+  { title: "Hand cleaned", titleHi: "हाथ से सफ़ाई", text: "Every batch cleaned and sorted by hand", img: "2-hand-cleaned" },
+  { title: "Wood pressed", titleHi: "लकड़ी की घानी", text: "Pressed slowly in a wooden kachi ghani, without high heat", img: "3-wood-pressed" },
+  { title: "Cloth filtered", titleHi: "कपड़े से छनाई", text: "Strained through cloth, then clarified naturally by settling", img: "4-cloth-filtered" },
+  { title: "Bottled", titleHi: "बोतल में भराई", text: "Bottled fresh, every batch lab tested", img: "5-bottled" },
+];
+const HERO = 2; // "Wood pressed", the heart of the process
+
+/** True for every oil we sell (no mustard-only claims). */
+const CHIPS: { label: string; href?: string }[] = [
+  { label: "No chemicals" },
+  { label: "No high heat" },
+  { label: "Natural taste & aroma" },
+  { label: "Lab tested", href: "#proof" },
+];
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+/** Dashed line as a background (6px dash, 8px gap) so it never stretches while it "draws". */
+const DASHES = "repeating-linear-gradient(to bottom, color-mix(in srgb, var(--color-forest) 40%, transparent) 0 6px, transparent 6px 14px)";
+
+/**
+ * "Why choose our oil?": one section. Dadi ji beside our motor-driven wooden ghani on the left
+ * (sticky on desktop), and on the right the five real steps from farm to bottle as a vertical
+ * timeline whose dashed line draws as you scroll; each step slides in as the line reaches it and
+ * its badge turns mustard. Step 3 (wood pressed) is the highlighted heart of the process.
+ */
+export function WhyChooseOil() {
+  const reduce = useReducedMotion();
+  const timeline = useRef<HTMLOListElement>(null);
+  const { scrollYProgress } = useScroll({ target: timeline, offset: ["start 65%", "end 55%"] });
+  const lineHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const [active, setActive] = useState(reduce ? STEPS.length - 1 : -1);
+
+  return (
+    <section id="ghani-process" aria-labelledby="why-oil-title" className="paper-grain relative scroll-mt-24 bg-ivory py-14 md:py-20">
+      <TornEdge />
+      <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
+        {/* Header */}
+        <div className="flex flex-col items-center text-center">
+          <p className="font-hindi flex items-center gap-2 text-base text-sale md:text-lg" lang="hi">
+            <span aria-hidden className="h-px w-6 bg-sale/50" />
+            हमारा तेल ही क्यों
+            <span aria-hidden className="h-px w-6 bg-sale/50" />
+          </p>
+          <h2 id="why-oil-title" className="mt-2 text-[30px] leading-[1.1] font-bold tracking-tight md:text-[44px]">
+            Why choose our oil?
+          </h2>
+          <p className="mt-3 max-w-xl text-[15px] text-ink-muted md:text-base">
+            Slow-speed wooden ghani, strained through cloth and clarified by natural settling. No chemicals, no high heat.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-10 md:mt-14 lg:grid-cols-12 lg:items-start lg:gap-12">
+          {/* LEFT: Dadi ji (sticky while the steps scroll past) */}
+          <div className="relative mx-auto w-full max-w-[440px] lg:sticky lg:top-[152px] lg:col-span-5 lg:max-w-none">
+            {/* soft mustard sun */}
+            <span
+              aria-hidden
+              className="absolute top-[4%] left-1/2 aspect-square w-[88%] -translate-x-1/2 rounded-full bg-[radial-gradient(circle_closest-side,rgba(236,196,98,0.30)_0%,rgba(236,196,98,0.16)_60%,transparent_100%)]"
+            />
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.6, ease: EASE }}
+              className="relative"
+            >
+              <motion.div
+                animate={reduce ? undefined : { y: [0, -4, 0] }}
+                transition={reduce ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Image
+                  src="/illustrations/dadi-ghani.webp"
+                  alt="Dadi ji in a pink bandhani saree holding a brass lota, beside our yellow kachi ghani oil machine, with seeds, groundnuts and khali"
+                  width={1088}
+                  height={1205}
+                  quality={85}
+                  sizes="(min-width: 1360px) 500px, (min-width: 1024px) 38vw, 90vw"
+                  className="relative mx-auto h-auto max-h-[360px] w-auto drop-shadow-[0_16px_20px_rgba(60,40,10,0.12)] lg:max-h-[480px]"
+                />
+              </motion.div>
+              {/* Speech bubble, tail pointing down-left to Dadi */}
+              <motion.p
+                lang="hi"
+                initial={reduce ? false : { opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.4, delay: reduce ? 0 : 0.3, ease: EASE }}
+                className="font-hindi absolute -top-3 left-[30%] max-w-[13.5rem] origin-bottom-left rounded-2xl border border-line bg-page px-3.5 py-2.5 text-[15px] leading-snug text-forest-text shadow-[0_10px_24px_-14px_rgba(7,47,27,0.45)] sm:left-[34%] md:text-base"
+              >
+                {DADI_QUOTE}
+                <span aria-hidden className="absolute -bottom-[7px] left-5 size-3.5 rotate-45 border-r border-b border-line bg-page" />
+              </motion.p>
+            </motion.div>
+            <p className="relative mt-3 text-center text-xs text-ink-muted">{DADI_CAPTION}</p>
+          </div>
+
+          {/* RIGHT: six-step timeline, then chips + CTA */}
+          <div className="lg:col-span-7">
+            <ol ref={timeline} className="relative space-y-6 md:space-y-8">
+              {/* dashed line: faint full track + the part drawn so far */}
+              <span aria-hidden className="absolute top-2 bottom-2 left-[17px] w-0.5 opacity-30" style={{ backgroundImage: DASHES }} />
+              <motion.span
+                aria-hidden
+                className="absolute top-2 left-[17px] w-0.5"
+                style={{ backgroundImage: DASHES, height: reduce ? "calc(100% - 1rem)" : lineHeight, maxHeight: "calc(100% - 1rem)" }}
+              />
+              {STEPS.map((s, i) => {
+                const hero = i === HERO;
+                const on = i <= active;
+                return (
+                  <motion.li
+                    key={s.title}
+                    initial={reduce ? false : { opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true, margin: "0px 0px -35% 0px" }}
+                    onViewportEnter={() => setActive((a) => Math.max(a, i))}
+                    transition={{ duration: 0.5, ease: EASE }}
+                    className="relative flex items-center gap-4 pl-14 md:gap-6"
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-1/2 left-0 z-10 grid size-9 -translate-y-1/2 place-items-center rounded-full text-sm font-bold ring-4 ring-ivory transition-colors duration-500",
+                        on ? "bg-mustard text-forest-deep" : "bg-forest text-[#f6efe2]",
+                      )}
+                    >
+                      {i + 1}
+                    </span>
+                    <div className={cn("flex min-w-0 flex-1 items-center gap-4 md:gap-6", hero && "rounded-3xl bg-[#E3B341]/10 p-4 md:p-5")}>
+                      <div className={cn("relative shrink-0", hero ? "size-[120px] md:size-[180px]" : "size-24 md:size-[140px]")}>
+                        <Image
+                          src={`/illustrations/process/${s.img}.webp`}
+                          alt=""
+                          fill
+                          sizes={hero ? "(min-width: 768px) 180px, 120px" : "(min-width: 768px) 140px, 96px"}
+                          className="object-contain"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        {hero && (
+                          <p className="mb-1 inline-flex rounded-full bg-mustard/20 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide text-forest-text">The heart of our process</p>
+                        )}
+                        <h3 className={cn("font-semibold text-forest-text", hero ? "text-xl" : "text-base md:text-lg")}>{s.title}</h3>
+                        <p className="font-hindi text-sm text-sale" lang="hi">
+                          {s.titleHi}
+                        </p>
+                        <p className="mt-1 text-sm leading-snug text-ink-muted">{s.text}</p>
+                      </div>
+                    </div>
+                  </motion.li>
+                );
+              })}
+            </ol>
+
+            <ul className="mt-10 flex flex-wrap justify-center gap-2 lg:justify-start lg:pl-14">
+              {CHIPS.map((c) => {
+                const cls = "inline-flex h-9 items-center gap-1.5 rounded-full border border-forest/15 bg-white/60 px-3.5 text-sm font-medium text-forest-text";
+                const inner = (
+                  <>
+                    <Check className="size-3.5 text-forest" strokeWidth={2.5} aria-hidden /> {c.label}
+                  </>
+                );
+                return (
+                  <li key={c.label}>
+                    {c.href ? (
+                      <a href={c.href} className={cn(cls, "transition-colors hover:border-forest/40 hover:bg-white")}>
+                        {inner}
+                      </a>
+                    ) : (
+                      <span className={cls}>{inner}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-7 flex justify-center lg:justify-start lg:pl-14">
+              <Link
+                href="/collections/wood-pressed-oils"
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-forest/25 px-5 text-sm font-semibold text-forest-text transition-colors duration-300 hover:border-forest hover:bg-forest hover:text-white"
+              >
+                Shop wood-pressed oils <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+      <TornEdge flip color="var(--color-page)" />
+    </section>
+  );
+}

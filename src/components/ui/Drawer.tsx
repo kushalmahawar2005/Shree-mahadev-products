@@ -1,12 +1,15 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useEffect, useRef } from "react";
 import { lockScroll, unlockScroll } from "@/components/motion/scroll-lock";
 import { cn } from "@/lib/utils/cn";
+import { DUR, EASE } from "@/lib/motion";
 
 /**
- * Side drawer: slides in (0.35s), overlay fades, background scroll locked (Lenis stop),
+ * Side drawer: cart slides from the right (0.6s drawer curve), menu from the left (0.26s in / 0.2s out),
+ * overlay fades to 30%, background scroll locked (Lenis stop),
  * Escape closes, focus moves in and is restored on close.
  */
 export function Drawer({
@@ -66,17 +69,21 @@ export function Drawer({
   }, [open]);
 
   const x = side === "right" ? "100%" : "-100%";
+  // Cart (right): 0.6s drawer curve both ways, overlay to 30%. Menu (left): quick 0.26s in, 0.2s ease-in out.
+  const panelIn = side === "right" ? { duration: DUR.cartDrawer, ease: EASE.drawer } : { duration: DUR.menuOpen, ease: EASE.menuOpen };
+  const panelOut = side === "right" ? panelIn : { duration: DUR.menuClose, ease: "easeIn" as const };
+  const overlay = side === "right" ? { duration: DUR.cartDrawer, ease: "easeInOut" as const } : { duration: DUR.menuOpen };
 
   return (
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50" role="presentation">
           <motion.div
-            className="absolute inset-0 bg-forest-deep/50"
+            className={cn("absolute inset-0 bg-black", side === "right" && "backdrop-blur-[2px]")}
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: side === "right" ? 0.4 : 0.3 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.3 }}
+            transition={reduce ? { duration: 0.15 } : overlay}
             onClick={onClose}
             aria-hidden
           />
@@ -87,10 +94,9 @@ export function Drawer({
             aria-label={label}
             tabIndex={-1}
             data-lenis-prevent=""
-            initial={reduce ? false : { x }}
-            animate={{ x: 0 }}
-            exit={reduce ? { opacity: 0 } : { x }}
-            transition={{ duration: reduce ? 0 : 0.35, ease: [0.22, 1, 0.36, 1] }}
+            initial={reduce ? { opacity: 0 } : { x }}
+            animate={{ x: 0, opacity: 1, transition: reduce ? { duration: 0.15 } : panelIn }}
+            exit={reduce ? { opacity: 0, transition: { duration: 0.15 } } : { x, transition: panelOut }}
             className={cn(
               "absolute top-0 flex h-dvh w-full max-w-md flex-col bg-white outline-none",
               side === "right" ? "right-0" : "left-0",

@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useRef } from "react";
 
 /** Gentle parallax: content moves ~10% slower than scroll. Off for reduced motion. */

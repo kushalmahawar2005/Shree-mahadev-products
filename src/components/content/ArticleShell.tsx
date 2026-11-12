@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, CalendarDays, ChefHat, FileText, MessageCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { BookOpen, CalendarDays, ChefHat, FileText, MessageCircle } from "@/components/icons/duo";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { site, whatsappLink } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
@@ -33,8 +34,8 @@ export function ArticleShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[900px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[900px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>

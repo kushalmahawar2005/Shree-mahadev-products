@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Clock, Mail, MapPin, Package, Phone, ShoppingBag, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, ShoppingBag } from "lucide-react";
+import { Clock, Mail, MapPin, Package, Phone, Truck } from "@/components/icons/duo";
 import { WhatsAppIcon } from "@/components/layout/icons";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { fullAddress, site, whatsappLink } from "@/data/site";
@@ -31,8 +32,8 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -69,8 +70,8 @@ export default function ContactPage() {
                       : "group flex h-full flex-col rounded-3xl border border-line bg-white p-6 transition-colors hover:border-forest/30"
                   }
                 >
-                  <span className={`relative grid size-12 place-items-center rounded-2xl ${c.featured ? "bg-white/10 text-[#e8c879]" : "bg-khaki-soft text-forest"}`}>
-                    <I className="size-6" />
+                  <span className={`relative ${c.featured ? "text-[#e8c879]" : "text-forest"}`}>
+                    <I className="size-10" />
                   </span>
                   <span className={`relative mt-5 text-lg font-bold ${c.featured ? "text-white" : "text-forest-text"}`}>{c.title}</span>
                   <span className={`relative mt-0.5 text-sm ${c.featured ? "text-white/70" : "text-ink-muted"}`}>{c.hint}</span>
@@ -120,8 +121,8 @@ export default function ContactPage() {
             ].map(({ I, t, d, href }) => (
               <li key={href}>
                 <Link href={href} className="group flex items-center gap-3 rounded-2xl border border-line bg-white/70 p-4 transition-colors hover:border-forest/30 hover:bg-white">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-khaki-soft text-forest">
-                    <I className="size-5" />
+                  <span className="shrink-0 text-forest">
+                    <I className="size-8" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold text-forest-text">{t}</span>

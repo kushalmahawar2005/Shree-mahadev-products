@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
-import { ArrowRight, BadgeCheck, Quote, Star } from "lucide-react";
+import { motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { ArrowRight, Quote, Star } from "lucide-react";
+import { BadgeCheck } from "@/components/icons/duo";
 import { Marquee } from "@/components/shadcn/marquee";
 import type { PublicReview } from "@/lib/server/reviews";
 import { cn } from "@/lib/utils/cn";
@@ -23,7 +25,7 @@ function Stars({ n, className }: { n: number; className?: string }) {
 
 function ReviewCard({ r, i }: { r: PublicReview; i: number }) {
   return (
-    <article className="relative flex w-[300px] flex-col rounded-3xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)] md:w-[340px]">
+    <article className="relative flex w-[270px] flex-col rounded-3xl border border-line bg-white p-4 sm:w-[300px] sm:p-5 shadow-[0_1px_2px_rgba(0,0,0,.04)] md:w-[340px]">
       <Quote aria-hidden className="absolute top-4 right-4 size-8 fill-khaki-soft text-khaki-soft" />
       <Stars n={r.rating} />
       {r.title && <h3 className="mt-3 text-lg leading-snug">{r.title}</h3>}
@@ -61,34 +63,43 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
   const rowB = reviews.length > 3 ? reviews.slice(half) : [];
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] py-14 md:py-20">
+    <section className="paper-grain relative overflow-hidden bg-page pt-10 pb-12 md:py-20">
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
-        <div className="mb-8 flex flex-col items-center gap-2 text-center md:mb-10">
+        <div className="mb-5 flex flex-col items-center gap-2 text-center md:mb-10">
           <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
             <Star className="size-3.5 fill-current" /> Loved in Indian kitchens
           </p>
           <h2 className="text-3xl md:text-[44px]">What customers say</h2>
         </div>
 
-        <div className="grid items-center gap-6 lg:grid-cols-[300px_1fr]">
-          {/* Summary */}
+        <div className="grid items-center gap-4 sm:gap-6 lg:grid-cols-[300px_1fr]">
+          {/* Summary. Phone: one slim row (score · stars + count · arrow). sm+: the full panel. */}
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-3xl bg-forest p-6 text-white"
+            className="relative flex items-center gap-4 overflow-hidden rounded-3xl bg-forest p-4 text-white sm:block sm:p-6"
           >
-            <p className="relative text-6xl font-extrabold tabular-nums">{avg.toFixed(1)}</p>
-            <Stars n={Math.round(avg)} className="relative mt-2" />
-            <p className="relative mt-2 text-sm text-white/75">
-              From {reviews.length} review{reviews.length === 1 ? "" : "s"}
-              {verified ? ` · ${verified} verified` : ""}
-            </p>
-            <p className="relative mt-5 text-sm leading-relaxed text-white/85">Every review here is from someone who bought from us. We don&apos;t edit them.</p>
+            <p className="relative text-5xl leading-none font-extrabold tabular-nums sm:text-6xl sm:leading-tight">{avg.toFixed(1)}</p>
+            <div className="relative min-w-0 flex-1">
+              <Stars n={Math.round(avg)} className="sm:mt-2" />
+              <p className="mt-1.5 text-[13px] text-white/75 sm:mt-2 sm:text-sm">
+                From {reviews.length} review{reviews.length === 1 ? "" : "s"}
+                {verified ? ` · ${verified} verified` : ""}
+              </p>
+            </div>
             <Link
               href="/shop"
-              className="btn-shine relative mt-6 inline-flex h-11 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white"
+              aria-label="Explore the store"
+              className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#e8c879] text-forest-deep transition-colors hover:bg-white sm:hidden"
+            >
+              <ArrowRight className="size-[18px]" />
+            </Link>
+            <p className="relative mt-5 hidden text-sm leading-relaxed text-white/85 sm:block">Every review here is from someone who bought from us. We don&apos;t edit them.</p>
+            <Link
+              href="/shop"
+              className="btn-shine relative mt-6 hidden h-11 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white sm:inline-flex"
             >
               Explore the store <ArrowRight className="size-4" />
             </Link>
@@ -103,7 +114,14 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <>
+              {/* Phone: a single calm row with every review. */}
+              <Marquee pauseOnHover className="p-0 [--duration:60s] [--gap:0.75rem] md:hidden">
+                {reviews.map((r, i) => (
+                  <ReviewCard key={r.id} r={r} i={i} />
+                ))}
+              </Marquee>
+              <div className="space-y-4 max-md:hidden">
                 <Marquee pauseOnHover className="p-0 [--duration:45s] [--gap:1rem]">
                   {rowA.map((r, i) => (
                     <ReviewCard key={r.id} r={r} i={i} />
@@ -117,6 +135,7 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
                   </Marquee>
                 )}
               </div>
+              </>
             )}
           </div>
         </div>

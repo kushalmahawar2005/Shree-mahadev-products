@@ -1,5 +1,6 @@
 "use client";
 
+import { thumbUrl } from "@/lib/image-loader";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -164,7 +165,7 @@ export function SearchBox({
                           className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full"
                           style={{ backgroundColor: p?.swatch ? `${p.swatch}55` : undefined }}
                         >
-                          {p?.image && <Image src={p.image} alt="" width={24} height={24} unoptimized className="size-6 object-contain" />}
+                          {p?.image && <Image src={thumbUrl(p.image, 24)} alt="" width={24} height={24} unoptimized className="size-6 object-contain" />}
                         </span>
                         <span className="flex-1">{c.label}</span>
                         <ArrowRight className={cn("size-3.5 transition-all", on ? "translate-x-0 opacity-100" : "-translate-x-1 opacity-0")} aria-hidden />
@@ -236,7 +237,7 @@ export function SearchBox({
                             style={{ background: p.swatch ? `radial-gradient(circle at 50% 60%, ${p.swatch}66, ${p.swatch}1a 70%)` : undefined }}
                           >
                             {p.image && (
-                              <Image src={p.image} alt="" width={56} height={56} unoptimized className="size-14 object-contain transition-transform duration-300 group-hover/p:scale-110" />
+                              <Image src={thumbUrl(p.image, 56)} alt="" width={56} height={56} unoptimized className="size-14 object-contain transition-transform duration-300 group-hover/p:scale-110" />
                             )}
                           </span>
                           <span className="min-w-0 flex-1">
@@ -273,18 +274,21 @@ function RotatingHint() {
   return (
     <span aria-hidden className="pointer-events-none absolute left-4 flex h-full items-center gap-1 overflow-hidden text-[15px] text-ink-muted">
       Search for
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={i}
-          initial={{ y: 12, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -12, opacity: 0 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="font-medium text-forest-text"
-        >
-          {HINTS[i]}
-        </motion.span>
-      </AnimatePresence>
+      {/* Old and new word share one grid cell and cross-fade, so the slot is never empty. */}
+      <span className="relative inline-grid">
+        <AnimatePresence initial={false}>
+          <motion.span
+            key={i}
+            initial={{ y: 12, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -12, opacity: 0 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="font-medium whitespace-nowrap text-forest-text [grid-area:1/1]"
+          >
+            {HINTS[i]}…
+          </motion.span>
+        </AnimatePresence>
+      </span>
     </span>
   );
 }

@@ -5,6 +5,9 @@ import { ArrowRight, Check } from "lucide-react";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { ReflectionSweep } from "@/components/motion/ReflectionSweep";
 import { DecoBg } from "@/components/ui/DecoBg";
+import { SectionArt } from "@/components/ui/SectionArt";
+import { TornEdge } from "@/components/ui/TornEdge";
+import { deco } from "@/data/brand-art";
 import { cldUrl } from "@/lib/image-loader";
 import { SmartImage } from "@/components/ui/SmartImage";
 import {
@@ -20,9 +23,11 @@ import {
 import type { Product } from "@/lib/commerce/types";
 import { cn } from "@/lib/utils/cn";
 import { ArrowRow } from "./ArrowRow";
-import { BrandFilm } from "./BrandFilm";
+import { FilmShowcase } from "./FilmShowcase";
+import type { ReelItem } from "./Reels";
 import type { PickProduct } from "./pickProduct";
 import { TabbedCarousel, type CarouselTab } from "./TabbedCarousel";
+import { defaultVariant } from "@/lib/commerce/default-variant";
 
 /** Narrow content column with room on both sides for carousel arrows (Two Brothers layout). */
 function Wrap({
@@ -45,7 +50,7 @@ function Wrap({
 
 export function TopPicks({ tabs }: { tabs: CarouselTab[] }) {
   return (
-    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] pt-16 pb-12 md:pt-20 md:pb-16">
+    <section className="paper-grain relative overflow-hidden bg-page pt-12 pb-4 md:pt-20 md:pb-8">
       <Sky />
       <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <Reveal>
@@ -88,7 +93,7 @@ export function PromoStrip() {
     <section aria-label={promoStrip.tag} className="bg-[#023019] py-1.5">
       <Link
         href={promoStrip.cta.href}
-        className="group relative block h-[380px] overflow-hidden border-y-[3px] border-[#E8B032] bg-[#03331C] md:h-[420px]"
+        className="group relative block h-[300px] overflow-hidden sm:h-[380px] border-y-[3px] border-[#E8B032] bg-[#03331C] md:h-[420px]"
       >
         {/* Real footage: oil pouring from our wooden ghani. Desktop plays the muted loop on the right,
             fading into the green; mobile uses the still frame behind a dark overlay. */}
@@ -108,24 +113,24 @@ export function PromoStrip() {
         <div aria-hidden className="pointer-events-none absolute inset-0 hidden bg-[radial-gradient(60%_80%_at_20%_50%,rgba(3,51,28,0.95),transparent_70%)] md:block" />
         <ReflectionSweep />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-[1360px] flex-col items-center justify-center gap-4 px-6 text-center md:items-start md:px-12 md:text-left">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#E8B032]/40 bg-black/20 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-khaki uppercase backdrop-blur-sm">
+        <div className="relative z-10 mx-auto flex h-full max-w-[1360px] flex-col items-center justify-center gap-3 px-5 text-center sm:gap-4 sm:px-6 md:items-start md:px-12 md:text-left">
+          <p className="inline-flex items-center gap-2 rounded-full border border-[#E8B032]/40 bg-black/20 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-khaki uppercase sm:text-xs backdrop-blur-sm">
             <span className="size-1.5 rounded-full bg-[#E8B032]" />
             {promoStrip.tag}
           </p>
           <div>
-            <p className="text-3xl leading-tight font-bold text-[#E8B032] lg:text-[52px]">{promoStrip.line1}</p>
-            <p className="mt-2 max-w-md text-lg leading-snug font-medium text-khaki-soft lg:text-xl">{promoStrip.line2}</p>
+            <p className="text-[26px] leading-tight font-bold text-balance text-[#E8B032] sm:text-3xl lg:text-[52px]">{promoStrip.line1}</p>
+            <p className="mt-1.5 max-w-md text-[15px] leading-snug font-medium text-khaki-soft sm:mt-2 sm:text-lg lg:text-xl">{promoStrip.line2}</p>
           </div>
-          <ul className="flex flex-wrap justify-center gap-2 md:justify-start">
+          <ul className="flex flex-wrap justify-center gap-1.5 sm:gap-2 md:justify-start">
             {promoStrip.points.map((pt) => (
-              <li key={pt} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-khaki-soft backdrop-blur-sm">
+              <li key={pt} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs text-khaki-soft backdrop-blur-sm">
                 <Check className="size-3.5 text-[#E8B032]" strokeWidth={3} aria-hidden />
                 {pt}
               </li>
             ))}
           </ul>
-          <span className="btn-shine inline-flex h-12 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-[#E8B032] px-7 text-sm font-bold tracking-wide text-forest-deep uppercase transition-colors duration-200 group-hover:bg-khaki">
+          <span className="btn-shine inline-flex h-11 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-[#E8B032] px-6 text-[13px] sm:h-12 sm:px-7 sm:text-sm font-bold tracking-wide text-forest-deep uppercase transition-colors duration-200 group-hover:bg-khaki">
             {promoStrip.cta.label}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
@@ -137,34 +142,39 @@ export function PromoStrip() {
 
 /* ───────────── 3. Brand film ───────────── */
 
-export function BrandFilmSection({ youtube }: { youtube: string }) {
+export function BrandFilmSection({ youtube, reels = [] }: { youtube: string; /** Two reels stacked on the film's right. */ reels?: ReelItem[] }) {
+  // Painted folk birds on the top-right margin, behind the content (smaller on phones).
   return (
-    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-[#F5EDDE] pt-12 pb-[22vw] sm:pb-[12vw] md:pt-16">
-      {/* Hand-painted landscape (dunes, hills, khejri tree, mustard field) anchored to the bottom; its empty sky blends into the section colour. */}
-      <div
+    <section id="story" className="relative scroll-mt-20 overflow-hidden bg-forest-deep pt-14 pb-16 md:pt-24 md:pb-24">
+      <TornEdge color="var(--color-page)" />
+      {/* Deep forest "screening room" band: warm lamp-light glow behind the film */}
+      <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[260px] [mask-image:linear-gradient(to_bottom,black_88%,transparent)] sm:h-auto sm:aspect-[3/1]"
-      >
-        <DecoBg
-          src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735936/swadeshi-mahadev/static/images/deco/landscape-fields.webp"
-          position="85% 100%"
-        />
-      </div>
-      <Wrap className="relative">
-        <Reveal>
-          <h2 className="text-center text-2xl text-[#6B4A16] md:text-4xl">
-            {brandFilm.titleLead}{" "}
-            <span className="font-semibold">{brandFilm.titleRest}</span>
+        className="pointer-events-none absolute top-[38%] left-1/2 h-[520px] w-[min(1100px,95vw)] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(232,200,121,0.22),transparent)] blur-2xl"
+      />
+      <SectionArt
+        art={deco.birds}
+        className="top-4 -right-6 w-[120px] opacity-95 md:top-10 md:right-2 md:w-[200px] xl:right-[4%] xl:w-[240px]"
+        sizes="(min-width: 1280px) 240px, (min-width: 768px) 200px, 120px"
+      />
+      <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
+        <Reveal className="flex flex-col items-center text-center">
+          <p className="font-hindi flex items-center gap-2 text-base text-[#e8c879] md:text-lg" lang="hi">
+            <span aria-hidden className="h-px w-6 bg-[#e8c879]/60" />
+            हमारी कहानी
+            <span aria-hidden className="h-px w-6 bg-[#e8c879]/60" />
+          </p>
+          <h2 className="mt-2 max-w-[18ch] text-[30px] leading-[1.1] font-bold tracking-tight text-balance text-[#fbf3df] sm:max-w-none md:text-[44px]">
+            {brandFilm.titleRest}
           </h2>
+          <p className="mt-3 max-w-lg text-[15px] text-white/70 md:text-base">
+            Watch one batch go from seed to bottle in our ghani: cleaned by hand, pressed slow, nothing added.
+          </p>
         </Reveal>
-        <Reveal className="mx-auto mt-6 max-w-[860px] md:mt-8">
-          <BrandFilm
-            youtube={youtube}
-            posterTitle={brandFilm.posterTitle}
-            posterSub={brandFilm.posterSub}
-          />
-        </Reveal>
-      </Wrap>
+        <div className="mt-8 md:mt-10">
+          <FilmShowcase youtube={youtube} title={brandFilm.posterTitle} subtitle={brandFilm.posterSub} reels={reels} />
+        </div>
+      </div>
     </section>
   );
 }
@@ -173,19 +183,19 @@ export function BrandFilmSection({ youtube }: { youtube: string }) {
 
 export function ProofCards() {
   return (
-    <section className="bg-[#F5EDDE] pb-14 md:pb-20">
+    <section className="bg-page pb-14 md:pb-20">
       <Wrap>
         <Reveal>
           <h2 className="pt-6 text-center text-3xl text-forest md:pt-8 md:text-[40px]">
             Good Oil Backed by Proof
           </h2>
         </Reveal>
-        <Stagger className="mt-8 grid gap-4 sm:grid-cols-3 md:mt-10 md:gap-5">
+        <Stagger variant="linear" className="mt-8 grid gap-4 sm:grid-cols-3 md:mt-10 md:gap-5">
           {proofCards.map((c) => (
             <StaggerItem key={c.seal}>
               <Link
                 href={c.href}
-                className="flex h-full flex-col items-center rounded-lg bg-white p-6 text-center transition-colors duration-200 hover:bg-[#F5EDDE] md:p-7"
+                className="flex h-full flex-col items-center rounded-lg bg-white p-6 text-center transition-colors duration-200 hover:bg-page md:p-7"
               >
                 {c.image ? (
                   <Image
@@ -232,7 +242,7 @@ function Seal({ label, sub }: { label: string; sub: string }) {
 
 export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
   return (
-    <section className="relative overflow-hidden bg-[#F5EDDE] pt-2 pb-12 md:pt-4 md:pb-16">
+    <section className="relative overflow-hidden bg-page pt-2 pb-12 md:pt-4 md:pb-16">
       <Wrap className="relative !max-w-[1920px] px-4 md:px-[72px]">
         <div>
           <Reveal>
@@ -253,7 +263,7 @@ export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
           </Reveal>
         </div>
         <div className="mt-6 md:mt-8">
-          <TabbedCarousel tabs={tabs} variant="left" showDots />
+          <TabbedCarousel tabs={tabs} variant="left" />
         </div>
       </Wrap>
     </section>
@@ -264,7 +274,7 @@ export function ShopByUseCarousel({ tabs }: { tabs: CarouselTab[] }) {
 
 export function Spotlight({
   products,
-  fadeTo = "#F5EDDE",
+  fadeTo = "var(--color-page)",
 }: {
   products: Product[];
   /** Colour of the section below, so the watercolour melts into it. */
@@ -272,7 +282,7 @@ export function Spotlight({
 }) {
   const byHandle = new Map(products.map((p) => [p.handle, p]));
   return (
-    <section className="relative overflow-hidden bg-[#F5EDDE] pt-12 md:pt-16">
+    <section className="relative overflow-hidden bg-page pt-6 md:pt-16">
       {/* Soft watercolor dunes + sun rays (hand-painted). Purely decorative. */}
       <DecoBg
         src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735965/swadeshi-mahadev/static/images/deco/spotlight-bg.webp"
@@ -285,12 +295,12 @@ export function Spotlight({
         style={{ background: `linear-gradient(to bottom, transparent, ${fadeTo})` }}
       />
       <Wrap className="relative">
-        <Reveal>
+        <Reveal className="text-center md:text-left">
           <h2 className="inline-flex items-center gap-2 text-3xl text-forest-text md:text-[44px]">
             Spotlight
             <svg
               viewBox="0 0 24 24"
-              className="size-8 text-[#E0A526]"
+              className="size-7 text-[#E0A526] md:size-8"
               fill="currentColor"
               aria-hidden
             >
@@ -298,16 +308,16 @@ export function Spotlight({
             </svg>
           </h2>
         </Reveal>
-        <div className="mt-6 md:mt-8" data-spot-root="">
+        <div className="mt-4 md:mt-8" data-spot-root="">
           <SpotlightStage
             items={spotlight.map((sp) => {
               const p = byHandle.get(sp.handle);
-              const v = p?.variants.find((x) => x.availableForSale);
+              const v = p ? defaultVariant(p) : undefined;
               return {
                 ...sp,
                 titleHi: p?.titleHi ?? "",
                 swatch: p?.swatch ?? "#d0b17a",
-                image: p?.images[0],
+                // Owner (2026-11-10): no product photo in the spotlight for now.
                 rating: p?.rating,
                 reviewCount: p?.reviewCount,
                 variant: v ? { id: v.id, title: v.title, price: v.price.amount, mrp: v.compareAtPrice?.amount } : undefined,
@@ -432,7 +442,7 @@ function UserGlyph() {
 
 export function BeyondOils() {
   return (
-    <section className="grid bg-[#F5EDDE] md:grid-cols-[minmax(0,2fr)_minmax(0,5fr)]">
+    <section className="grid bg-page md:grid-cols-[minmax(0,2fr)_minmax(0,5fr)]">
       <div className="relative flex items-center justify-center overflow-hidden px-6 pt-10 pb-28 md:py-0 md:pb-16">
         {/* Hand-painted mustard plants, dry grass and a low sun along the bottom edge. */}
         <Image

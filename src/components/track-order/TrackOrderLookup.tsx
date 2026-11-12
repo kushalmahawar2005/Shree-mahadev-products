@@ -3,7 +3,8 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { lookupTrackingAction } from "@/lib/tracking-actions";
 import type { TrackingSummary } from "@/lib/server/tracking";
-import { Check, ExternalLink, Loader2, MapPin, MessageCircle, PackageCheck, PackageSearch, Truck } from "lucide-react";
+import { Check, ExternalLink, Loader2, PackageSearch } from "lucide-react";
+import { MapPin, MessageCircle, PackageCheck, Truck } from "@/components/icons/duo";
 import { whatsappLink } from "@/data/site";
 
 const prettyDate = (value: string) => {

@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useRef, type ComponentPropsWithoutRef } from "react"
-import { useInView, useMotionValue, useReducedMotion, useSpring } from "motion/react"
+import { useInView, useMotionValue, useSpring } from "motion/react"
+import { useReducedMotion } from "@/hooks/use-reduced-motion"
 
 import { cn } from "@/lib/utils/cn"
 

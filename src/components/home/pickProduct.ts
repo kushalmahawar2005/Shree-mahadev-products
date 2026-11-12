@@ -1,11 +1,3 @@
-import type { Product } from "@/lib/commerce/types";
-
-export type PickProduct = Pick<
-  Product,
-  "handle" | "title" | "titleHi" | "shortDescription" | "images" | "variants" | "rating" | "reviewCount" | "tags" | "swatch"
->;
-
-export function toPickProduct(p: Product): PickProduct {
-  const { handle, title, titleHi, shortDescription, images, variants, rating, reviewCount, tags, swatch } = p;
-  return { handle, title, titleHi, shortDescription, images, variants, rating, reviewCount, tags, swatch };
-}
+// Kept for older imports: the homepage "pick" product is the shared card product.
+export type { CardProduct as PickProduct } from "@/components/product/cardProduct";
+export { toCardProduct as toPickProduct } from "@/components/product/cardProduct";

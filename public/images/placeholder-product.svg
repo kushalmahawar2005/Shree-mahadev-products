@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#fbf5e5"/>
+  <g fill="none" stroke="#0c3c24" stroke-opacity=".16" stroke-width="6" stroke-linejoin="round">
+    <rect x="364" y="250" width="72" height="44" rx="10"/>
+    <path d="M370 294h60v44c0 22 78 44 78 122v300c0 20-16 34-36 34H328c-20 0-36-14-36-34V460c0-78 78-100 78-122z"/>
+    <rect x="322" y="520" width="156" height="128" rx="12"/>
+  </g>
+  <path d="M400 560c-18 18-18 42 0 58 18-16 18-40 0-58z" fill="#b49024" fill-opacity=".45"/>
+  <text x="400" y="880" text-anchor="middle" font-family="Georgia, serif" font-size="30" fill="#0c3c24" fill-opacity=".55">Swadeshi Mahadev</text>
+  <text x="400" y="922" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" letter-spacing="3" fill="#0c3c24" fill-opacity=".4">PHOTO COMING SOON</text>
+</svg>

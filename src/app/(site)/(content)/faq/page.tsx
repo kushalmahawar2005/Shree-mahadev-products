@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MessageCircle, Phone } from "lucide-react";
+import { MessageCircle, Phone } from "@/components/icons/duo";
 import { FaqBrowser, type Faq } from "@/components/faq/FaqBrowser";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { site, whatsappLink } from "@/data/site";
@@ -46,8 +46,8 @@ export default async function FaqPage() {
   ];
 
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[900px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[900px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

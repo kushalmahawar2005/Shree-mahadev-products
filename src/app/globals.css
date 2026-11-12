@@ -5,6 +5,10 @@
 @custom-variant dark (&:where([data-admin-theme="dark"], [data-admin-theme="dark"] *));
 
 @theme {
+  /* Storefront page background. Brand cream. */
+  --color-page: #F5EDDE;
+  --color-sunken: #F4EEE2; /* media wells inside cards only (image canvas), never a full-width band */
+  --color-ivory: #FBF8F1; /* lighter "fresh page" sections, rhythm against --color-page */
   /* ── Original brand colors (logo + live site, exact). Do not change. ── */
   --color-forest: #0c3c24;
   --color-forest-text: #083928;
@@ -20,6 +24,19 @@
   --color-ink-muted: #5c5a52;
   --color-sale: #8a5a0b;
   --color-line: #e7dfcf;
+
+  /* ── Checkout / cart / order-success palette (used inside .co-theme) ── */
+  --color-co-panel: #F5F0E6;
+  --color-co-border-strong: #D8CFBC;
+  --color-co-brand-soft: #EEF5EF;
+  --color-co-success: #1F7A45;
+  --color-co-success-soft: #E7F4EA;
+  --color-co-accent: #C9952B; /* icons, borders */
+  --color-co-accent-ink: #8A5E0F; /* gold as TEXT: #C9952B fails AA on white */
+  --color-co-accent-soft: #FBF3DD;
+  --color-co-gold: #E8C879; /* light gold on the green profile card */
+  --color-co-danger: #B4412F;
+  --shadow-co-card: 0 1px 2px rgba(23, 37, 29, 0.04), 0 8px 24px rgba(23, 37, 29, 0.04);
 
   /* ── Admin surface tokens (light values; dark values under [data-admin-theme="dark"]) ── */
   --color-surface: #ffffff;        /* cards, inputs, tables */
@@ -62,10 +79,12 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Reserve the scrollbar's space so locking scroll (drawers, dialogs) never shifts the page. */
+  scrollbar-gutter: stable;
 }
 
 body {
-  @apply bg-[#F5EDDE] font-body text-base text-ink antialiased;
+  @apply bg-page font-body text-base text-ink antialiased;
   line-height: 1.6;
 }
 
@@ -451,3 +470,197 @@ html[data-admin-theme="dark"] {
 
 /* Devanagari accent font (loaded in the storefront layout). Never letter-space Hindi. */
 .font-hindi { font-family: var(--font-hindi), var(--font-mukta), "Mukta", serif; letter-spacing: 0; text-transform: none; }
+
+/* ══════════════════════ Storefront motion system ══════════════════════
+   Tokens mirror src/lib/motion.ts. JS reveals live in components/motion/Reveal.tsx. */
+:root {
+  --ease-expo-in-out: cubic-bezier(1, 0, 0, 1);
+  --ease-text-up: cubic-bezier(0.5, 0.06, 0.01, 0.99);
+  --ease-img-reveal: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-drawer: cubic-bezier(0.75, 0, 0.175, 1);
+  --ease-btn-hover: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-menu-slide: cubic-bezier(0.4, 0, 0.2, 1);
+  --reveal-y: 35px;
+}
+@media (min-width: 1000px) { :root { --reveal-y: 60px; } }
+@media (prefers-reduced-motion: reduce) { :root { --reveal-y: 0px; } }
+
+/* 1 · Page open: body hidden until hydrated + fonts ready (inline script sets the attribute,
+   PageReady removes it; a fail-safe removes it after 3s). Opacity only, no layout movement. */
+body { transition: opacity 0.2s ease-in; }
+body[data-unresolved] { opacity: 0; }
+
+/* Reveal "before" states. Only with JS (html.js-motion) and only until revealed. */
+html.js-motion:not(.motion-failsafe) [data-reveal]:not([data-revealed]),
+html.js-motion:not(.motion-failsafe) [data-stagger]:not([data-revealed]) [data-reveal-item] {
+  opacity: 0;
+  transform: translateY(var(--reveal-y));
+}
+html.js-motion:not(.motion-failsafe) [data-masked]:not([data-revealed]) [data-mask-word],
+html.js-motion:not(.motion-failsafe) [data-banner]:not([data-revealed]) [data-banner-body] {
+  opacity: 0;
+}
+html.js-motion:not(.motion-failsafe) [data-img-reveal]:not([data-revealed]) img,
+html.js-motion:not(.motion-failsafe) [data-banner-img]:not([data-revealed]) img {
+  opacity: 0;
+}
+
+/* Top loading bar (add to cart, filters…). */
+.loading-bar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 100;
+  height: 3px;
+  background: var(--color-mustard);
+  transform-origin: left;
+  transform: scaleX(0);
+  opacity: 0;
+  transition: transform 0.25s ease-in-out;
+  pointer-events: none;
+}
+
+/* 4 · Carousel arrow: icon exits one side and re-enters from the other (reverse on prev). */
+@keyframes arrow-swap {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(calc(50% + 10px)); }
+  51% { transform: translateX(calc(-50% - 10px)); }
+  100% { transform: translateX(0); }
+}
+@media (pointer: fine) {
+  .arrow-swap:hover:not(:disabled) > svg { animation: arrow-swap 0.3s ease-in-out forwards; }
+  .arrow-swap[data-dir="prev"]:hover:not(:disabled) > svg { animation-direction: reverse; }
+}
+
+/* 4 · Product card: quick add inside the image (hover devices). */
+.card-quick-add {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+@media (pointer: fine) {
+  .group:hover .card-quick-add,
+  .card-quick-add:focus-visible { opacity: 1; visibility: visible; transform: translateY(0); }
+}
+@media (pointer: coarse) {
+  .card-quick-add { display: none; }
+}
+
+/* 7 · Animated underline links: grows from the left, leaves to the right. */
+.link-underline { position: relative; }
+.link-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s;
+}
+.link-underline:hover::after,
+.link-underline[aria-current="page"]::after { transform: scaleX(1); transform-origin: left; }
+
+/* 9 · Primary button hover: slanted darker layer slides up from below. */
+.btn-slant {
+  --btn-bg: var(--color-forest);
+  background-color: transparent;
+  background-image: linear-gradient(178deg, var(--btn-bg), var(--btn-bg) 10%, rgba(0, 0, 0, 0.07) 10% 100%),
+    linear-gradient(var(--btn-bg), var(--btn-bg));
+  background-size: 100% 200%, 100% 100%;
+  background-repeat: no-repeat;
+  background-position: 100% -100%, 100% 100%;
+  transition: background-position 0.3s var(--ease-btn-hover), color 0.2s, opacity 0.2s;
+  transform: translateZ(0);
+}
+@media (pointer: fine) {
+  .btn-slant:hover:not(:disabled) { background-position: 100% 25%, 100% 100%; }
+}
+.btn-slant-light { --btn-bg: #ffffff; }
+.btn-slant-mustard { --btn-bg: #e8c879; }
+
+/* 9 · Loading dots. */
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
+.loading-dots > span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: dot-bounce 1s ease-in-out infinite;
+}
+.loading-dots > span:nth-child(2) { animation-delay: 0.15s; }
+.loading-dots > span:nth-child(3) { animation-delay: 0.3s; }
+
+/* 9 · Video play ripple. */
+@keyframes play-ripple {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.45), 0 0 0 0 rgba(255, 255, 255, 0.3); }
+  100% { box-shadow: 0 0 0 9px rgba(255, 255, 255, 0), 0 0 0 18px rgba(255, 255, 255, 0); }
+}
+.play-ripple { animation: play-ripple 1.6s ease-out infinite; }
+
+/* 10 · Micro accents. */
+@keyframes live-pulse { 50% { opacity: 0.45; } }
+.live-dot { animation: live-pulse 1.6s ease infinite; }
+@keyframes blink-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+.blink-soft { animation: blink-soft 1.6s ease-in-out infinite; }
+@keyframes wiggle {
+  0%, 100% { transform: none; }
+  20% { transform: scale(1.15) rotate(-10deg); }
+  45% { transform: scale(1.1) rotate(10deg); }
+  70% { transform: scale(1.05) rotate(-5deg); }
+}
+.wiggle { animation: wiggle 1.5s ease-in-out infinite; }
+@keyframes shine-sweep { 0% { left: -60%; } 55%, 100% { left: 130%; } }
+/* Needs a positioned element: add `relative` (or keep `absolute`) alongside. */
+.shine-badge { overflow: hidden; isolation: isolate; }
+.shine-badge::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: skewX(-20deg);
+  animation: shine-sweep 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes pop-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.pop-up { animation: pop-up 0.28s var(--ease-menu-slide) both; }
+@keyframes modal-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+.modal-in { animation: modal-in 0.25s var(--ease-menu-slide) both; }
+@media (prefers-reduced-motion: reduce) {
+  .live-dot, .blink-soft, .wiggle, .play-ripple, .shine-badge::after { animation: none !important; }
+}
+html.js-motion:not(.motion-failsafe) [data-pdp-thumbs]:not([data-revealed]) > * { opacity: 0; }
+
+/* Checkout, cart drawer and order pages: brighter premium palette. Re-points the shared tokens
+   inside these surfaces only, so every utility (bg-page, text-ink, border-line, bg-forest…) follows.
+   --ink-muted is #5F665C (not #6B7268) so secondary text passes WCAG AA on the #F5F0E6 panel. */
+.co-theme {
+  --color-page: #FBF8F2;
+  --color-line: #E9E2D3;
+  --color-ink: #17251D;
+  --color-ink-muted: #5F665C;
+  --color-forest: #0E3B26;
+  --color-forest-text: #17251D;
+  --color-forest-mid: #145236;
+  --color-alert: #B4412F;
+}
+
+/* Checkout summary: rows added from "Add more" flash mustard once. */
+@keyframes co-flash {
+  0%,
+  35% {
+    background-color: var(--color-co-accent-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}

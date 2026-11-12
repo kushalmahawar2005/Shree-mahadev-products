@@ -5,11 +5,15 @@ import { StoreSettingsProvider } from "@/components/StoreSettingsProvider";
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { getPublicLeadPopup } from "@/lib/server/leads";
 import { Footer } from "@/components/layout/Footer";
+import { FestiveToran } from "@/components/layout/FestiveToran";
+import { HideOnCheckout } from "@/components/layout/HideOnCheckout";
 import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import { ConsentManager } from "@/components/marketing/ConsentManager";
 import { WelcomeOffer } from "@/components/marketing/WelcomeOffer";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
+import { LoadingBar } from "@/components/motion/LoadingBar";
+import { PAGE_OPEN_SCRIPT, PageReady } from "@/components/motion/PageReady";
 import { site } from "@/data/site";
 import {
   jsonLdString,
@@ -61,6 +65,10 @@ export const metadata: Metadata = {
     url: "/",
   },
   twitter: { card: "summary_large_image" },
+  // The Pinterest browser extension injects a "Save" button into product/hero images before React
+  // hydrates, which caused a hydration mismatch (HeroCarousel). `nopin` is Pinterest's official opt-out:
+  // the extension then leaves our images alone.
+  other: { pinterest: "nopin" },
 };
 
 export const viewport: Viewport = {
@@ -74,8 +82,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable} ${tiroHindi.variable}`}>
+    <html lang="en-IN" className={`${figtree.variable} ${mukta.variable} ${tiroHindi.variable}`} suppressHydrationWarning>
       <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
+        {/* Page open: hide until hydrated (see PageReady); must run before the first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: PAGE_OPEN_SCRIPT }} />
+        <PageReady />
+        <LoadingBar />
         <a
           href="#main"
           className="sr-only z-[60] rounded-full bg-forest px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
@@ -91,15 +103,22 @@ export default async function RootLayout({
         <StoreSettingsProvider value={await getStoreSettings()}>
           <CartProvider>
             <SmoothScroll>
-              <SiteHeader />
+              <HideOnCheckout>
+                <SiteHeader />
+                <FestiveToran />
+              </HideOnCheckout>
               <main id="main" className="flex-1">
                 {children}
               </main>
-              <Footer />
-              <MobileBottomBar />
+              <HideOnCheckout>
+                <Footer />
+                <MobileBottomBar />
+              </HideOnCheckout>
               <SiteCartDrawer />
               <ConsentManager />
-              <WelcomeOffer config={await getPublicLeadPopup()} />
+              <HideOnCheckout>
+                <WelcomeOffer config={await getPublicLeadPopup()} />
+              </HideOnCheckout>
             </SmoothScroll>
           </CartProvider>
         </StoreSettingsProvider>

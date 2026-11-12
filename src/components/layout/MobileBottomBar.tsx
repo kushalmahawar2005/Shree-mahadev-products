@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCart } from "@/components/cart/CartProvider";
-import { whatsappLink } from "@/data/site";
-import { BagIcon, SearchIcon, ShopIcon, WhatsAppIcon } from "./icons";
+import { BagIcon, SearchIcon, ShopIcon, UserIcon } from "./icons";
 
-/** Sticky bottom bar on mobile: Shop, Search, Cart, WhatsApp. */
+/**
+ * Sticky bottom bar on mobile: Shop, Search, Cart, Account. (WhatsApp stays reachable from the footer and product pages.)
+ * Hidden on checkout: that page has its own sticky "Pay" bar in the same spot, and leaving
+ * mid-checkout through Shop/Search is not something to invite.
+ */
 export function MobileBottomBar() {
   const { cart, open } = useCart();
+  const pathname = usePathname();
   const count = cart?.totalQuantity ?? 0;
+  if (pathname?.startsWith("/checkout")) return null;
   const item = "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-forest-text";
 
   return (
@@ -35,15 +41,10 @@ export function MobileBottomBar() {
         </span>
         Cart
       </button>
-      <a
-        href={whatsappLink("Hi, I'd like to place an order.")}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={item}
-      >
-        <WhatsAppIcon className="size-5" />
-        WhatsApp
-      </a>
+      <Link href="/account" className={item}>
+        <UserIcon className="size-5" />
+        Account
+      </Link>
     </nav>
   );
 }

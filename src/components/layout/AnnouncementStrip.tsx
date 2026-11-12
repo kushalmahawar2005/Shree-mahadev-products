@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { AnimatedShinyText } from "@/components/shadcn/animated-shiny-text";
-import { BadgePercent, Check, Copy, Leaf, PackageCheck, Truck } from "lucide-react";
+import { Check, Copy } from "lucide-react";
+import { BadgePercent, Leaf, PackageCheck, Truck } from "@/components/icons/duo";
 import { Marquee } from "@/components/shadcn/marquee";
 import { cn } from "@/lib/utils/cn";
 
@@ -92,8 +94,15 @@ function Spark() {
   );
 }
 
+const QUICK_LINKS = [
+  { label: "Our Ghani", href: "/our-ghani" },
+  { label: "Lab Reports", href: "/lab-reports" },
+  { label: "Bulk orders", href: "/bulk-orders" },
+];
+
 /**
- * Top strip. Desktop: one message at a time, sliding up every `intervalSec` (pauses on hover).
+ * Top strip. Desktop: the message rotates on the left (one at a time, sliding up every `intervalSec`,
+ * pauses on hover) with quick links on the right.
  * Mobile: Magic UI marquee. Reduced motion: first message, static.
  */
 export function AnnouncementStrip({ items, intervalSec }: { items: Msg[]; intervalSec: number }) {
@@ -109,41 +118,44 @@ export function AnnouncementStrip({ items, intervalSec }: { items: Msg[]; interv
 
   return (
     <div className="relative overflow-hidden bg-forest-deep text-white" aria-label="Store announcements">
-      {/* Desktop rotator */}
-      <div
-        className="relative hidden h-10 items-center justify-center md:flex"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        aria-live="polite"
-      >
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={i}
-            initial={{ y: 14, opacity: 0, filter: "blur(4px)" }}
-            animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-            exit={{ y: -14, opacity: 0, filter: "blur(4px)" }}
-            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <Item m={items[i]} />
-          </motion.div>
-        </AnimatePresence>
-        {items.length > 1 && (
-          <div className="absolute right-6 flex gap-1.5" aria-hidden>
-            {items.map((_, n) => (
-              <span key={n} className={cn("h-1 rounded-full transition-all", n === i ? "w-4 bg-mustard" : "w-1 bg-white/30")} />
-            ))}
-          </div>
-        )}
+      {/* Desktop: rotating message on the left, quick links on the right (aligned with the header) */}
+      <div className="mx-auto hidden h-10 max-w-[1360px] items-center justify-between gap-6 px-8 md:flex">
+        <div
+          className="relative flex min-w-0 items-center"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+          aria-live="polite"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={i}
+              initial={{ y: 14, opacity: 0, filter: "blur(4px)" }}
+              animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+              exit={{ y: -14, opacity: 0, filter: "blur(4px)" }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Item m={items[i]} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <nav aria-label="Quick links" className="flex shrink-0 items-center gap-7">
+          {QUICK_LINKS.map((l) => (
+            <Link key={l.href} href={l.href} className="text-[13px] font-medium text-white/75 transition-colors hover:text-white">
+              {l.label}
+            </Link>
+          ))}
+        </nav>
       </div>
 
       {/* Mobile marquee */}
       <div className="relative md:hidden">
-        {reduce || items.length < 2 ? (
-          <div className="flex h-9 items-center justify-center px-4">
-            <Item m={items[0]} compact />
-          </div>
-        ) : (
-          <Marquee pauseOnHover className="h-9 p-0 [--duration:28s] [--gap:1.75rem]">
+        {/* Reduced motion is decided in CSS (motion-safe / motion-reduce), not with a hook: the hook
+            is unknown on the server, so branching on it caused a hydration mismatch. */}
+        <div className={cn("flex h-9 items-center justify-center px-4", items.length > 1 && "motion-safe:hidden")}>
+          <Item m={items[0]} compact />
+        </div>
+        {items.length > 1 && (
+          <Marquee pauseOnHover className="h-9 p-0 [--duration:28s] [--gap:1.75rem] motion-reduce:hidden">
             {items.map((m) => (
               <span key={m.text} className="inline-flex items-center gap-7">
                 <Item m={m} compact />

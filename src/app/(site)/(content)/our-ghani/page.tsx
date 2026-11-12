@@ -16,8 +16,8 @@ export const metadata: Metadata = pageMetadata({
 
 export default function OurGhaniPage() {
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -46,13 +46,13 @@ export default function OurGhaniPage() {
           <FactsStrip />
         </div>
 
-        <section className="mt-14">
+        <section className="mt-10 md:mt-14">
           <p className="text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">The process</p>
           <h2 className="mt-1 mb-6 text-3xl md:text-4xl">Four slow steps</h2>
           <ProcessTimeline />
         </section>
 
-        <Reveal className="mt-14 grid gap-8 rounded-3xl bg-forest p-6 text-white md:p-10 lg:grid-cols-[1fr_1.3fr] lg:items-center">
+        <Reveal className="mt-10 md:mt-14 grid gap-8 rounded-3xl bg-forest p-6 text-white md:p-10 lg:grid-cols-[1fr_1.3fr] lg:items-center">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.18em] text-[#e8c879] uppercase">Kept out</p>
             <h2 className="mt-2 text-3xl text-white md:text-4xl">What we never do</h2>
@@ -60,13 +60,13 @@ export default function OurGhaniPage() {
           <NeverDo />
         </Reveal>
 
-        <Reveal className="mt-14">
+        <Reveal className="mt-10 md:mt-14">
           <p className="text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">Side by side</p>
           <h2 className="mt-1 mb-6 text-3xl md:text-4xl">Kachi ghani vs refined</h2>
           <ComparisonTable />
         </Reveal>
 
-        <div className="mt-14">
+        <div className="mt-10 md:mt-14">
           <StoryCta />
         </div>
       </div>

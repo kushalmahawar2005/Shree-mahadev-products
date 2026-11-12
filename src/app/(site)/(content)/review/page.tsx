@@ -1,8 +1,9 @@
+import { cutoutUrl } from "@/lib/image-loader";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, Clock, MessageCircle, PenLine } from "lucide-react";
+import { CheckCircle2, Clock, MessageCircle, PenLine } from "@/components/icons/duo";
 import { getProducts } from "@/lib/commerce";
 import { whatsappLink } from "@/data/site";
 import { VerifiedReviewForm } from "@/components/reviews/VerifiedReviewForm";
@@ -20,8 +21,8 @@ export default function ReviewPage({
   searchParams: Promise<{ t?: string | string[] }>;
 }) {
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-3xl px-4 pt-8 pb-16 md:pt-12 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-3xl px-4 pt-8 pb-10 md:pt-12 md:pb-24">
         <p className="font-hindi text-lg text-sale" lang="hi">
           आपकी राय
         </p>
@@ -52,8 +53,8 @@ function Notice({
 }) {
   return (
     <div className="mt-8 flex flex-col items-center rounded-3xl border border-line bg-white px-6 py-12 text-center">
-      <span className="grid size-14 place-items-center rounded-full bg-khaki-soft text-forest">
-        <Icon className="size-6" />
+      <span className="shrink-0 text-forest">
+        <Icon className="size-10" />
       </span>
       <p className="mt-4 text-lg font-bold text-forest-text">{title}</p>
       <p className="mt-1 max-w-md text-sm text-ink-muted">{text}</p>
@@ -132,7 +133,7 @@ async function ReviewData({
             <div className="flex items-center gap-4">
               <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-[radial-gradient(circle_at_50%_60%,#f3e6c8,#f6efe2_70%)]">
                 {img && (
-                  <Image src={img.url} alt="" width={48} height={48} className="size-12 object-contain" />
+                  <Image src={cutoutUrl(img.url)} alt="" width={48} height={48} className="size-12 object-contain" />
                 )}
               </span>
               <h2 className="text-xl md:text-2xl">

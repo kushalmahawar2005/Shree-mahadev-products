@@ -461,6 +461,33 @@ export function ProductForm({
             >
               <Plus className="size-4" /> Add size
             </button>
+            {p.variants.some((v) => v.title.trim()) && (
+              <div className="mt-4 border-t border-line pt-4">
+                <p className="text-sm font-semibold text-ink">Shown first</p>
+                <p className="mt-0.5 text-xs text-ink-muted">The size cards and the product page open on. Auto = cheapest on cards, 1 L / 1 kg on the page.</p>
+                <div className="mt-2.5 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Size shown first">
+                  {[{ value: "", label: "Auto" }, ...p.variants.filter((v) => v.title.trim()).map((v) => ({ value: v.title.trim(), label: v.title.trim() }))].map((o) => {
+                    const on = (p.defaultSize ?? "").toLowerCase() === o.value.toLowerCase();
+                    return (
+                      <button
+                        key={o.value || "auto"}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => set("defaultSize", o.value || undefined)}
+                        className={cn(
+                          "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs font-semibold transition-colors",
+                          on ? "border-forest bg-forest text-white" : "border-line bg-surface text-ink hover:bg-khaki-soft",
+                        )}
+                      >
+                        {on && <Check className="size-3.5" />}
+                        {o.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </Section>
 
           <Section

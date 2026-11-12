@@ -15,8 +15,8 @@ export default function JournalPage() {
     (b.date ?? "").localeCompare(a.date ?? ""),
   );
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1200px] px-4 pt-8 pb-16 md:px-8 md:pt-12 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1200px] px-4 pt-8 pb-10 md:px-8 md:pt-12 md:pb-24">
         <p className="font-hindi text-lg text-sale" lang="hi">
           घानी की बातें
         </p>

@@ -3,10 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, FileText, FlaskConical, PlayCircle, ShieldCheck } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/shadcn/dialog";
 import { cn } from "@/lib/utils/cn";
+import { SectionArt } from "@/components/ui/SectionArt";
+import { TornEdge } from "@/components/ui/TornEdge";
+import { deco } from "@/data/brand-art";
+import { ProofCard, type ProofMedia } from "./ProofCard";
 
 export type LabReport = { slug: string; name: string; reportNo: string };
 
@@ -23,7 +28,7 @@ const SEALS = {
  */
 export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { reports: LabReport[]; fssaiNo: string; fssaiValidTill: string; lab: string }) {
   const reduce = useReducedMotion();
-  const [open, setOpen] = useState<null | "lab" | "fssai">(null);
+  const [open, setOpen] = useState<null | "lab" | "fssai" | "video">(null);
   const [i, setI] = useState(0);
   const [dir, setDir] = useState(1);
   const r = reports[i];
@@ -43,120 +48,105 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
     // eslint-disable-next-line react-hooks/exhaustive-deps -- go only uses setters
   }, [open]);
 
-  const cards = [
+  const cards: {
+    key: string;
+    seal: string;
+    title: string;
+    fact: string;
+    text: string;
+    media: ProofMedia;
+    onOpenMedia: () => void;
+    cta: { label: string; href?: string; onClick?: () => void };
+  }[] = [
     {
       key: "lab",
       seal: SEALS.lab,
       title: "Lab tested",
-      text: `${reports.length} of our oils tested at ${lab}. Read the full report for each one.`,
-      doc: reports[0] ? `/proof/${reports[0].slug}-thumb.webp` : null,
-      action: { label: "View lab reports", icon: FlaskConical, onClick: () => (setI(0), setOpen("lab")) },
+      fact: `${reports.length} oils · ${lab}`,
+      text: "Every oil checked by an independent lab. Read the full report for each one.",
+      media: reports[0]
+        ? { kind: "doc", src: `/proof/${reports[0].slug}.webp`, back: reports[1] ? `/proof/${reports[1].slug}-thumb.webp` : undefined, alt: `Lab report: ${reports[0].name}` }
+        : { kind: "video", poster: "/videos/ghani-pour-desktop.jpg", alt: "Lab reports" },
+      onOpenMedia: () => (setI(0), setOpen("lab")),
+      cta: { label: "View lab reports", onClick: () => (setI(0), setOpen("lab")) },
     },
     {
       key: "fssai",
       seal: SEALS.fssai,
       title: "FSSAI licensed",
-      text: `State licence No. ${fssaiNo}, valid till ${fssaiValidTill}. The same number is printed on every label.`,
-      doc: "/proof/fssai-licence-thumb.webp",
-      action: { label: "View licence", icon: FileText, onClick: () => setOpen("fssai") },
+      fact: `Lic. ${fssaiNo} · valid till ${fssaiValidTill}`,
+      text: "The same licence number is printed on every bottle we sell.",
+      media: { kind: "doc", src: "/proof/fssai-licence.webp", alt: `FSSAI licence ${fssaiNo}` },
+      onOpenMedia: () => setOpen("fssai"),
+      cta: { label: "View licence", onClick: () => setOpen("fssai") },
     },
     {
       key: "ghani",
       seal: SEALS.ghani,
       title: "Wood-pressed, kachi ghani",
-      text: "Pressed slowly in a wooden ghani. No heat, no chemicals, no refining. The oil settles naturally before bottling.",
-      doc: null,
-      action: { label: "See how it's made", icon: PlayCircle, href: "#story" },
+      fact: "Kachi ghani · no heat · no chemicals",
+      text: "Pressed slowly in a wooden ghani, then left to settle naturally before bottling.",
+      media: { kind: "video", poster: "/videos/ghani-pour-desktop.jpg", alt: "Oil pouring from our wooden ghani" },
+      onOpenMedia: () => setOpen("video"),
+      cta: { label: "See how it's made", href: "#story" },
     },
-  ] as const;
+  ];
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] pt-14 pb-10 md:pt-20 md:pb-12">
-      <div className="relative mx-auto max-w-[1200px] px-4 md:px-8">
-        <div className="mb-10 flex flex-col items-center gap-2 text-center">
-          <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
-            <ShieldCheck className="size-3.5" /> Don&apos;t just take our word
+    <section id="proof" className="paper-grain relative scroll-mt-24 overflow-hidden bg-[linear-gradient(180deg,#f8e8bb_0%,#f4dea0_100%)] pt-14 pb-14 md:pt-20 md:pb-20">
+      {/* Top edge comes from the sage Shop-by-use band above (its flip edge is this section's colour) */}
+      {/* Warm haldi band prop on the right margin (desktop): a painted matka, never over the cards */}
+      <SectionArt
+        art={deco.matka}
+        className="right-[1%] bottom-6 hidden w-[180px] min-[1600px]:block min-[1800px]:w-[220px]"
+        sizes="(min-width: 1536px) 220px, 170px"
+        drift={24}
+      />
+      <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
+        <div className="mb-8 flex flex-col items-center text-center md:mb-12">
+          <p className="font-hindi flex items-center gap-2 text-base text-[#8a4b0b] md:text-lg" lang="hi">
+            <span aria-hidden className="h-px w-6 bg-[#8a4b0b]/50" />
+            भरोसे का सबूत
+            <span aria-hidden className="h-px w-6 bg-[#8a4b0b]/50" />
           </p>
-          <h2 className="text-3xl md:text-[44px]">Good oil, backed by proof</h2>
-          <p className="max-w-xl text-ink-muted">Real reports and licences, issued to Mahadev Products. Open any of them.</p>
+          <h2 className="mt-2 text-[30px] leading-[1.1] font-bold tracking-tight md:text-[44px]">Good oil, backed by proof</h2>
+          <p className="mt-3 max-w-xl text-[15px] text-[#5a4a32] md:text-base">Real reports and licences, issued to Mahadev Products. Open any of them.</p>
         </div>
 
-        <ul className="grid gap-4 md:grid-cols-3 md:gap-5">
-          {cards.map((c, n) => {
-            const Icon = c.action.icon;
-            const btn = "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-forest px-5 text-sm font-bold text-white transition-colors hover:bg-forest-mid";
-            return (
-              <motion.li
-                key={c.key}
-                initial={reduce ? false : { opacity: 0, y: 24 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.6, delay: n * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                className="group relative flex flex-col overflow-hidden rounded-3xl border border-line bg-white p-6 text-center shadow-[0_1px_2px_rgba(0,0,0,.04)] transition-shadow duration-500 hover:shadow-[0_30px_50px_-30px_rgba(7,47,27,0.5)]"
-              >
-                <Image
-                  src={c.seal}
-                  alt=""
-                  width={280}
-                  height={280}
-                  sizes="128px"
-                  className="mx-auto size-32 object-contain transition-transform duration-[1200ms] ease-[var(--ease-premium)] group-hover:rotate-[20deg]"
-                />
-                <h3 className="mt-4 text-xl">{c.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ink-muted">{c.text}</p>
-
-                {/* The real document peeks out of the card and lifts on hover */}
-                <div className="relative mt-5 h-32 overflow-hidden md:h-36">
-                  {c.doc ? (
-                    <Image
-                      src={c.doc}
-                      alt=""
-                      width={360}
-                      height={500}
-                      sizes="200px"
-                      className="absolute top-3 left-1/2 w-44 -translate-x-1/2 rotate-[-4deg] rounded-md border border-line shadow-[0_18px_30px_-16px_rgba(0,0,0,0.45)] transition-transform duration-500 ease-[var(--ease-premium)] group-hover:-translate-y-6 group-hover:rotate-0"
-                    />
-                  ) : (
-                    <div className="absolute inset-x-6 top-3 grid h-32 place-items-center overflow-hidden rounded-xl bg-forest text-white transition-transform duration-500 group-hover:-translate-y-4">
-                      <Image src="/videos/ghani-pour-desktop.jpg" alt="" fill sizes="300px" className="object-cover opacity-70" />
-                      <PlayCircle className="relative size-10 text-mustard drop-shadow" />
-                    </div>
-                  )}
-                  <span aria-hidden className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white via-white/90 to-transparent" />
-                </div>
-
-                <div className="relative mt-1">
-                  {"href" in c.action ? (
-                    <Link href={c.action.href} className={btn}>
-                      <Icon className="size-4" /> {c.action.label}
-                    </Link>
-                  ) : (
-                    <button type="button" onClick={c.action.onClick} className={btn}>
-                      <Icon className="size-4" /> {c.action.label}
-                    </button>
-                  )}
-                </div>
-              </motion.li>
-            );
-          })}
+        {/* Equal-height cards: fixed 4:3 media + CTA pinned to the bottom, so titles and CTAs align */}
+        <ul className="grid gap-5 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+          {cards.map((c, n) => (
+            <motion.li
+              key={c.key}
+              initial={reduce ? false : { opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.6, delay: n * 0.08, ease: [0.22, 1, 0.36, 1] }}
+              className="h-full"
+            >
+              <ProofCard media={c.media} seal={c.seal} title={c.title} fact={c.fact} text={c.text} cta={c.cta} onOpenMedia={c.onOpenMedia} />
+            </motion.li>
+          ))}
         </ul>
 
-        {/* Fact strip */}
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-2 text-xs text-forest-text">
-          {[`FSSAI Lic. ${fssaiNo}`, `Valid till ${fssaiValidTill}`, `Tested at ${lab}`].map((f) => (
-            <span key={f} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white/70 px-3 py-1.5 font-medium">
-              <BadgeCheck className="size-3.5 text-forest" /> {f}
-            </span>
-          ))}
-          <Link href="/lab-reports" className="inline-flex items-center gap-1 px-2 font-semibold text-forest hover:underline">
-            All lab reports <ArrowRight className="size-3.5" />
+        <div className="mt-8 flex justify-center">
+          <Link href="/lab-reports" className="inline-flex items-center gap-1.5 text-sm font-semibold text-forest-text underline-offset-4 hover:underline">
+            All lab reports <ArrowRight className="size-4" />
           </Link>
         </div>
       </div>
 
+      <TornEdge flip color="var(--color-page)" />
+
       {/* Lightbox */}
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogContent className="flex max-h-[92dvh] w-[min(760px,calc(100vw-2rem))] max-w-none flex-col gap-0 overflow-hidden rounded-3xl border-line bg-[#fcf9f2] p-0 sm:max-w-none">
+          {open === "video" && (
+            <>
+              <DialogTitle className="sr-only">Oil pouring from our wooden ghani</DialogTitle>
+              <video src="/videos/ghani-pour-desktop.mp4" poster="/videos/ghani-pour-desktop.jpg" autoPlay controls playsInline className="aspect-video w-full bg-black" />
+            </>
+          )}
           {open === "fssai" && (
             <>
               <div className="border-b border-line bg-white px-5 py-4">

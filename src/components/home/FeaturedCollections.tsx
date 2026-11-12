@@ -1,10 +1,16 @@
 "use client";
 
+import { Fragment } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useReducedMotion } from "motion/react";
-import { ArrowUpRight, Clock, Droplets, Leaf, Sprout, Wheat } from "lucide-react";
+import { motion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
+import { ArrowUpRight } from "lucide-react";
+import { Clock, Droplets, Leaf, Sprout, Wheat } from "@/components/icons/duo";
 import { cn } from "@/lib/utils/cn";
+import { SectionArt } from "@/components/ui/SectionArt";
+import { TornEdge } from "@/components/ui/TornEdge";
+import { deco } from "@/data/brand-art";
 
 export type CategoryTile = {
   key: string;
@@ -15,8 +21,14 @@ export type CategoryTile = {
   href?: string;
   count?: number;
   unit?: string;
-  /** Up to 3 product photos, fanned out in the tile. */
+  /** Original catalog pack cutouts, one per product. */
   images: string[];
+  /** Full-bleed styled scene (products on the right, empty left for copy). Replaces `images`. */
+  cover?: string;
+  /** Hand-painted scene (portrait), shown on the tile's right side and melting into the tone. */
+  scene?: string;
+  /** Styled stage photo (kept in data for a later showcase; unused by the bento). */
+  stage?: string;
   /** Mood: background gradient + text colour, all from the brand palette family. */
   tone: { bg: string; ink: "light" | "dark"; glow: string };
   /** Bento size on desktop. */
@@ -31,15 +43,18 @@ const SPAN = {
 
 /**
  * "Shop by category": bento grid of the six store categories. Each tile has its own colour mood,
- * fanned product photos that lift on hover, a count chip and an arrow that spins. Categories
- * without products yet show a calm "Coming soon" state and are not links.
+ * a hand-painted scene, original catalog packs and a clear collection link.
+ * Categories without products yet show a calm "Coming soon" state and are not links.
  */
 export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
   const reduce = useReducedMotion();
   if (!tiles.length) return null;
 
   return (
-    <section className="paper-grain relative overflow-hidden bg-[#F5EDDE] py-14 md:py-20">
+    <section className="paper-grain relative overflow-hidden bg-page pt-12 pb-8 md:py-20">
+      <TornEdge color="var(--color-ivory)" />
+      {/* Mustard branch bending in from the top-left */}
+      <SectionArt art={deco.mustardBranch} className="-top-3 -left-8 w-[220px] opacity-95 md:-top-2 md:w-[400px] lg:w-[480px]" sizes="(min-width: 1024px) 480px, (min-width: 768px) 400px, 220px" />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
         <div className="mb-8 flex flex-col items-center gap-2 text-center md:mb-10">
           <p className="inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-[11px] font-semibold tracking-[0.18em] text-sale uppercase">
@@ -49,9 +64,14 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
           <p className="max-w-xl text-ink-muted">Everything we make, slow and honest. Pick where you want to start.</p>
         </div>
 
-        <ul className="grid auto-rows-[220px] grid-cols-2 gap-3 md:gap-4 lg:auto-rows-[230px] lg:grid-cols-4">
+        <ul className="grid auto-rows-[240px] grid-cols-2 gap-3 md:gap-4 lg:auto-rows-[250px] lg:grid-cols-4">
           {tiles.map((t, i) => {
             const light = t.tone.ink === "light";
+            // Every tile is full-width on phones (hair oils is hidden, so seeds has no row partner).
+            const fullOnMobile = !!t.href || t.key === "cake" || t.key === "seeds";
+            const half = !fullOnMobile; // half-width tile on mobile/tablet
+            // Sweeteners photo is square: keep it whole on the right instead of cropping it wide.
+            const widePhoto = t.span === "wide" && t.key !== "jaggery";
             const body = (
               <>
                 {/* colour mood + soft light */}
@@ -62,62 +82,114 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                   style={{ background: t.tone.glow }}
                 />
 
-                {/* fanned product photos */}
-                {t.images.length > 0 && (
-                  <span aria-hidden className={cn("absolute right-[4%] bottom-0 flex items-end", t.span === "hero" ? "h-[86%] w-[68%]" : "h-[80%] w-[56%]")}>
-                    {t.images.slice(0, 3).map((src, n) => (
-                      <span
-                        key={src + n}
-                        className="relative -ml-[18%] h-full flex-1 transition-transform duration-500 ease-[var(--ease-premium)] first:ml-0 group-hover:-translate-y-2"
-                        style={{
-                          transform: `rotate(${(n - 1) * 7}deg) translateY(${n === 1 ? 0 : 6}%)`,
-                          zIndex: n === 1 ? 2 : 1,
-                          transitionDelay: `${n * 60}ms`,
-                        }}
-                      >
-                        <Image src={src} alt="" fill sizes="200px" className="object-contain object-bottom drop-shadow-[0_14px_16px_rgba(0,0,0,0.28)]" />
-                      </span>
-                    ))}
+                {/* Compose by the photograph's aspect ratio; preserve square product scenes and
+                    give wide still lifes enough room without stretching their contents. */}
+                {t.cover && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute right-0 bottom-0 transition-transform duration-700 ease-[var(--ease-premium)] group-hover:scale-[1.015] motion-reduce:transform-none [mask-image:linear-gradient(to_right,transparent,black_12%,black)]",
+                      widePhoto ? "h-full w-full" : "aspect-square h-full",
+                      (t.key === "honey" || t.key === "cake") && "max-lg:aspect-[5/2] max-lg:h-auto",
+                      // square sweeteners photo in a wide tile: enlarge it (anchored bottom-right, tile clips the rest)
+                      t.key === "jaggery" && "h-[150%]",
+                      t.key === "oils" && "max-lg:h-auto max-lg:w-full max-lg:[mask-image:linear-gradient(to_bottom,transparent,black_12%,black)]",
+                    )}
+                  >
+                    <Image src={t.cover} alt="" fill sizes="(min-width: 1360px) 640px, (min-width: 1024px) 50vw, 100vw" className={cn("object-right-bottom", widePhoto ? "object-cover" : "object-contain")} />
                   </span>
                 )}
 
-                {/* no photos yet: a large, faint category mark instead */}
-                {t.images.length === 0 && (
-                  <span aria-hidden className={cn("absolute right-6 bottom-4 transition-transform duration-700 group-hover:-rotate-6 group-hover:scale-110", light ? "text-white/15" : "text-forest/15")}>
-                    {t.key === "hair" ? <Droplets className="size-32" strokeWidth={1.25} /> : t.key === "seeds" ? <Sprout className="size-36" strokeWidth={1.25} /> : t.key === "cake" ? <Wheat className="size-36" strokeWidth={1.25} /> : <Leaf className="size-32" strokeWidth={1.25} />}
+                {/* hand-painted scene on the right, faded into the tile colour on its left edge */}
+                {!t.cover && t.scene && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute inset-y-0 right-0 w-[62%] mask-l-from-45% transition-transform duration-700 ease-[var(--ease-premium)] group-hover:scale-[1.04]",
+                      half && "max-lg:w-[80%]",
+                      !t.href && "opacity-80",
+                    )}
+                  >
+                    <Image src={t.scene} alt="" fill sizes="(min-width: 1024px) 420px, 50vw" className="object-cover object-[50%_18%]" />
+                  </span>
+                )}
+
+                {/* no art yet: a large, faint category mark instead */}
+                {!t.cover && !t.scene && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute right-6 bottom-4 transition-transform duration-700 group-hover:-rotate-6 group-hover:scale-110 [&>svg]:size-32 sm:[&>svg]:size-36",
+                      half && "max-lg:right-3 max-lg:bottom-3 max-lg:[&>svg]:size-20",
+                      light ? "text-white/15" : "text-forest/15",
+                    )}
+                  >
+                    {t.key === "hair" ? <Droplets mono /> : t.key === "seeds" ? <Sprout mono /> : t.key === "cake" ? <Wheat mono /> : <Leaf mono />}
                   </span>
                 )}
 
                 {/* copy */}
-                <span className={cn("relative z-10 flex h-full flex-col p-4 md:p-6", t.span === "wide" && t.images.length ? "max-w-[46%]" : "max-w-[60%]")}>
-                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-none md:text-lg", light ? "text-[#e8c879]" : "text-sale")} lang="hi">
-                    <span aria-hidden className={cn("h-px w-5", light ? "bg-[#e8c879]/70" : "bg-sale/60")} />
+                <span
+                  className={cn(
+                    "relative z-10 flex h-full flex-col p-4 md:p-6",
+                    t.cover ? "max-w-full" : "max-w-[60%]",
+                    half && "max-lg:max-w-full max-lg:p-3.5",
+                  )}
+                >
+                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-none md:text-lg", half && "max-lg:text-sm", light ? "text-[#e8c879]" : "text-sale")} lang="hi">
+                    <span aria-hidden className={cn("h-px w-5", half && "max-lg:w-3", light ? "bg-[#e8c879]/70" : "bg-sale/60")} />
                     {t.titleHi}
                   </span>
-                  <span className={cn("mt-1 font-bold leading-tight", t.span === "hero" ? "text-3xl md:text-4xl" : "text-xl md:text-2xl", light ? "text-white" : "text-forest-text")}>
-                    {t.title}
+                  <span
+                    className={cn(
+                      "mt-1 font-bold leading-tight",
+                      t.span === "hero" ? "max-w-[85%] text-[26px] md:max-w-[70%] md:text-[32px]" : "text-xl md:text-2xl",
+                      half && "max-lg:text-lg",
+                      t.key === "jaggery" && "max-w-[190px]",
+                      light ? "text-white" : "text-forest-text",
+                    )}
+                  >
+                    {/* keep hyphenated words whole ("Wood-pressed" never splits at the hyphen) */}
+                    {/* the space sits outside the nowrap span so the line can break between words */}
+                    {t.title.split(" ").map((w, n) => (
+                      <Fragment key={n}>
+                        {n > 0 && " "}
+                        <span className="whitespace-nowrap">{w}</span>
+                      </Fragment>
+                    ))}
                   </span>
-                  <span className={cn("mt-2 hidden text-sm leading-snug md:block", t.span === "small" && "lg:hidden", light ? "text-white/75" : "text-ink-muted")}>{t.blurb}</span>
+                  <span
+                    className={cn(
+                      "mt-1.5 line-clamp-3 text-[13px] leading-snug md:mt-2 md:text-sm",
+                      half ? "max-lg:hidden" : t.span !== "hero" && "max-md:hidden",
+                      t.span === "small" && "lg:hidden",
+                      t.cover && "max-w-[42%] max-lg:max-w-[85%]",
+                      light ? "text-white/75" : "text-ink-muted",
+                    )}
+                  >
+                    {t.blurb}
+                  </span>
 
                   <span className="mt-auto flex items-center gap-2">
                     {t.href ? (
                       <>
                         <span
                           className={cn(
-                            "grid size-10 place-items-center rounded-full transition-transform duration-500 group-hover:rotate-45",
+                            "grid size-10 place-items-center rounded-full transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5",
+                            half && "max-lg:size-9",
                             light ? "bg-white text-forest" : "bg-forest text-white",
                           )}
                         >
                           <ArrowUpRight className="size-5" />
                         </span>
                         {t.count ? (
-                          <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur-sm", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
+                          <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
                             {t.count} {t.unit}
                           </span>
                         ) : null}
                       </>
                     ) : (
-                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
+                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold", half && "max-lg:px-2.5 max-lg:text-[11px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
                         <Clock className="size-3.5" /> Coming soon
                       </span>
                     )}
@@ -132,7 +204,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
             return (
               <motion.li
                 key={t.key}
-                className={cn(SPAN[t.span], t.span === "hero" && "col-span-2 row-span-2", t.span === "wide" && "col-span-2")}
+                className={cn(SPAN[t.span], fullOnMobile && "col-span-2", t.span === "hero" && "max-lg:row-span-2")}
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducedMotion } from "motion/react";
+import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
@@ -62,8 +62,9 @@ export function ArrowRow({
           disabled={dir === "prev" ? !edge.prev : !edge.next}
           aria-label={dir === "prev" ? `Previous: ${label}` : `Next: ${label}`}
           style={{ top: arrowTop }}
+          data-dir={dir}
           className={cn(
-            "absolute hidden size-11 -translate-y-1/2 place-items-center text-forest-text transition-opacity duration-200 hover:text-forest disabled:opacity-25 md:grid",
+            "arrow-swap absolute hidden overflow-hidden size-11 -translate-y-1/2 place-items-center text-forest-text transition-opacity duration-200 hover:text-forest disabled:opacity-25 md:grid",
             dir === "prev" ? "-left-12 xl:-left-14" : "-right-12 xl:-right-14",
           )}
         >
