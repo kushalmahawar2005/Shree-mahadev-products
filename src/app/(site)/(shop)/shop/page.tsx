@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ShopListing } from "@/components/product/ShopListing";
+import { RecentlyViewed } from "@/components/product/RecentlyViewed";
+import { toPickProduct } from "@/components/home/pickProduct";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
+import { BelowGrid, CategoryPills, ItemListJsonLd, TrustRow, UseChips } from "@/components/product/ListingExtras";
 import { getProducts } from "@/lib/commerce";
 import { pageMetadata } from "@/lib/utils/seo";
 
@@ -14,8 +17,8 @@ export const metadata: Metadata = pageMetadata({
 export default async function ShopPage() {
   const products = await getProducts();
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1360px] px-4 pt-6 pb-16 md:px-8 md:pt-8 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1360px] px-4 pt-6 pb-10 md:px-8 md:pt-8 md:pb-24">
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -33,9 +36,17 @@ export default async function ShopPage() {
             <p className="mt-1 text-sm text-ink-muted">Oils, honey and sweeteners, made slowly in Bijainagar.</p>
           </div>
         </div>
+        <TrustRow />
+        <CategoryPills current="shop" total={products.length} />
+        <UseChips path="/shop" products={products} />
+        <ItemListJsonLd products={products} />
         <Suspense fallback={<div className="mt-10 h-96" />}>
-          <ShopListing products={products} />
+          <ShopListing products={products} group />
         </Suspense>
+        <BelowGrid handle="shop" title="Products" />
+        <div className="-mx-6 md:-mx-8">
+          <RecentlyViewed products={(await getProducts()).filter((p) => p.priceRange.min.amount > 0).map(toPickProduct)} />
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { MessageCircle, Search, SearchX } from "lucide-react";
+import { Search, SearchX } from "lucide-react";
+import { MessageCircle } from "@/components/icons/duo";
 import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { getProducts, searchProducts } from "@/lib/commerce";
@@ -18,8 +19,8 @@ const POPULAR = ["Mustard oil", "Groundnut oil", "Raw honey", "Coconut oil", "Ba
 
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
-    <div className="bg-[#F5EDDE]">
-      <div className="mx-auto max-w-[1360px] px-4 pt-8 pb-16 md:px-8 md:pt-12 md:pb-24">
+    <div className="bg-page">
+      <div className="mx-auto max-w-[1360px] px-4 pt-8 pb-10 md:px-8 md:pt-12 md:pb-24">
         <Suspense fallback={<SearchHeader />}>
           <Results searchParams={searchParams} />
         </Suspense>

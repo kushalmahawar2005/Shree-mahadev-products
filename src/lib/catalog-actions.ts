@@ -100,6 +100,8 @@ function validate(raw: ProductInput): ProductInput {
     status: raw.status,
     collections: lines(raw.collections, 30).filter((c) => HANDLE.test(c)),
     variants,
+    // Only keep a default that still matches one of the sizes.
+    defaultSize: variants.find((v) => v.title.toLowerCase() === clean(raw.defaultSize, 40).toLowerCase())?.title,
   };
 }
 

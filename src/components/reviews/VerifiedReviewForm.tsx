@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Camera, CheckCircle2, Loader2, Star, X } from "lucide-react";
+import { Loader2, Star, X } from "lucide-react";
+import { Camera, CheckCircle2 } from "@/components/icons/duo";
 import { Chips, SUGGEST, type Cat } from "@/components/reviews/WriteReview";
 import { cn } from "@/lib/utils/cn";
 import {

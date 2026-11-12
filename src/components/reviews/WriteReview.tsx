@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Loader2, PenLine, Star } from "lucide-react";
+import { Loader2, Star } from "lucide-react";
+import { CheckCircle2, PenLine } from "@/components/icons/duo";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { submitProductReviewAction } from "@/lib/review-actions";
 import { cn } from "@/lib/utils/cn";

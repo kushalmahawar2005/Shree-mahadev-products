@@ -39,6 +39,8 @@ export type Product = {
   shelfLife?: string;
   images: ProductImage[];
   variants: ProductVariant[];
+  /** Size title the storefront opens on (admin "Shown first"), e.g. "1 L". */
+  defaultSize?: string;
   priceRange: { min: Money; max: Money };
   rating?: number; // Mean of approved first-party reviews
   reviewCount?: number;
