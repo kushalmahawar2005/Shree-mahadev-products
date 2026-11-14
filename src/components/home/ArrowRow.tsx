@@ -3,6 +3,7 @@
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 
 /** Horizontal snap row with plain chevrons outside the track (desktop) and swipe on mobile. */
 export function ArrowRow({
@@ -17,6 +18,8 @@ export function ArrowRow({
   arrowTop?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [node, setNode] = useState<HTMLDivElement | null>(null);
+  useDragScroll(node); // desktop: drag the shelf with the mouse
   const reduce = useReducedMotion();
   const [edge, setEdge] = useState({ prev: false, next: true });
 
@@ -44,7 +47,10 @@ export function ArrowRow({
   return (
     <div className="relative">
       <div
-        ref={ref}
+        ref={(el) => {
+          ref.current = el;
+          setNode(el);
+        }}
         role="region"
         aria-label={label}
         className={cn(

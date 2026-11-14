@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils/cn"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
 } from "embla-carousel-react"
+import { WheelGesturesPlugin } from "embla-carousel-wheel-gestures"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 
 import { Button } from "@/components/shadcn/button"
@@ -51,12 +52,14 @@ function Carousel({
   children,
   ...props
 }: React.ComponentProps<"div"> & CarouselProps) {
+  // Trackpad / mouse-wheel swipes move the carousel too (desktop), not only drag and touch.
+  const allPlugins = React.useMemo(() => [WheelGesturesPlugin(), ...(plugins ?? [])], [plugins])
   const [carouselRef, api] = useEmblaCarousel(
     {
       ...opts,
       axis: orientation === "horizontal" ? "x" : "y",
     },
-    plugins
+    allPlugins
   )
   const [canScrollPrev, setCanScrollPrev] = React.useState(false)
   const [canScrollNext, setCanScrollNext] = React.useState(false)

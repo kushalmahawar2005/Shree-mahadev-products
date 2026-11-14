@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useDragScroll } from "@/hooks/use-drag-scroll";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -42,10 +43,13 @@ export function TabbedCarousel({
 
   // The track remounts on every tab switch (AnimatePresence), so wire it up via a callback ref.
   const ro = useRef<ResizeObserver | null>(null);
+  const [trackEl, setTrackEl] = useState<HTMLDivElement | null>(null);
+  useDragScroll(trackEl); // desktop: drag the shelf with the mouse
   const setTrack = useCallback(
     (el: HTMLDivElement | null) => {
       ro.current?.disconnect();
       track.current = el;
+      setTrackEl(el);
       if (!el) return;
       requestAnimationFrame(update);
       // Images loading change card height: keep arrows centred on the photo.
