@@ -41,7 +41,8 @@ export function MobileBottomBar() {
         </span>
         Cart
       </button>
-      <Link href="/account" className={item}>
+      {/* No prefetch: signed-out visitors get a proxy redirect to /login, which 404s as a prefetch. */}
+      <Link href="/account" prefetch={false} className={item}>
         <UserIcon className="size-5" />
         Account
       </Link>

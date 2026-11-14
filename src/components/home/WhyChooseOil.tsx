@@ -14,12 +14,13 @@ export const DADI_CAPTION = "Dadi ji, the heart of Mahadev Products";
 const DADI_QUOTE = "जैसा हमारे ज़माने में बनता था, वैसा ही शुद्ध।";
 
 type Step = { title: string; titleHi: string; text: string; img: string };
-/** The client's real five-step process (from their catalog). Illustrations in /public/illustrations/process/. */
+/** The client's real six-step process (from their catalog). Illustrations in /public/illustrations/process/. */
 const STEPS: Step[] = [
   { title: "Farm sourced", titleHi: "खेत से बीज", text: "Seeds sourced directly from farmers", img: "1-farm" },
   { title: "Hand cleaned", titleHi: "हाथ से सफ़ाई", text: "Every batch cleaned and sorted by hand", img: "2-hand-cleaned" },
   { title: "Wood pressed", titleHi: "लकड़ी की घानी", text: "Pressed slowly in a wooden kachi ghani, without high heat", img: "3-wood-pressed" },
-  { title: "Cloth filtered", titleHi: "कपड़े से छनाई", text: "Strained through cloth, then clarified naturally by settling", img: "4-cloth-filtered" },
+  { title: "Cloth filtered", titleHi: "कपड़े से छनाई", text: "Strained through fine cotton cloth", img: "4-cloth-filtered" },
+  { title: "Gravity settled", titleHi: "10 दिन निथार", text: "Rested 10 days so fine particles settle on their own", img: "4b-gravity-settled" },
   { title: "Bottled", titleHi: "बोतल में भराई", text: "Bottled fresh, every batch lab tested", img: "5-bottled" },
 ];
 const HERO = 2; // "Wood pressed", the heart of the process

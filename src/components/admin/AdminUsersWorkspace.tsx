@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import { useState, useTransition } from "react";
 import { Crown, Link2, Loader2, Shield, Trash2, User as UserIcon, UserPlus } from "lucide-react";
 import { createAdminInviteAction, removeAdminUserAction } from "@/lib/admin-user-actions";
@@ -46,7 +47,7 @@ export function AdminUsersWorkspace({ initialUsers }: { initialUsers: User[] }) 
           action={(form) =>
             start(async () => {
               try {
-                const result = await createAdminInviteAction({ email: String(form.get("email") ?? ""), role });
+                const result = unwrap(await createAdminInviteAction({ email: String(form.get("email") ?? ""), role }));
                 setInvite(result.token);
                 setError("");
               } catch (e) {
@@ -135,7 +136,7 @@ export function AdminUsersWorkspace({ initialUsers }: { initialUsers: User[] }) 
                   onConfirm={() =>
                     start(async () => {
                       try {
-                        await removeAdminUserAction(u.id);
+                        unwrap(await removeAdminUserAction(u.id));
                         setUsers((list) => list.filter((x) => x.id !== u.id));
                       } catch (e) {
                         setError(e instanceof Error ? e.message : "Could not remove user.");

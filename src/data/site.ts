@@ -5,10 +5,10 @@ export const site = {
   description:
     "Wood-pressed (kachi ghani) oils, raw honey and natural sweeteners, slowly pressed in a wooden ghani in Bijainagar, Rajasthan. No heat, no chemicals, no refining.",
   url:
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.com",
-  phone: "+91-9251005103",
-  phoneHref: "tel:+919251005103",
-  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "919251005103",
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.in",
+  phone: "+91-8440099585",
+  phoneHref: "tel:+918440099585",
+  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "918440099585",
   supportHours: "9am–6pm",
   // TODO(client): replace with domain email (e.g. hello@swadeshimahadevproducts.com)
   email: "info.mahadevproducts@gmail.com",
@@ -23,8 +23,7 @@ export const site = {
   // From the product label.
   fssai: "12226047000007",
   iso: "ISO 9001:2015",
-  // TODO(client): GST number
-  gst: "TODO(client)",
+  gst: "08AFPPT8337M3ZC",
   // TODO(client): free shipping threshold final karna (old site showed both ₹999 and ₹500)
   freeShippingThreshold: 999,
   // TODO(client): flat shipping below the threshold, and COD charge. Placeholders until confirmed.

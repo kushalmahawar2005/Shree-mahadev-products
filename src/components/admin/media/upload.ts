@@ -1,6 +1,8 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import { signUploadAction, type UploadedImage } from "@/lib/media-actions";
+import { compressVideo } from "./compress-video";
 
 const MAX_BYTES = 9.5 * 1024 * 1024; // Cloudinary free plan: 10 MB per image
 const MAX_SIDE = 4000;
@@ -37,15 +39,22 @@ export async function uploadToCloudinary(
   file: File,
   folder: "products" | "banners" | "reels" | "collections",
   onProgress?: (pct: number) => void,
+  /** Videos: called with "compress" while shrinking in the browser, then "upload". */
+  onStage?: (stage: "compress" | "upload") => void,
 ): Promise<UploadedImage> {
   const isVideo = folder === "reels";
   if (isVideo) {
     if (!file.type.startsWith("video/")) throw new Error(`${file.name} is not a video`);
-    if (file.size > MAX_VIDEO_BYTES) throw new Error(`${file.name} is over 100 MB. Export it at 1080p or lower.`);
+    // Any size goes in: shrink in the browser first (≤1280px H.264), then check the limit.
+    onStage?.("compress");
+    file = await compressVideo(file, onProgress);
+    onStage?.("upload");
+    onProgress?.(0);
+    if (file.size > MAX_VIDEO_BYTES) throw new Error(`${file.name} is still over 100 MB after compressing. Trim it shorter and try again.`);
   } else if (!file.type.startsWith("image/") && !/\.heic$/i.test(file.name)) {
     throw new Error(`${file.name} is not an image`);
   }
-  const [blob, sig] = await Promise.all([isVideo ? file : prepare(file), signUploadAction(folder)]);
+  const [blob, sig] = await Promise.all([isVideo ? file : prepare(file), signUploadAction(folder).then(unwrap)]);
   const fd = new FormData();
   fd.append("file", blob, file.name);
   fd.append("api_key", sig.apiKey);
@@ -53,6 +62,11 @@ export async function uploadToCloudinary(
   fd.append("signature", sig.signature);
   fd.append("folder", sig.folder);
   fd.append("allowed_formats", sig.allowed_formats);
+  if ("transformation" in sig && sig.transformation) fd.append("transformation", sig.transformation);
+  if ("eager" in sig && sig.eager) {
+    fd.append("eager", sig.eager);
+    fd.append("eager_async", "true");
+  }
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

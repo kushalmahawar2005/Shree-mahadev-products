@@ -20,8 +20,19 @@ export type GalleryVideo = { src: string; poster: string; label: string };
  * Product stage: swatch glow + crossfading image (swipe on touch, arrows/keys), thumbnail rail,
  * optional short process video as the last slide (muted inline, loads only when opened). Hand-built on motion.
  */
+/** Size slug in a photo's file name ("…/1l-front.jpg" → "1l"), or null for general photos (nutrition, label). */
+const sizeOf = (url: string) => url.match(/\/(\d+(?:\.\d+)?(?:ml|l|g|kg))-[a-z0-9-]+\.[a-z0-9]+$/i)?.[1].toLowerCase() ?? null;
+
+/** Only the chosen size's photos (+ general ones). No photo for that size yet: show everything. */
+function forSize<T extends { url: string }>(all: T[], size?: string): T[] {
+  if (!size) return all;
+  const slug = size.toLowerCase().replace(/\s+/g, "");
+  const own = all.filter((im) => sizeOf(im.url) === slug);
+  return own.length ? all.filter((im) => sizeOf(im.url) === slug || sizeOf(im.url) === null) : all;
+}
+
 export function Gallery({
-  images,
+  images: all,
   title,
   swatch = "#d0b17a",
   badge,
@@ -33,22 +44,22 @@ export function Gallery({
   badge?: React.ReactNode;
   video?: GalleryVideo;
 }) {
+  const { size } = useVariantImage();
+  const images = forSize(all, size);
   const [i, setI] = useState(0);
   const [dir, setDir] = useState(1);
   const [zoom, setZoom] = useState<{ x: number; y: number } | null>(null);
   const [box, setBox] = useState(false);
   const reduce = useReducedMotion();
-  // Jump to the photo of the size picked in the buy box (state adjusted during render, no effect needed).
-  const { size } = useVariantImage();
+  // New size picked in the buy box: the gallery now holds that size's photos; start on its front shot
+  // (state adjusted during render, no effect needed).
   const [seenSize, setSeenSize] = useState(size);
   if (size !== seenSize) {
     setSeenSize(size);
     const match = variantImage(images, size);
-    const n = match ? images.indexOf(match) : -1;
-    if (n >= 0 && n !== i) {
-      setDir(n > i ? 1 : -1);
-      setI(n);
-    }
+    const n = match ? images.indexOf(match) : 0;
+    setDir(n >= i ? 1 : -1);
+    setI(Math.max(0, n));
   }
   const img = images[i];
   const stageRef = useRef<HTMLDivElement>(null);
@@ -251,11 +262,11 @@ export function Gallery({
               aria-label={`Show image ${n + 1}`}
               aria-current={n === i}
               className={cn(
-                "grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-sunken transition-colors",
+                "grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-[#fbf5e5] transition-colors",
                 n === i ? "border-forest" : "border-transparent hover:border-line",
               )}
             >
-              <SmartImage src={im.url} alt="" width={64} height={80} className="size-full object-contain p-1" />
+              <SmartImage src={im.url} alt="" width={128} height={160} className="size-full object-cover" />
             </button>
           ))}
           {video && (

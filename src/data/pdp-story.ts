@@ -8,12 +8,16 @@
  */
 import type { ProductCategory } from "@/lib/commerce/types";
 import { scenes, type Art } from "@/data/brand-art";
+import { siteVideoUrl } from "@/lib/site-videos";
 
 export type StoryStep = { title: string; body: string; image?: string };
 export type HomeCheck = { title: string; body: string; icon: "smell" | "cold" | "look" | "pour" | "taste"; image?: string };
-export type ReelClip = { video: string; caption: string };
+/** One reel: an uploaded video, or an Instagram Reel / YouTube Shorts link (optional cover image for Instagram). */
+export type ReelClip = { video?: string; link?: string; cover?: string; caption: string };
 
-type Story = {
+export const CHECK_ICONS = ["smell", "cold", "look", "pour", "taste"] as const;
+
+export type Story = {
   method?: { eyebrow: string; title: string; intro: string; steps: StoryStep[] };
   checks?: { eyebrow: string; title: string; intro: string; items: HomeCheck[] };
   reels?: ReelClip[];
@@ -23,12 +27,13 @@ const OIL: Story = {
   method: {
     eyebrow: "कच्ची घानी की विधि",
     title: "The kachi ghani way. No shortcuts.",
-    intro: "Five slow steps, the same way oil was made in village ghanis.",
+    intro: "Six slow steps, the same way oil was made in village ghanis.",
     steps: [
       { title: "Farm sourced", body: "We start with whole, clean seeds from trusted farms.", image: "/illustrations/process/1-farm.webp" },
       { title: "Hand cleaned", body: "Stones, dust and husk are picked out before pressing.", image: "/illustrations/process/2-hand-cleaned.webp" },
       { title: "Slow pressed", body: "Pressed slowly in our kachi ghani, so the oil stays cool.", image: "/illustrations/process/3-wood-pressed.webp" },
-      { title: "Cloth filtered", body: "Rested so the sediment settles, then filtered through cloth.", image: "/illustrations/process/4-cloth-filtered.webp" },
+      { title: "Cloth filtered", body: "Strained through fine cotton cloth to catch the seed bits.", image: "/illustrations/process/4-cloth-filtered.webp" },
+      { title: "Gravity settled", body: "Rested still for 10 days so the finest particles sink on their own.", image: "/illustrations/process/4b-gravity-settled.webp" },
       { title: "Bottled fresh", body: "Filled and sealed in small batches in Bijainagar.", image: "/illustrations/process/5-bottled.webp" },
     ],
   },
@@ -43,12 +48,12 @@ const OIL: Story = {
     ],
   },
   reels: [
-    { video: "/videos/reels/ghani-2.mp4", caption: "Slow pressing, no heat" },
-    { video: "/videos/reels/oil-pour.mp4", caption: "Golden oil, straight from the press" },
-    { video: "/videos/reels/ghani-3.mp4", caption: "Settled, filtered, bottled by hand" },
-    { video: "/videos/reels/bottling.mp4", caption: "Filtered and filled, batch by batch" },
-    { video: "/videos/reels/ghani-pour.mp4", caption: "Golden oil from the ghani" },
-    { video: "/videos/reels/ghani-1.mp4", caption: "Seeds going into the ghani" },
+    { video: siteVideoUrl("reels/ghani-2"), caption: "Slow pressing, no heat" },
+    { video: siteVideoUrl("reels/oil-pour"), caption: "Golden oil, straight from the press" },
+    { video: siteVideoUrl("reels/ghani-3"), caption: "Settled, filtered, bottled by hand" },
+    { video: siteVideoUrl("reels/bottling"), caption: "Filtered and filled, batch by batch" },
+    { video: siteVideoUrl("reels/ghani-pour"), caption: "Golden oil from the ghani" },
+    { video: siteVideoUrl("reels/ghani-1"), caption: "Seeds going into the ghani" },
   ],
 };
 
@@ -67,6 +72,9 @@ const HONEY: Story = {
 
 // TODO(client): jaggery/khand method + checks once the client confirms how they are made.
 const STORY: Partial<Record<ProductCategory, Story>> = { oil: OIL, honey: HONEY };
+
+/** Built-in copy. The admin "Product stories" page can override it per category (settings key `pdp_story`). */
+export const DEFAULT_STORIES = STORY;
 
 export const storyFor = (category: ProductCategory): Story => STORY[category] ?? {};
 

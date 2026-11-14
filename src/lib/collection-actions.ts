@@ -1,5 +1,6 @@
 "use server";
 
+import { safe } from "@/lib/action-result";
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { TAGS } from "@/lib/commerce";
@@ -44,33 +45,39 @@ function checkedImage(value: string) {
 }
 
 export async function saveCollectionAction(raw: unknown, originalHandle?: string) {
-  await requireAdmin();
-  const input = fields.parse(raw);
-  if (new Set(input.products).size !== input.products.length) throw new Error("A product can only appear once in a collection");
-  const original = originalHandle === undefined ? undefined : pathHandle.parse(originalHandle);
-  const data: CollectionInput = { ...input, imageUrl: checkedImage(input.imageUrl) };
-  try {
-    const result = await saveCollection(data, original);
-    invalidate([result.handle, ...(result.previousHandle && result.previousHandle !== result.handle ? [result.previousHandle] : [])]);
-    return result;
-  } catch (e) {
-    if ((e as { code?: string }).code === "ER_DUP_ENTRY") throw new Error("That collection URL is already in use");
-    throw e;
-  }
+  return safe(async () => {
+    await requireAdmin();
+    const input = fields.parse(raw);
+    if (new Set(input.products).size !== input.products.length) throw new Error("A product can only appear once in a collection");
+    const original = originalHandle === undefined ? undefined : pathHandle.parse(originalHandle);
+    const data: CollectionInput = { ...input, imageUrl: checkedImage(input.imageUrl) };
+    try {
+      const result = await saveCollection(data, original);
+      invalidate([result.handle, ...(result.previousHandle && result.previousHandle !== result.handle ? [result.previousHandle] : [])]);
+      return result;
+    } catch (e) {
+      if ((e as { code?: string }).code === "ER_DUP_ENTRY") throw new Error("That collection URL is already in use");
+      throw e;
+    }
+  });
 }
 
 export async function reorderCollectionsAction(raw: unknown) {
-  await requireAdmin();
-  const handles = z.array(pathHandle).max(500).parse(raw);
-  if (new Set(handles).size !== handles.length) throw new Error("Duplicate collection in order");
-  await saveCollectionOrder(handles);
-  invalidate(handles);
+  return safe(async () => {
+    await requireAdmin();
+    const handles = z.array(pathHandle).max(500).parse(raw);
+    if (new Set(handles).size !== handles.length) throw new Error("Duplicate collection in order");
+    await saveCollectionOrder(handles);
+    invalidate(handles);
+  });
 }
 
 export async function deleteCollectionAction(raw: unknown) {
-  await requireAdmin();
-  const handle = pathHandle.parse(raw);
-  const deleted = await deleteCollection(handle);
-  if (deleted) invalidate([handle]);
-  return deleted;
+  return safe(async () => {
+    await requireAdmin();
+    const handle = pathHandle.parse(raw);
+    const deleted = await deleteCollection(handle);
+    if (deleted) invalidate([handle]);
+    return deleted;
+  });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
@@ -149,11 +150,15 @@ export function ConsentManager() {
       {pixelId && <Script id="smp-meta-pixel" strategy="afterInteractive">{`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${pixelId}');`}</Script>}
       {clarityId && <Script id="smp-clarity" strategy="afterInteractive">{`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,'clarity','script','${clarityId}');`}</Script>}
     </>}
-    {choice === null && <aside aria-label="Privacy choices" className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-3xl rounded-2xl border border-line bg-white p-4 shadow-xl md:bottom-4 md:flex md:items-center md:gap-5 md:p-5">
-      <p className="flex-1 text-sm leading-relaxed text-ink-muted">We use optional analytics and advertising tools to understand visits and measure campaigns. You can change your choice at any time.</p>
-      <div className="mt-3 flex shrink-0 gap-2 md:mt-0">
-        <button type="button" onClick={() => void choose("necessary")} className="min-h-11 flex-1 rounded-full border border-line px-4 text-sm font-semibold text-forest md:flex-none">Only necessary</button>
-        <button type="button" onClick={() => void choose("all")} className="min-h-11 flex-1 rounded-full bg-forest px-4 text-sm font-semibold text-white hover:bg-forest-mid md:flex-none">Accept all</button>
+    {/* Compact strip: one short line + two small buttons, so it never covers the product or Add to cart. */}
+    {choice === null && <aside aria-label="Privacy choices" className="fixed inset-x-2 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-3 rounded-full border border-line bg-white/95 py-1.5 pl-4 pr-1.5 shadow-lg backdrop-blur md:inset-x-auto md:bottom-4 md:left-4 md:max-w-md">
+      <p className="min-w-0 flex-1 text-xs leading-snug text-ink-muted">
+        We use cookies for analytics &amp; ads.{" "}
+        <Link href="/policies/privacy" prefetch={false} className="font-medium text-forest underline underline-offset-2">Learn more</Link>
+      </p>
+      <div className="flex shrink-0 gap-1">
+        <button type="button" onClick={() => void choose("necessary")} className="h-9 rounded-full px-3 text-xs font-semibold text-forest hover:bg-khaki-soft">Decline</button>
+        <button type="button" onClick={() => void choose("all")} className="h-9 rounded-full bg-forest px-4 text-xs font-semibold text-white hover:bg-forest-mid">Accept</button>
       </div>
     </aside>}
   </>;

@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils/cn";
 import { youtubeIdFrom } from "./BrandFilm";
 import type { ReelItem } from "./Reels";
 import { VideoTile, type TileProduct } from "./VideoTile";
+import { siteVideo } from "@/lib/site-videos";
 
-const FILM = { src: "/videos/ghani-film.mp4", poster: "/videos/ghani-film.jpg" };
+const FILM = siteVideo("ghani-film", 960);
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");

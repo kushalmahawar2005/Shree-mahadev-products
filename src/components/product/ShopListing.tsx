@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { useLoadingSignal } from "@/components/motion/LoadingBar";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { ArrowUpDown, Loader2, SlidersHorizontal, X } from "lucide-react";
+import { ArrowRight, ArrowUpDown, Loader2, SlidersHorizontal, X } from "lucide-react";
 import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { QuickView } from "./QuickView";
@@ -422,7 +422,7 @@ function PriceInput({ label, value, onCommit }: { label: string; value: number; 
 /** Same footprint as a card: points families and shops to bulk tins. */
 function PromoTile() {
   return (
-    <li key="promo" className="flex flex-col justify-between rounded-2xl bg-forest p-5 text-white">
+    <li key="promo" className="@container flex flex-col justify-between rounded-2xl bg-forest p-5 text-white">
       <div>
         <p className="font-hindi text-sm text-mustard" lang="hi">
           थोक ऑर्डर
@@ -430,8 +430,10 @@ function PromoTile() {
         <p className="mt-2 text-xl leading-tight font-bold">Bulk tins 5 L & 15 L</p>
         <p className="mt-2 text-sm text-white/75">For big families, sweet shops and restaurants. Better per-litre price.</p>
       </div>
-      <a href="/bulk-orders" className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-white text-sm font-bold text-forest hover:bg-khaki-soft">
-        Ask for a bulk quote →
+      <a href="/bulk-orders" className="mt-6 inline-flex h-11 items-center justify-center gap-1.5 rounded-full bg-white px-3 text-sm font-bold whitespace-nowrap text-forest hover:bg-khaki-soft">
+        <span className="@max-[150px]:hidden">Ask for a bulk quote</span>
+        <span className="@min-[150px]:hidden">Bulk quote</span>
+        <ArrowRight className="size-4 shrink-0" aria-hidden />
       </a>
     </li>
   );

@@ -32,6 +32,7 @@ import { getProduct } from "@/lib/commerce";
 import { nimbusConfigured } from "@/lib/server/nimbuspost";
 import { getOrderById, getOrderEvents, listRefunds, refundableFor, type Order, type OrderStatus } from "@/lib/server/orders";
 import { getOrderExtras } from "@/lib/server/order-detail";
+import { returnForOrder } from "@/lib/server/helpdesk";
 import { estimateWeightGrams } from "@/lib/server/shipping";
 import { listShipments } from "@/lib/server/shipments";
 import { listOrderEmails, mailConfigured } from "@/lib/server/mail";
@@ -90,7 +91,7 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
     );
   }
 
-  const [shipments, events, emails, refundable, refunds, extras, products] = await Promise.all([
+  const [shipments, events, emails, refundable, refunds, extras, products, ret] = await Promise.all([
     listShipments(order.id),
     getOrderEvents(order.id),
     listOrderEmails(order.id),
@@ -98,6 +99,7 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
     listRefunds(order.id),
     getOrderExtras(order),
     Promise.all(order.items.map((i) => getProduct(i.productHandle).catch(() => undefined))),
+    returnForOrder(order.id),
   ]);
 
   // Prefill packed weight from the catalog (admin can edit before booking).
@@ -133,6 +135,11 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
               <CopyButton value={order.orderNo} label="order number" className="size-8" />
             </h1>
             <StatusBadge tone={label.tone}>{label.text}</StatusBadge>
+            {ret && (
+              <Link href="/admin/helpdesk?tab=returns" className="rounded-full transition-opacity hover:opacity-80">
+                <StatusBadge tone={ret.status === "requested" ? "amber" : "gray"}>Return {ret.status}</StatusBadge>
+              </Link>
+            )}
           </div>
           <p className="mt-1 text-sm text-ink-muted">
             Placed {when(order.createdAt)} · {paymentText} · {units} item{units === 1 ? "" : "s"} · {formatMoney(order.total)}

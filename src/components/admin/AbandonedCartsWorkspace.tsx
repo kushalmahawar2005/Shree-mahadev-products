@@ -430,7 +430,7 @@ function CartAction({ row, block }: { row: CartRow; block?: boolean }) {
       label={row.reminderCount ? "Remind again" : "WhatsApp"}
       pending={pending}
       block={block}
-      onClick={() => start(() => markReminderSentAction(row.id))}
+      onClick={() => start(async () => void (await markReminderSentAction(row.id)))}
     />
   );
 }

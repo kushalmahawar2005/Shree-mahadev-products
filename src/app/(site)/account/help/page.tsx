@@ -48,8 +48,9 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
         <div className="mb-5 lg:mb-6">
           <HelpSearchBox name={c.name} />
         </div>
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-12 lg:gap-6">
-          <div className="space-y-5 lg:col-span-7 lg:space-y-6">
+        {/* Inside the account layout (sidebar + content) two columns only fit on wide screens. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-12 xl:gap-6">
+          <div className="space-y-5 xl:col-span-8 xl:space-y-6">
             <HelpFlow
               orders={page.orders.slice(0, 5).map(toHelpOption)}
               hasMore={page.orders.length > 5 || page.nextCursor !== null}
@@ -59,7 +60,7 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
             />
             <HelpFaq faqs={faqs} />
           </div>
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:col-span-5 lg:space-y-6 lg:self-start">
+          <aside className="space-y-5 lg:space-y-6 xl:sticky xl:top-24 xl:col-span-4 xl:self-start">
             <ContactCard name={c.name} phone={c.phone} />
             <PolicyLinks />
           </aside>

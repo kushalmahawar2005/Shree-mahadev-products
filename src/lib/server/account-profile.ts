@@ -15,7 +15,7 @@ type Rows = RowDataPacket[];
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
 const siteUrl = () =>
   (
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.com"
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.in"
   ).replace(/\/$/, "");
 
 /* ───────────────────────── Profile ───────────────────────── */

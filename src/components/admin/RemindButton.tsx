@@ -11,7 +11,7 @@ export function RemindButton({ cartId, href, again }: { cartId: number; href: st
       href={href}
       target="_blank"
       rel="noreferrer"
-      onClick={() => start(() => markReminderSentAction(cartId))}
+      onClick={() => start(async () => void (await markReminderSentAction(cartId)))}
       className="inline-flex min-h-10 items-center rounded-full bg-forest px-4 text-sm font-semibold text-white hover:bg-forest-mid aria-disabled:opacity-60"
       aria-disabled={pending}
     >

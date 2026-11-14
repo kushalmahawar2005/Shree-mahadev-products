@@ -25,7 +25,7 @@ const BACKOFF_MIN = [1, 5, 15, 60, 240];
 
 const siteUrl = () =>
   (
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.com"
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.in"
   ).replace(/\/$/, "");
 export const mailConfigured = () => Boolean(process.env.RESEND_API_KEY);
 const mailFrom = () =>

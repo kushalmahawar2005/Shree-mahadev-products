@@ -11,7 +11,7 @@ import { site, shopByUse, whatsappLink, type NavItem } from "@/data/site";
 import { UserIcon, WhatsAppIcon } from "./icons";
 import type { MenuData } from "./MegaMenu";
 
-const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png";
+const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
 const shortName = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 
 const MORE = [
@@ -123,7 +123,7 @@ export function MobileNav({ open, onClose, menus, nav }: { open: boolean; onClos
         </nav>
 
         {/* Account at the bottom */}
-        <Link href="/account" onClick={onClose} className="flex min-h-14 items-center gap-3 border-t border-line bg-white px-5 font-semibold text-forest-text">
+        <Link href="/account" prefetch={false} onClick={onClose} className="flex min-h-14 items-center gap-3 border-t border-line bg-white px-5 font-semibold text-forest-text">
           <UserIcon className="size-5" /> My account
           <ChevronRight className="ml-auto size-4 text-ink-muted" />
         </Link>

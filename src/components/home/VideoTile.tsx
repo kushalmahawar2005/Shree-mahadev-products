@@ -40,6 +40,7 @@ export function VideoTile({
   title,
   subtitle,
   product,
+  footer,
   soundPill = false,
   compact = false,
   playOnHover = false,
@@ -53,11 +54,17 @@ export function VideoTile({
   title: string;
   subtitle?: string;
   product?: TileProduct;
+  /** Compact tiles: custom bottom content (e.g. the reel shop strip) in place of the product chip. */
+  footer?: React.ReactNode;
   /** "Watch with sound" hint, used on the main film only. */
   soundPill?: boolean;
   /** Small reel card: light caption (hover-revealed title + compact pill) so the video stays the hero. */
   compact?: boolean;
-  /** Desktop (hover pointer): play only while hovered, poster otherwise. Touch: play when mostly in view. */
+  /**
+   * Reels: always play muted while in view; on desktop, hovering a tile turns ITS sound on
+   * (and off again on leave). Browsers only allow sound after the visitor has clicked/tapped
+   * the page once; before that the hover shows a "click for sound" hint instead.
+   */
   playOnHover?: boolean;
   /** Reels: don't fetch any video data until the tile nears the viewport. */
   lazy?: boolean;
@@ -68,15 +75,17 @@ export function VideoTile({
   const reduce = useReducedMotion();
   const canHover = useCanHover();
   const [hover, setHover] = useState(false);
+  const [soundOn, setSoundOn] = useState(false);
+  const [soundHint, setSoundHint] = useState(false);
 
   useEffect(() => {
     const v = ref.current;
     if (!v || reduce) return;
-    if (playOnHover && canHover) return; // desktop: driven by hover below
-    // Touch reels use a high threshold so (with ~70vw cards) only one plays at a time.
+    // Every tile plays muted while visible. Touch reels use a high threshold so (with ~70vw
+    // cards) only one plays at a time; desktop rows play all visible tiles.
     const io = new IntersectionObserver(
       ([e]) => (e.isIntersecting ? void v.play().catch(() => {}) : v.pause()),
-      { threshold: playOnHover ? 0.75 : 0.25 },
+      { threshold: playOnHover && !canHover ? 0.75 : 0.25 },
     );
     io.observe(v);
     return () => io.disconnect();
@@ -85,11 +94,19 @@ export function VideoTile({
   useEffect(() => {
     const v = ref.current;
     if (!v || reduce || !playOnHover || !canHover) return;
-    if (hover) void v.play().catch(() => {});
-    else {
-      v.pause();
-      v.currentTime = 0;
+    const activated = navigator.userActivation?.hasBeenActive ?? true;
+    if (hover && activated) {
+      v.muted = false;
+      void v.play().catch(() => {
+        // Browser refused sound: stay muted and keep playing.
+        v.muted = true;
+        void v.play().catch(() => {});
+      });
+    } else {
+      v.muted = true;
     }
+    setSoundOn(hover && activated && !v.muted);
+    setSoundHint(hover && !activated);
   }, [hover, reduce, playOnHover, canHover]);
 
   const chipPrice = product?.price ? formatMoney(product.price) : null;
@@ -126,6 +143,12 @@ export function VideoTile({
         )}
       </button>
 
+      {soundHint && (
+        <span className="pointer-events-none absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+          <Volume2 className="size-3" /> Click anywhere for sound
+        </span>
+      )}
+
       {/* Play control: same glass circle and corner on every tile (smaller on reels) */}
       <span
         aria-hidden
@@ -134,7 +157,7 @@ export function VideoTile({
           compact ? "top-3 right-3 size-9 bg-black/30" : "top-4 right-4 size-10 bg-white/10",
         )}
       >
-        <Play className={cn("ml-0.5 fill-white", compact ? "size-3.5" : "size-4")} />
+        {soundOn ? <Volume2 className={compact ? "size-3.5" : "size-4"} /> : <Play className={cn("ml-0.5 fill-white", compact ? "size-3.5" : "size-4")} />}
       </span>
 
       {compact ? (
@@ -148,7 +171,8 @@ export function VideoTile({
           >
             {title}
           </motion.p>
-          {product && (
+          {footer && <div className="pointer-events-auto w-full">{footer}</div>}
+          {!footer && product && (
             <Link
               href={product.href}
               title={chipPrice ? `${product.title} · ${chipPrice}` : product.title}

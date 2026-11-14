@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -78,7 +79,7 @@ export function CollectionWorkspace({ initialRows }: { initialRows: Row[] }) {
     setBusy(true);
     setMsg(null);
     try {
-      await reorderCollectionsAction(next.map((r) => r.handle));
+      unwrap(await reorderCollectionsAction(next.map((r) => r.handle)));
       setSavedOrder(key);
       setMsg({ ok: true, text: "Order saved. The store menu updates right away." });
     } catch (e) {
@@ -102,7 +103,7 @@ export function CollectionWorkspace({ initialRows }: { initialRows: Row[] }) {
     setBusy(true);
     setMsg(null);
     try {
-      await deleteCollectionAction(row.handle);
+      unwrap(await deleteCollectionAction(row.handle));
       setRows((cur) => cur.filter((r) => r.handle !== row.handle));
       setMsg({ ok: true, text: `“${row.title}” deleted. Its products are unchanged.` });
       router.refresh();
@@ -336,7 +337,7 @@ function CreateCollection({ nextOrder, onCreated }: { nextOrder: number; onCreat
     setBusy(true);
     setError("");
     try {
-      const result = await saveCollectionAction({ handle: finalHandle, title, description, imageUrl, inMenu: false, menuOrder: nextOrder, showHomepage: false, products: [] });
+      const result = unwrap(await saveCollectionAction({ handle: finalHandle, title, description, imageUrl, inMenu: false, menuOrder: nextOrder, showHomepage: false, products: [] }));
       onCreated({
         id: Date.now(),
         handle: result.handle,

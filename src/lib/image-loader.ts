@@ -3,7 +3,7 @@
  *  - f_auto: AVIF/WebP for browsers that support it
  *  - q_auto:good: perceptual quality (no visible loss, much smaller files)
  *  - c_limit,w_N: never upscale, only shrink to the size actually shown
- * Originals stay untouched on Cloudinary. Local files pass through (with a `w` query, see below).
+ * Originals stay untouched on Cloudinary. Local public/ images go through their Cloudinary mirror.
  */
 const MARK = "/image/upload/";
 
@@ -14,17 +14,44 @@ export function cldUrl(src: string, width?: number, quality?: number) {
   return src.replace(MARK, `${MARK}${t}/`);
 }
 
+const CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+/**
+ * public/ raster images are mirrored on Cloudinary by scripts/upload-static.mjs (run before deploy)
+ * at swadeshi-mahadev/static/<path without extension>. Must match publicIdOf() in that script.
+ */
+export function staticCldPath(src: string) {
+  if (!CLOUD || !/^\/[^?#]+\.(png|jpe?g|webp)$/i.test(src)) return null;
+  const id = "swadeshi-mahadev/static/" + src.slice(1).replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9/_-]/g, "-");
+  return `https://res.cloudinary.com/${CLOUD}/image/upload/${id}`;
+}
+
 export default function cloudinaryLoader({ src, width, quality }: { src: string; width: number; quality?: number }) {
   if (src.startsWith("https://res.cloudinary.com/")) return cldUrl(src, width, quality);
+  // Local public/ images: resized + AVIF/WebP from Cloudinary's CDN instead of full-size from our server.
+  const mirrored = staticCldPath(src);
+  if (mirrored) return cldUrl(mirrored, width, quality);
   // Local/other files are served as-is. Still encode the width (static files ignore the query) so
   // each srcset entry is distinct and next/image doesn't warn that the loader ignores `width`.
   if (src.startsWith("data:") || src.startsWith("blob:")) return src;
   return `${src}${src.includes("?") ? "&" : "?"}w=${width}`;
 }
 
-/** Cloudinary video: auto codec/quality, capped width (shrinks big phone recordings a lot). */
-export function cldVideo(url: string, width = 720) {
-  return url.replace("/video/upload/", `/video/upload/f_auto:video,q_auto,c_limit,w_${width}/`);
+/**
+ * Video renditions are generated once at upload (eager), because Cloudinary answers 423 "still processing"
+ * to the first request of a new on-the-fly video transform. So every <video> uses one of these fixed sizes.
+ */
+export const VIDEO_WIDTHS = [480, 640, 960] as const;
+export const videoTransform = (w: number) => `q_auto,vc_h264,c_limit,w_${w}`;
+/** Value for Cloudinary's `eager` upload parameter: all renditions cldVideo() can ask for. */
+export const VIDEO_EAGER = VIDEO_WIDTHS.map((w) => `${videoTransform(w)}/mp4`).join("|");
+
+/** Cloudinary video: H.264 MP4 at the nearest pre-generated width (480 / 640 / 960). */
+export function cldVideo(url: string, width = 640) {
+  const w = width <= 560 ? 480 : width <= 800 ? 640 : 960;
+  return url
+    .replace("/video/upload/", `/video/upload/${videoTransform(w)}/`)
+    .replace(/\.(mov|webm|m4v)$/i, ".mp4");
 }
 
 /** Still frame from a Cloudinary video, for the poster. */

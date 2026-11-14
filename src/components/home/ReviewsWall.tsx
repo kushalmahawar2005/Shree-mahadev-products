@@ -8,6 +8,7 @@ import { BadgeCheck } from "@/components/icons/duo";
 import { Marquee } from "@/components/shadcn/marquee";
 import type { PublicReview } from "@/lib/server/reviews";
 import { cn } from "@/lib/utils/cn";
+import { showRating } from "@/lib/utils/reviews";
 
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("") || "?";
@@ -58,6 +59,8 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
   if (!reviews.length) return null;
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
   const verified = reviews.filter((r) => r.verified).length;
+  // Too few reviews for a fair average: lead with "real reviews" instead of a 5.0 score.
+  const scored = showRating(reviews.length);
   const half = Math.ceil(reviews.length / 2);
   const rowA = reviews.slice(0, half);
   const rowB = reviews.length > 3 ? reviews.slice(half) : [];
@@ -81,14 +84,23 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="relative flex items-center gap-3 overflow-hidden rounded-2xl bg-forest px-4 py-3 text-white sm:block sm:rounded-3xl sm:p-6"
           >
-            <p className="relative text-4xl leading-none font-extrabold tabular-nums sm:text-6xl sm:leading-tight">{avg.toFixed(1)}</p>
-            <div className="relative min-w-0 flex-1">
-              <Stars n={Math.round(avg)} className="sm:mt-2" />
-              <p className="mt-1.5 text-[13px] text-white/75 sm:mt-2 sm:text-sm">
-                From {reviews.length} review{reviews.length === 1 ? "" : "s"}
-                {verified ? ` · ${verified} verified` : ""}
-              </p>
-            </div>
+            {scored ? (
+              <>
+                <p className="relative text-4xl leading-none font-extrabold tabular-nums sm:text-6xl sm:leading-tight">{avg.toFixed(1)}</p>
+                <div className="relative min-w-0 flex-1">
+                  <Stars n={Math.round(avg)} className="sm:mt-2" />
+                  <p className="mt-1.5 text-[13px] text-white/75 sm:mt-2 sm:text-sm">
+                    From {reviews.length} reviews
+                    {verified ? ` · ${verified} verified` : ""}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="relative min-w-0 flex-1">
+                <p className="text-xl leading-tight font-extrabold sm:text-3xl">Real words from real kitchens</p>
+                <p className="mt-1.5 text-[13px] text-white/75 sm:mt-2 sm:text-sm">Reviews from people who ordered from us.</p>
+              </div>
+            )}
             <Link
               href="/shop"
               aria-label="Explore the store"

@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { BannerManager } from "@/components/admin/media/BannerManager";
 import { listBanners } from "@/lib/server/media";
 
-export const metadata = { title: "Hero banners" };
+export const metadata = { title: "Home banners" };
 
 export default function BannersPage() {
   return (

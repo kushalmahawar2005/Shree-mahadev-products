@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils/cn";
 import type { UploadedImage } from "@/lib/media-actions";
 import { uploadToCloudinary } from "./upload";
 
-type Job = { name: string; pct: number; error?: string };
+type Job = { name: string; pct: number; error?: string; stage?: "compress" | "upload" };
 
 /** Drag & drop / click / paste uploader. Files go straight to Cloudinary. */
 export function DropZone({
@@ -37,7 +37,12 @@ export function DropZone({
     setJobs(picked.map((f) => ({ name: f.name, pct: 0 })));
     const results = await Promise.all(
       picked.map((f, i) =>
-        uploadToCloudinary(f, folder, (pct) => setJobs((js) => js.map((j, k) => (k === i ? { ...j, pct: Math.min(pct, 99) } : j))))
+        uploadToCloudinary(
+          f,
+          folder,
+          (pct) => setJobs((js) => js.map((j, k) => (k === i ? { ...j, pct: Math.min(pct, 99) } : j))),
+          (stage) => setJobs((js) => js.map((j, k) => (k === i ? { ...j, stage } : j))),
+        )
           .then((r) => {
             setJobs((js) => js.map((j, k) => (k === i ? { ...j, pct: 100 } : j)));
             return r;
@@ -100,7 +105,7 @@ export function DropZone({
             <li key={i} className="text-sm">
               <div className="flex justify-between gap-2">
                 <span className="truncate">{j.name}</span>
-                <span className={j.error ? "text-sale" : "text-ink-muted"}>{j.error ?? `${j.pct}%`}</span>
+                <span className={j.error ? "text-sale" : "text-ink-muted"}>{j.error ?? (j.stage === "compress" ? `Compressing ${j.pct}%` : `${j.pct}%`)}</span>
               </div>
               {!j.error && (
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line">

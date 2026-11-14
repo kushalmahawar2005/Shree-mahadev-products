@@ -39,7 +39,16 @@ const nextConfig: NextConfig = {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   async redirects() {
-    return legacyRedirects;
+    return [
+      // One canonical host: www.* → apex, permanent (also covers http→https via Hostinger).
+      {
+        source: "/:path*",
+        has: [{ type: "host" as const, value: "www.swadeshimahadevproducts.in" }],
+        destination: "https://swadeshimahadevproducts.in/:path*",
+        permanent: true,
+      },
+      ...legacyRedirects,
+    ];
   },
 };
 

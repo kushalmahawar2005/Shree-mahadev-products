@@ -1,5 +1,6 @@
 "use client";
 
+import { showRating } from "@/lib/utils/reviews";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -128,7 +129,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                 {s.titleHi}
               </p>
               <h3 className="text-[22px] leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
-              {s.rating && s.reviewCount ? (
+              {s.rating && showRating(s.reviewCount) ? (
                 <p className="mt-1.5 flex items-center gap-1.5 text-xs text-white/80 md:mt-2 md:text-sm">
                   <Star className="size-4 fill-[#f5b400] text-[#f5b400]" /> {s.rating.toFixed(1)} · {s.reviewCount} review{s.reviewCount === 1 ? "" : "s"}
                 </p>

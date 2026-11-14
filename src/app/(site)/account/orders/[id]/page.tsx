@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { RequestCallback } from "@/components/account/help/RequestCallback";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -360,7 +361,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               <p id="help-h" className="text-sm font-semibold text-ink">
                 Need help with this order?
               </p>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <RequestCallback orderId={o.id} orderNo={o.orderNo} phone={formatPhone(shell.customer.phone)} className="mt-3" />
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                 <a
                   href={help}
                   target="_blank"

@@ -100,11 +100,12 @@ function OfferPanel({ percent }: { percent: number }) {
         className="pointer-events-none absolute -top-24 -right-24 size-64 rounded-full bg-khaki/20 blur-3xl md:-bottom-24 md:-left-20 md:top-auto md:right-auto"
       />
       <Image
-        src="/images/deco/seal-kachi-ghani.webp"
-        alt=""
+        src="https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_200/v1793735979/swadeshi-mahadev/static/logo.png"
+        alt="Mahadev Products"
         width={112}
         height={112}
-        className="relative size-16 shrink-0 md:size-24"
+        unoptimized
+        className="relative size-16 shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)] md:size-24"
       />
       <div className="relative">
         <p className="text-xs font-semibold tracking-[0.18em] text-khaki uppercase">Welcome offer</p>
@@ -202,7 +203,7 @@ function FormPanel({ percent }: { percent: number }) {
               <button
                 type="submit"
                 disabled={pending}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-forest text-base font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-70"
+                className="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-forest text-base font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-70"
               >
                 {pending && <Loader2 className="size-4 animate-spin" />}
                 Get my code

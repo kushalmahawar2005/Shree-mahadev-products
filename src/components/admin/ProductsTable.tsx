@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -85,7 +86,7 @@ export function ProductsTable({ rows, collections }: { rows: ProductRow[]; colle
     start(async () => {
       setMsg(null);
       try {
-        const n = await bulkProductsAction(handles, action);
+        const n = unwrap(await bulkProductsAction(handles, action));
         setMsg({ ok: true, text: `${label} · ${n} product${n === 1 ? "" : "s"}` });
         setSel(new Set());
         router.refresh();

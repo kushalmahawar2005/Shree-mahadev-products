@@ -7,6 +7,7 @@ import { StatTile } from "@/components/admin/ui";
 import { listNdrCases } from "@/lib/server/shipments";
 import { requireRole } from "@/lib/server/admin-auth";
 import { createDailyManifestAction, ndrAction } from "@/lib/admin-actions";
+import { unwrap } from "@/lib/action-result";
 import { cn } from "@/lib/utils/cn";
 
 export const metadata = { title: "Shipping operations" };
@@ -21,7 +22,7 @@ async function manifest(formData: FormData) {
   let url: string | null = null;
   let problem = "";
   try {
-    url = (await createDailyManifestAction(String(formData.get("date") ?? ""))).url ?? null;
+    url = unwrap(await createDailyManifestAction(String(formData.get("date") ?? ""))).url ?? null;
   } catch (e) {
     problem = e instanceof Error ? e.message : "Could not create the manifest";
   }
@@ -30,12 +31,13 @@ async function manifest(formData: FormData) {
 
 async function ndr(formData: FormData) {
   "use server";
-  await ndrAction(
+  const r = await ndrAction(
     String(formData.get("awb") ?? ""),
     String(formData.get("action") ?? "") as "reattempt" | "change_address_phone" | "rto",
     { address: String(formData.get("address") ?? ""), phone: String(formData.get("phone") ?? "") },
   );
   revalidatePath("/admin/shipping");
+  if (!r.ok) redirect(`/admin/shipping?manifest=${encodeURIComponent(`NDR: ${r.error}`)}`);
 }
 
 export default async function ShippingPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

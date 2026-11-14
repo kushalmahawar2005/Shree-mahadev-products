@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Check, RotateCcw } from "lucide-react";
 import { AlertCircle, Banknote, Clock, CreditCard, MapPin, MessageCircle, PackageCheck, Phone, Truck, XCircle } from "@/components/icons/duo";
-import { OrderCelebrate } from "@/components/checkout/OrderCelebrate";
+import { OrderCelebrate, SuccessTick } from "@/components/checkout/OrderCelebrate";
 import { PurchaseEvent } from "@/components/marketing/PurchaseEvent";
 import { site, whatsappLink } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
@@ -88,17 +88,21 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
             total={order.total}
             items={order.items.map((item) => ({ productHandle: item.productHandle, quantity: item.quantity, unitPrice: item.unitPrice }))}
           />
-          <OrderCelebrate orderNo={order.orderNo} />
+          <OrderCelebrate orderNo={order.orderNo} total={order.total} cod={order.paymentMethod === "cod"} />
         </>
       )}
 
       {/* Hero */}
       <section className="flex flex-col items-center text-center">
-        <span className={cn("grid size-16 place-items-center rounded-full md:size-20", tone.halo)}>
-          <span className={cn("grid size-11 place-items-center md:size-14 rounded-full shadow-[0_10px_24px_-12px_rgba(7,47,27,0.6)]", tone.ring)}>
-            <ToneIcon className="size-6 md:size-7" strokeWidth={2.5} />
+        {celebrate ? (
+          <SuccessTick size={72} delay={0.2} />
+        ) : (
+          <span className={cn("grid size-16 place-items-center rounded-full md:size-20", tone.halo)}>
+            <span className={cn("grid size-11 place-items-center md:size-14 rounded-full shadow-[0_10px_24px_-12px_rgba(7,47,27,0.6)]", tone.ring)}>
+              <ToneIcon className="size-6 md:size-7" strokeWidth={2.5} />
+            </span>
           </span>
-        </span>
+        )}
         <p className="mt-4 inline-flex md:mt-5 items-center gap-2 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-ink-muted">
           Order <span className="font-mono text-forest-text">{order.orderNo}</span>
         </p>

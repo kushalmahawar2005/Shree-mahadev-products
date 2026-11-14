@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { unwrap } from "@/lib/action-result";
 import { useState, useTransition } from "react";
 import { Loader2, Undo2 } from "lucide-react";
 import { refundOrderAction } from "@/lib/admin-actions";
@@ -75,7 +76,7 @@ export function RefundPanel({ orderId, paid, left, refunds }: { orderId: number;
               start(async () => {
                 setMsg(null);
                 try {
-                  const r = await refundOrderAction(orderId, n, reason);
+                  const r = unwrap(await refundOrderAction(orderId, n, reason));
                   setMsg({ ok: true, text: `${r.full ? "Full" : "Partial"} refund of ${formatMoney(r.amount)} requested. Customer emailed.` });
                   router.refresh();
                 } catch (e) {

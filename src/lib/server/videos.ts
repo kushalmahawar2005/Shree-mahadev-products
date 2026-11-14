@@ -2,6 +2,13 @@ import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 
+/**
+ * Where a reel shows: homepage reels, the product pages of one category, or "product":
+ * only on its tagged product's page, in the video row next to the buy box.
+ */
+export const REEL_PLACEMENTS = ["home", "oil", "honey", "sweetener", "product"] as const;
+export type ReelPlacement = (typeof REEL_PLACEMENTS)[number];
+
 export type Reel = {
   id: number;
   publicId: string;
@@ -11,9 +18,17 @@ export type Reel = {
   duration: number | null;
   caption: string;
   productHandle: string | null;
+  /** Uploaded reels: optional "Watch on Instagram" link. Link-only reels (videoUrl ""): the YouTube link. */
   instagramUrl: string | null;
   active: boolean;
+  placements: ReelPlacement[];
 };
+
+function parsePlacements(v: unknown): ReelPlacement[] {
+  const arr = typeof v === "string" ? (JSON.parse(v) as unknown) : v;
+  if (!Array.isArray(arr)) return ["home"];
+  return arr.filter((x): x is ReelPlacement => (REEL_PLACEMENTS as readonly string[]).includes(x as string));
+}
 
 const toReel = (r: RowDataPacket): Reel => ({
   id: r.id,
@@ -26,6 +41,7 @@ const toReel = (r: RowDataPacket): Reel => ({
   productHandle: r.product_handle,
   instagramUrl: r.instagram_url,
   active: !!r.active,
+  placements: parsePlacements(r.placements),
 });
 
 export async function listReels(onlyActive = false): Promise<Reel[]> {
@@ -35,15 +51,29 @@ export async function listReels(onlyActive = false): Promise<Reel[]> {
   return rows.map(toReel);
 }
 
-export async function addReels(items: { publicId: string; url: string; width: number; height: number; duration?: number }[]) {
+export async function addReels(
+  items: { publicId: string; url: string; width: number; height: number; duration?: number }[],
+  placements: ReelPlacement[] = ["home"],
+  productHandle: string | null = null,
+) {
   if (!items.length) return;
   const [[{ next }]] = await db().query<RowDataPacket[]>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM reels");
-  await db().query("INSERT INTO reels (public_id, video_url, width, height, duration, sort_order) VALUES ?", [
-    items.map((v, i) => [v.publicId, v.url, v.width, v.height, v.duration ?? null, Number(next) + i]),
+  await db().query("INSERT INTO reels (public_id, video_url, width, height, duration, sort_order, placements, product_handle) VALUES ?", [
+    items.map((v, i) => [v.publicId, v.url, v.width, v.height, v.duration ?? null, Number(next) + i, JSON.stringify(placements), productHandle]),
   ]);
 }
 
-export async function updateReel(id: number, p: { caption?: string; productHandle?: string | null; instagramUrl?: string | null; active?: boolean }) {
+/** A reel that is only a YouTube link (no uploaded file): video_url is empty, instagram_url holds the link. */
+export async function addReelLink(link: string, placements: ReelPlacement[] = ["home"]) {
+  const [[{ next }]] = await db().query<RowDataPacket[]>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM reels");
+  await db().execute("INSERT INTO reels (public_id, video_url, width, height, instagram_url, sort_order, placements) VALUES ('', '', 0, 0, ?, ?, ?)", [
+    link,
+    Number(next),
+    JSON.stringify(placements),
+  ]);
+}
+
+export async function updateReel(id: number, p: { caption?: string; productHandle?: string | null; instagramUrl?: string | null; active?: boolean; placements?: ReelPlacement[] }) {
   const sets: string[] = [];
   const vals: (string | number | null)[] = [];
   if (p.caption !== undefined) {
@@ -57,6 +87,10 @@ export async function updateReel(id: number, p: { caption?: string; productHandl
   if (p.instagramUrl !== undefined) {
     sets.push("instagram_url = ?");
     vals.push(p.instagramUrl);
+  }
+  if (p.placements !== undefined) {
+    sets.push("placements = ?");
+    vals.push(JSON.stringify(p.placements));
   }
   if (p.active !== undefined) {
     sets.push("active = ?");

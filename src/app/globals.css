@@ -708,3 +708,95 @@ html.js-motion:not(.motion-failsafe) [data-pdp-thumbs]:not([data-revealed]) > * 
     background-color: transparent;
   }
 }
+
+/* ---------- Footer harvest art: SVG animation over the illustration (FooterHarvestArt.tsx) ----------
+   The SVG viewBox is pixel-matched to the 2000×667 image: keep the image at width 100% / height auto. */
+.kf {
+  position: relative;
+  width: 100%;
+  line-height: 0;
+  overflow: hidden;
+}
+.kf img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.kf svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.kf .flow {
+  fill: none;
+  stroke: #fff6b8;
+  stroke-linecap: round;
+  stroke-dasharray: 5 11;
+  animation: kf-flow 0.55s linear infinite;
+}
+.kf .ring {
+  fill: none;
+  stroke: #fedc78;
+  stroke-width: 3;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: kf-ring 5s ease-out infinite;
+}
+.kf .ring.r2 {
+  animation-delay: 2.5s;
+}
+.kf .glow {
+  animation: kf-glow 5s ease-in-out infinite;
+}
+.kf .grain {
+  fill: #525d00;
+  animation: kf-grain 0.8s linear infinite;
+}
+.kf .drop {
+  fill: #f4ce21;
+  animation: kf-drop 1.6s ease-in infinite;
+}
+.kf .wing {
+  fill: #f6edc0;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: kf-wing 0.12s ease-in-out infinite alternate;
+}
+.kf .bob {
+  animation: kf-bob 3s ease-in-out infinite;
+}
+@keyframes kf-flow {
+  to { stroke-dashoffset: -16; }
+}
+@keyframes kf-ring {
+  0% { transform: scale(1); opacity: 0.7; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+@keyframes kf-glow {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.7; }
+}
+@keyframes kf-grain {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(19px); opacity: 0; }
+}
+@keyframes kf-drop {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  20% { opacity: 1; transform: translateY(2px) scale(1); }
+  100% { transform: translateY(28px) scale(1); opacity: 1; }
+}
+@keyframes kf-wing {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0.7); }
+}
+@keyframes kf-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kf svg { display: none; }
+}

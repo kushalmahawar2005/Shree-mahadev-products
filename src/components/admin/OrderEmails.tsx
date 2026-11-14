@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { unwrap } from "@/lib/action-result";
 import { resendOrderEmailAction } from "@/lib/admin-actions";
 import type { OutboxRow } from "@/lib/server/mail";
 import { cn } from "@/lib/utils/cn";
@@ -64,7 +65,7 @@ export function OrderEmails({ orderId, initial, hasEmail, configured, defaultKin
             start(async () => {
               setErr(null);
               try {
-                setRows(await resendOrderEmailAction(orderId, kind));
+                setRows(unwrap(await resendOrderEmailAction(orderId, kind)));
               } catch (e) {
                 setErr((e as Error).message);
               }

@@ -12,6 +12,9 @@ import { SectionArt } from "@/components/ui/SectionArt";
 import { TornEdge } from "@/components/ui/TornEdge";
 import { deco } from "@/data/brand-art";
 import { ProofCard, type ProofMedia } from "./ProofCard";
+import { siteVideo } from "@/lib/site-videos";
+
+const POUR = siteVideo("ghani-pour-desktop", 960);
 
 export type LabReport = { slug: string; name: string; reportNo: string };
 
@@ -66,7 +69,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
       text: "Every oil checked by an independent lab. Read the full report for each one.",
       media: reports[0]
         ? { kind: "doc", src: `/proof/${reports[0].slug}.webp`, back: reports[1] ? `/proof/${reports[1].slug}-thumb.webp` : undefined, alt: `Lab report: ${reports[0].name}` }
-        : { kind: "video", poster: "/videos/ghani-pour-desktop.jpg", alt: "Lab reports" },
+        : { kind: "video", poster: POUR.poster, alt: "Lab reports" },
       onOpenMedia: () => (setI(0), setOpen("lab")),
       cta: { label: "View lab reports", onClick: () => (setI(0), setOpen("lab")) },
     },
@@ -86,7 +89,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
       title: "Wood-pressed, kachi ghani",
       fact: "Kachi ghani · no heat · no chemicals",
       text: "Pressed slowly in a wooden ghani, then left to settle naturally before bottling.",
-      media: { kind: "video", poster: "/videos/ghani-pour-desktop.jpg", alt: "Oil pouring from our wooden ghani" },
+      media: { kind: "video", poster: POUR.poster, alt: "Oil pouring from our wooden ghani" },
       onOpenMedia: () => setOpen("video"),
       cta: { label: "See how it's made", href: "#story" },
     },
@@ -145,7 +148,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
           {open === "video" && (
             <>
               <DialogTitle className="sr-only">Oil pouring from our wooden ghani</DialogTitle>
-              <video src="/videos/ghani-pour-desktop.mp4" poster="/videos/ghani-pour-desktop.jpg" autoPlay controls playsInline className="aspect-video w-full bg-black" />
+              <video src={POUR.src} poster={POUR.poster} autoPlay controls playsInline className="aspect-video w-full bg-black" />
             </>
           )}
           {open === "fssai" && (

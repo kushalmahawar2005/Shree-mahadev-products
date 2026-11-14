@@ -29,7 +29,7 @@ const PANELS: Record<MenuGroup, { all: [string, string]; useLinks: boolean; prom
   oils: {
     all: ["All oils", "/collections/wood-pressed-oils"],
     useLinks: true,
-    promo: { title: "How our ghani works", text: "Five honest steps, from farm to bottle.", cta: "See the process", href: "/#ghani-process", img: "/illustrations/process/3-wood-pressed.webp" },
+    promo: { title: "How our ghani works", text: "Six honest steps, from farm to bottle.", cta: "See the process", href: "/#ghani-process", img: "/illustrations/process/3-wood-pressed.webp" },
   },
   honey: {
     all: ["All honey", "/collections/raw-honey"],

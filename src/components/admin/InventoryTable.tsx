@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ import { cn } from "@/lib/utils/cn";
 import { ConfirmAction } from "./order/ConfirmAction";
 
 type Filter = "all" | "low" | "out" | "untracked";
-type LogEntry = Awaited<ReturnType<typeof inventoryLogAction>>[number];
+type LogEntry = Extract<Awaited<ReturnType<typeof inventoryLogAction>>, { ok: true }>["data"][number];
 type Mode = "add" | "remove" | "set";
 
 const REASON_LABEL: Record<string, string> = {
@@ -98,7 +99,7 @@ export function InventoryTable({ rows, threshold }: { rows: InventoryRow[]; thre
   async function openHistory(row: InventoryRow) {
     setHistory({ row, log: null });
     try {
-      const log = await inventoryLogAction(row.variantKey);
+      const log = unwrap(await inventoryLogAction(row.variantKey));
       setHistory({ row, log });
     } catch (error) {
       setHistory(null);
@@ -143,7 +144,7 @@ export function InventoryTable({ rows, threshold }: { rows: InventoryRow[]; thre
             </button>
           ))}
         </div>
-        <ThresholdControl threshold={threshold} busy={busy} onSave={(n) => run(() => setLowStockThresholdAction(n), `Low stock alert set to ${n}`)} />
+        <ThresholdControl threshold={threshold} busy={busy} onSave={(n) => run(async () => unwrap(await setLowStockThresholdAction(n)), `Low stock alert set to ${n}`)} />
         <div className="relative lg:ml-auto lg:w-80">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-muted" />
           <input
@@ -358,14 +359,13 @@ function AdjustPopover({ r, busy, run }: { r: InventoryRow; busy: boolean; run: 
     if (!valid) return;
     const effReason = mode === "set" ? "correction" : mode === "remove" ? (reason === "restock_manual" ? "damaged" : reason) : reason === "damaged" ? "restock_manual" : reason;
     run(
-      () =>
-        adjustStockAction({
+      async () => unwrap(await adjustStockAction({
           variantKey: r.variantKey,
           mode: mode === "set" ? "set" : "delta",
           value: mode === "set" ? n : mode === "add" ? n : -n,
           reason: effReason,
           ...(note.trim() ? { note: note.trim() } : {}),
-        }),
+        })),
       `${r.productTitle} ${r.size}: ${preview} in stock`,
       () => (setOpen(false), reset()),
     );
@@ -499,7 +499,7 @@ function AdjustPopover({ r, busy, run }: { r: InventoryRow; busy: boolean; run: 
               description="It will always show as available and orders won't reduce its stock. The change is logged."
               confirmLabel="Stop tracking"
               destructive
-              onConfirm={() => run(() => adjustStockAction({ variantKey: r.variantKey, mode: "untrack", value: 0, reason: "correction" }), `${r.size}: stopped tracking`, () => setOpen(false))}
+              onConfirm={() => run(async () => unwrap(await adjustStockAction({ variantKey: r.variantKey, mode: "untrack", value: 0, reason: "correction" })), `${r.size}: stopped tracking`, () => setOpen(false))}
             />
           </div>
         )}

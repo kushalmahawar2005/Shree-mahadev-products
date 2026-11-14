@@ -171,7 +171,7 @@ export const beyondSlides = [
  *  `collection` = store collection handle; empty means no products yet → "Coming soon". */
 export const categoryTiles = [
   {
-    key: "oils", title: "Wood-Pressed oils", titleHi: "लकड़ी घानी तेल", unit: "oils", collection: "wood-pressed-oils", span: "hero",
+    key: "oils", title: "Wood-Pressed oils", titleHi: "कच्ची-घाणी तेल", unit: "oils", collection: "wood-pressed-oils", span: "hero",
     blurb: "Mustard, groundnut, sesame, coconut and more, slow-pressed in our wooden ghani.",
     stage: stages.oils.src,
     cover: "/images/home/category-oils-v2.webp",

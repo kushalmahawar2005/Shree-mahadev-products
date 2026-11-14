@@ -1,5 +1,6 @@
 "use client";
 
+import { MIN_REVIEWS_FOR_RATING } from "@/lib/utils/reviews";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -22,7 +23,6 @@ export type { PickProduct };
 
 const BADGES: Record<string, string> = { bestseller: "Bestseller", new: "New", "best-value": "Best value" };
 /** Star chip only once there are enough reviews to mean something. */
-const MIN_REVIEWS = 5;
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed /, "");
 
 /**
@@ -86,9 +86,9 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
     available.length === 0 ? (
       <Link
         href={href}
-        className="inline-flex h-8 w-full items-center justify-center rounded-full border border-forest px-4 text-[12.5px] sm:h-11 sm:text-sm font-medium text-forest transition-colors hover:bg-forest hover:text-white"
+        className="inline-flex h-8 w-full items-center justify-center rounded-full border border-forest px-2 text-[12.5px] whitespace-nowrap sm:h-11 sm:px-4 sm:text-sm font-medium text-forest transition-colors hover:bg-forest hover:text-white"
       >
-        Coming soon · View details
+        Coming soon<span className="@max-[200px]:hidden">&nbsp;· View details</span>
       </Link>
     ) : (
       <div className="space-y-2 sm:space-y-2.5">
@@ -188,7 +188,8 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
               key={img.url}
               src={fallbackFor(img.url)}
               onError={() => onImgError(img.url)}
-              alt=""
+              // The link is aria-hidden (the title link is the accessible one); the alt is for image search.
+              alt={img.alt || product.title}
               width={img.width}
               height={img.height}
               priority={priority}
@@ -200,7 +201,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             />
           )}
           {/* Stars (real reviews only) sit on the photo, so cards with and without reviews are the same height. */}
-          {product.rating && (product.reviewCount ?? 0) >= MIN_REVIEWS ? (
+          {product.rating && (product.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING ? (
             <span
               className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-[11px] font-semibold text-ink shadow-sm backdrop-blur-sm sm:text-xs"
               aria-label={`Rated ${product.rating.toFixed(1)} out of 5 from ${product.reviewCount} reviews`}
@@ -217,9 +218,9 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
               <span className="@max-[168px]:sr-only">{BADGES[badgeTag]}</span>
             </span>
           )}
-          {/* Phones: the discount sits on the photo so price + MRP keep to one line. */}
+          {/* Narrow cards (phones, 4-up grids): the discount sits on the photo so price + MRP always keep to one line. */}
           {pctOff > 0 && (
-            <span className="shine-badge tag-breathe absolute top-2 right-2 rounded-full bg-co-success px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums sm:hidden">{pctOff}% off</span>
+            <span className="shine-badge tag-breathe absolute top-2 right-2 rounded-full bg-co-success px-1.5 py-0.5 text-[10px] font-bold text-white tabular-nums sm:top-2.5 sm:right-2.5 sm:px-2 sm:text-[11px] @min-[280px]:hidden">{pctOff}% off</span>
           )}
         </Link>
       </div>
@@ -244,11 +245,11 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         {/* 5. Price: selling price first, MRP struck + % off, then the unit price (follows the size chip) */}
         {selected && (
           <div className="pt-1.5 sm:pt-2.5" aria-live="polite">
-            <p className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 sm:gap-x-2">
+            <p className="flex flex-nowrap items-baseline gap-x-1.5 whitespace-nowrap sm:gap-x-2">
               <span className="text-[15px] leading-none font-bold text-forest tabular-nums sm:text-2xl">{formatMoney(selected.price)}</span>
               {save > 0 && <s className="text-[11px] text-ink-muted tabular-nums sm:text-sm">{formatMoney(selected.compareAtPrice!)}</s>}
               {pctOff > 0 && (
-                <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[11px] font-semibold text-forest tabular-nums max-sm:hidden">{pctOff}% off</span>
+                <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[11px] font-semibold text-forest tabular-nums @max-[279px]:hidden">{pctOff}% off</span>
               )}
             </p>
             {selected.outOfStock ? (

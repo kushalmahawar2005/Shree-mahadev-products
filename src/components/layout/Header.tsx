@@ -18,7 +18,7 @@ import { SearchBox } from "./SearchBox";
 import { SearchCommand } from "./SearchCommand";
 import { MobileNav } from "./MobileNav";
 
-const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png";
+const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
 const OPEN_DELAY = 100; // hover intent before a mega menu opens
 const CLOSE_GRACE = 150; // time to move the pointer from the nav into the panel
 
@@ -270,7 +270,7 @@ function HeaderBar({
             <button type="button" onClick={onSearch} tabIndex={compact ? 0 : -1} className="grid size-10 place-items-center rounded-xl text-forest hover:bg-forest/5" aria-label="Search">
               <Search className="size-[22px]" strokeWidth={1.6} />
             </button>
-            <Link href="/account" tabIndex={compact ? 0 : -1} className="grid size-10 place-items-center rounded-xl text-forest hover:bg-forest/5" aria-label="Account">
+            <Link href="/account" prefetch={false} tabIndex={compact ? 0 : -1} className="grid size-10 place-items-center rounded-xl text-forest hover:bg-forest/5" aria-label="Account">
               <UserIcon className="size-[22px]" />
             </Link>
             <CartButton compact tabIndex={compact ? 0 : -1} />
@@ -304,7 +304,8 @@ function Collapse({ open, desktopOnly, children }: { open: boolean; desktopOnly?
 /** Icon with a small caption under it (desktop). Same size, label and hover for every action. */
 function HeaderAction({ href, label, className, children }: { href: string; label: string; className?: string; children: React.ReactNode }) {
   return (
-    <Link href={href} aria-label={label} className={cn("group/act min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 text-forest transition-colors hover:bg-forest/5", className)}>
+    // /account redirects signed-out visitors to /login in the proxy; prefetching that redirect 404s.
+    <Link href={href} prefetch={href === "/account" ? false : undefined} aria-label={label} className={cn("group/act min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 text-forest transition-colors hover:bg-forest/5", className)}>
       <span className="grid size-7 place-items-center transition-transform duration-200 group-hover/act:-translate-y-0.5">{children}</span>
       <span className="text-[11px] leading-none font-bold text-forest-text">{label}</span>
     </Link>

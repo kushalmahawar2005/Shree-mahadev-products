@@ -17,6 +17,12 @@ export type HeroSlide = {
 
 export const heroSlides: HeroSlide[] = [
   {
+    src: "/images/hero/hero-dadi-rasoi-desktop.webp",
+    mobileSrc: "/images/hero/hero-dadi-rasoi-mobile.webp",
+    alt: "Pure, the way Dadi makes it. Dadi pouring Mahadev wood-pressed groundnut oil into a kadhai in her kitchen.",
+    href: "/collections/wood-pressed-oils",
+  },
+  {
     src: "/images/hero-slide-1.svg",
     alt: "Rajasthan ki asli kachi ghani. Wood-pressed oils from Bijainagar.",
     href: "/collections/wood-pressed-oils",

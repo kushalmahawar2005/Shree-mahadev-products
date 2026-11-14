@@ -91,7 +91,8 @@ const TicketInput = z
   })
   .strict()
   .refine((v) => v.contactPref !== "call" || v.callbackSlot, { message: "Pick a time for the call back.", path: ["callbackSlot"] })
-  .refine((v) => v.message.length > 0 || v.issue !== "other", { message: "Tell us a little about the problem.", path: ["message"] });
+  .refine((v) => v.message.length > 0 || v.issue !== "other", { message: "Tell us a little about the problem.", path: ["message"] })
+  .refine((v) => v.issue !== "callback" || v.contactPref === "call", { message: "Pick a time for the call back.", path: ["callbackSlot"] });
 
 /**
  * Create a help request: saved in the DB first, then the store is alerted by email (outbox).
@@ -113,9 +114,9 @@ export async function submitSupportTicketAction(raw: unknown) {
       customer.id,
     ]);
     if (!o) return fail("Order not found.");
-    if (!issuesFor(String(o.status)).includes(input.issue)) return fail("Please pick the issue again.");
+    if (input.issue !== "callback" && !issuesFor(String(o.status)).includes(input.issue)) return fail("Please pick the issue again.");
     orderNo = String(o.order_no ?? input.orderId);
-  } else if (!issuesFor(null).includes(input.issue)) return fail("Please pick the issue again.");
+  } else if (input.issue !== "callback" && !issuesFor(null).includes(input.issue)) return fail("Please pick the issue again.");
 
   const photos = PHOTO_ISSUES.includes(input.issue) ? input.photos : [];
   for (const ph of photos) {

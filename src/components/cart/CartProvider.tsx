@@ -10,7 +10,6 @@ import {
 } from "@/lib/commerce/actions";
 import type { Cart } from "@/lib/commerce/types";
 import { Toaster, toast } from "sonner";
-import confetti from "canvas-confetti";
 import { AddedToast } from "./AddedToast";
 
 type CartContextValue = {
@@ -137,7 +136,8 @@ export function burst(scale = 1) {
   if (typeof window === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const colors = ["#0c3c24", "#b49024", "#f6efe2", "#f08a24"];
   const x = window.innerWidth < 640 ? 0.5 : 0.84;
-  confetti({ particleCount: Math.round(60 * scale), spread: 70, startVelocity: 34, origin: { x, y: 0.25 }, colors, zIndex: 9999, scalar: 0.9 });
+  // Loaded only when it fires, so the library isn't in every page's JS.
+  void import("canvas-confetti").then(({ default: confetti }) => confetti({ particleCount: Math.round(60 * scale), spread: 70, startVelocity: 34, origin: { x, y: 0.25 }, colors, zIndex: 9999, scalar: 0.9 }));
 }
 
 export function useCart() {

@@ -22,6 +22,9 @@ import {
 } from "@/data/home";
 import type { Product } from "@/lib/commerce/types";
 import { cn } from "@/lib/utils/cn";
+import { siteVideo } from "@/lib/site-videos";
+
+const POUR = siteVideo("ghani-pour-desktop", 960);
 import { ArrowRow } from "./ArrowRow";
 import { FilmShowcase } from "./FilmShowcase";
 import type { ReelItem } from "./Reels";
@@ -97,12 +100,12 @@ export function PromoStrip() {
       >
         {/* Real footage: oil pouring from our wooden ghani. Desktop plays the muted loop on the right,
             fading into the green; mobile uses the still frame behind a dark overlay. */}
-        <Image src="/videos/ghani-pour-desktop.jpg" alt="" fill sizes="100vw" className="object-cover md:hidden" />
+        <Image src={POUR.poster} alt="" fill sizes="100vw" className="object-cover md:hidden" />
         <div aria-hidden className="absolute inset-0 bg-[#03331C]/75 md:hidden" />
         <video
           className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[64%] object-cover [mask-image:linear-gradient(90deg,transparent_0%,#000_38%)] md:block"
-          src="/videos/ghani-pour-desktop.mp4"
-          poster="/videos/ghani-pour-desktop.jpg"
+          src={POUR.src}
+          poster={POUR.poster}
           autoPlay
           muted
           loop

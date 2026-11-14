@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { unwrap } from "@/lib/action-result";
 import { useState, useTransition } from "react";
 import {
   CircleCheck,
@@ -102,7 +103,7 @@ export function ShipmentPanel({
         <button
           type="button"
           disabled={pending}
-          onClick={() => run(async () => (await setOrderStatusAction(orderId, "confirmed", "COD confirmed with customer"), setOrderStatus("confirmed")))}
+          onClick={() => run(async () => (unwrap(await setOrderStatusAction(orderId, "confirmed", "COD confirmed with customer")), setOrderStatus("confirmed")))}
           className={ghost}
         >
           <CircleCheck className="size-4" /> Mark COD confirmed
@@ -118,7 +119,7 @@ export function ShipmentPanel({
           title="Has the returned parcel reached you?"
           description="Its items will be added back to stock."
           confirmLabel="Yes, restock"
-          onConfirm={() => run(async () => void (await markRtoReceivedAction(orderId)))}
+          onConfirm={() => run(async () => void (unwrap(await markRtoReceivedAction(orderId))))}
         />
       )}
       {["shipped", "packed"].includes(orderStatus) && (
@@ -131,7 +132,7 @@ export function ShipmentPanel({
           title="Mark this order delivered?"
           description="Use this only if the courier delivered it but tracking hasn't updated."
           confirmLabel="Mark delivered"
-          onConfirm={() => run(async () => (await setOrderStatusAction(orderId, "delivered", "Marked delivered by admin"), setOrderStatus("delivered")))}
+          onConfirm={() => run(async () => (unwrap(await setOrderStatusAction(orderId, "delivered", "Marked delivered by admin")), setOrderStatus("delivered")))}
         />
       )}
       {!active && !["cancelled", "delivered", "refunded"].includes(orderStatus) && (
@@ -146,7 +147,7 @@ export function ShipmentPanel({
           confirmLabel="Cancel order"
           destructive
           reasonLabel="Reason (saved in order history)"
-          onConfirm={(why) => run(async () => (await setOrderStatusAction(orderId, "cancelled", why), setOrderStatus("cancelled")))}
+          onConfirm={(why) => run(async () => (unwrap(await setOrderStatusAction(orderId, "cancelled", why)), setOrderStatus("cancelled")))}
         />
       )}
     </div>
@@ -216,7 +217,7 @@ export function ShipmentPanel({
                 start(async () => {
                   setError(null);
                   try {
-                    const url = await labelUrlAction(orderId);
+                    const url = unwrap(await labelUrlAction(orderId));
                     if (tab) tab.location.href = url;
                     else window.location.href = url;
                   } catch (e) {
@@ -230,11 +231,11 @@ export function ShipmentPanel({
               <Printer className="size-4" /> Print label
             </button>
             {!active.pickupRequested && active.status === "booked" && (
-              <button type="button" disabled={pending} onClick={() => run(async () => setShipments(await requestPickupAction(orderId)))} className={ghost}>
+              <button type="button" disabled={pending} onClick={() => run(async () => setShipments(unwrap(await requestPickupAction(orderId))))} className={ghost}>
                 <Truck className="size-4" /> Request pickup
               </button>
             )}
-            <button type="button" disabled={pending} onClick={() => run(async () => setShipments(await refreshTrackingAction(orderId)))} className={ghost}>
+            <button type="button" disabled={pending} onClick={() => run(async () => setShipments(unwrap(await refreshTrackingAction(orderId))))} className={ghost}>
               {pending ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />} Refresh tracking
             </button>
             {active.trackingUrl && (
@@ -255,7 +256,7 @@ export function ShipmentPanel({
                 destructive
                 onConfirm={() =>
                   run(async () => {
-                    setShipments(await cancelShipmentAction(orderId));
+                    setShipments(unwrap(await cancelShipmentAction(orderId)));
                     setOrderStatus(orderStatus === "packed" ? "paid" : orderStatus);
                   })
                 }
@@ -316,7 +317,7 @@ export function ShipmentPanel({
                 start(async () => {
                   setError(null);
                   try {
-                    const q = await quoteCouriersAction(orderId, weight, dims);
+                    const q = unwrap(await quoteCouriersAction(orderId, weight, dims));
                     setQuotes(q);
                     setCourier(q.find((c) => c.courierId === suggestedCourierId)?.courierId ?? q[0]?.courierId ?? null);
                   } catch (e) {
@@ -368,7 +369,7 @@ export function ShipmentPanel({
                   disabled={pending || !courier}
                   onClick={() =>
                     run(async () => {
-                      setShipments(await bookShipmentAction(orderId, courier!, weight, dims));
+                      setShipments(unwrap(await bookShipmentAction(orderId, courier!, weight, dims)));
                       setOrderStatus("packed");
                       setQuotes(null);
                     })

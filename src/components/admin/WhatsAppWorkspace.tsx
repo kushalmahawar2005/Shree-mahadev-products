@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AlertTriangle, BellOff, CheckCheck, Clock, Loader2, MessageCircle, Plug, RefreshCw, Search, Send, ShoppingCart, Truck, XCircle } from "lucide-react";
@@ -75,7 +76,7 @@ export function WhatsAppWorkspace({ templates, messages, connected }: { template
           disabled={pending}
           onClick={() =>
             run(async () => {
-              const r = await processWhatsAppAction();
+              const r = unwrap(await processWhatsAppAction());
               if (r.waiting) return `${r.waiting} waiting: WhatsApp provider not connected yet`;
               return r.sent || r.failed ? `Sent ${r.sent}, failed ${r.failed}` : "Nothing due right now";
             }, "Done")
@@ -144,7 +145,7 @@ export function WhatsAppWorkspace({ templates, messages, connected }: { template
                       aria-label={`${label(t.template)} message`}
                       onCheckedChange={(on) => {
                         setBusyTpl(t.template);
-                        run(() => toggleWhatsAppTemplateAction({ template: t.template, enabled: on }), `${label(t.template)} ${on ? "on" : "off"}`);
+                        run(async () => unwrap(await toggleWhatsAppTemplateAction({ template: t.template, enabled: on })), `${label(t.template)} ${on ? "on" : "off"}`);
                       }}
                       className="data-[state=checked]:bg-forest"
                     />
@@ -239,7 +240,7 @@ export function WhatsAppWorkspace({ templates, messages, connected }: { template
             run(async () => {
               const p = String(form.get("phone") ?? "").replace(/\D/g, "").slice(-10);
               if (!/^[6-9]\d{9}$/.test(p)) throw new Error("Enter a valid 10-digit mobile number.");
-              await optOutWhatsAppAction({ phone: p });
+              unwrap(await optOutWhatsAppAction({ phone: p }));
               return `+91 ${p} will not get WhatsApp messages`;
             }, "Saved")
           }

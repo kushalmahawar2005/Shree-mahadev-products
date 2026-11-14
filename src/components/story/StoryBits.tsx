@@ -4,6 +4,7 @@ import { BadgeCheck, Ban, Droplets, Factory, FlaskConical, Flame, Leaf, MapPin, 
 import { Stagger, StaggerItem } from "@/components/motion/Reveal";
 import { proof } from "@/data/home";
 import { site } from "@/data/site";
+import { siteVideo } from "@/lib/site-videos";
 
 /** Verified facts only (licence, lab, ISO, place). */
 export function FactsStrip() {
@@ -81,13 +82,15 @@ export function NeverDo() {
   );
 }
 
+const FILM = siteVideo("ghani-film", 960);
+
 export function FilmFrame({ className = "" }: { className?: string }) {
   return (
     <div className={`relative overflow-hidden rounded-[28px] bg-forest ${className}`}>
       <video
         className="size-full object-cover"
-        src="/videos/ghani-film.mp4"
-        poster="/videos/ghani-film.jpg"
+        src={FILM.src}
+        poster={FILM.poster}
         autoPlay
         muted
         loop

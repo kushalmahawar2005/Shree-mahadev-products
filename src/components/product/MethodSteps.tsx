@@ -10,13 +10,16 @@ import { cn } from "@/lib/utils/cn";
 
 /**
  * "The kachi ghani way": a timeline that fills as you scroll, lighting each numbered stop, with
- * the five step cards rising in one after another. Hover lifts a card and eases its painting in.
+ * the step cards rising in one after another. Hover lifts a card and eases its painting in.
  * Phones: a vertical timeline (line fills down as you scroll, rows slide in, the reached step
  * lights up). Reduced motion: everything shown, nothing moves.
  */
 export function MethodSteps({ eyebrow, title, intro, steps }: { eyebrow: string; title: string; intro: string; steps: StoryStep[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  // Desktop grid follows the step count (admin can add or remove steps); the track runs centre to centre.
+  const cols = { gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` };
+  const edge = `${50 / steps.length}%`;
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 85%", "end 55%"] });
   const fill = useSpring(scrollYProgress, { stiffness: 120, damping: 26, mass: 0.4 });
   const [lit, setLit] = useState(0);
@@ -84,11 +87,11 @@ export function MethodSteps({ eyebrow, title, intro, steps }: { eyebrow: string;
 
       <div ref={ref} className="hidden md:block">
         {/* Track (md+): line from the first stop to the last, filling with scroll. */}
-        <div aria-hidden className="relative mb-6 hidden md:grid md:grid-cols-5">
-          <span className="absolute top-1/2 right-[10%] left-[10%] h-[3px] -translate-y-1/2 rounded-full bg-line" />
+        <div aria-hidden className="relative mb-6 hidden md:grid" style={cols}>
+          <span className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-line" style={{ left: edge, right: edge }} />
           <motion.span
-            className="absolute top-1/2 left-[10%] h-[3px] w-[80%] origin-left -translate-y-1/2 rounded-full bg-gradient-to-r from-co-accent to-forest"
-            style={{ scaleX: reduce ? 1 : fill }}
+            className="absolute top-1/2 h-[3px] origin-left -translate-y-1/2 rounded-full bg-gradient-to-r from-co-accent to-forest"
+            style={{ left: edge, width: `calc(100% - 2 * ${edge})`, scaleX: reduce ? 1 : fill }}
           />
           {steps.map((s, i) => {
             const on = i < shown;
@@ -107,7 +110,7 @@ export function MethodSteps({ eyebrow, title, intro, steps }: { eyebrow: string;
           })}
         </div>
 
-        <ol className="grid grid-cols-5 gap-4">
+        <ol className="grid gap-4" style={cols}>
           {steps.map((s, i) => (
             <motion.li
               key={s.title}

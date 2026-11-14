@@ -38,7 +38,8 @@ export function HelpFaq({ faqs }: { faqs: FaqEntry[] }) {
 
       {!searching && (
         <div className="no-scrollbar -mx-5 mt-4 overflow-x-auto px-5 md:mx-0 md:px-0">
-          <div role="tablist" aria-label="FAQ topics" className="flex w-max gap-1 rounded-full border border-line bg-page p-1 md:w-auto md:flex-wrap">
+          {/* Always one row; scrolls sideways when the column is narrow (never wraps inside the pill). */}
+          <div role="tablist" aria-label="FAQ topics" className="flex w-max gap-1 rounded-full border border-line bg-page p-1 whitespace-nowrap">
             {FAQ_CATEGORIES.map((c) => {
               const on = cat === c.id;
               return (

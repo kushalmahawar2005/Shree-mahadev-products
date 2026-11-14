@@ -11,6 +11,7 @@ export const CSP_SOURCES = {
   media: ["'self'", "https://res.cloudinary.com"],
   font: ["'self'", "data:"],
   connect: ["'self'", "https://api.cloudinary.com", ...(isDev ? ["ws:"] : [])],
+  // Reels pasted as YouTube links play in YouTube's privacy-enhanced embed player.
   frame: ["https://www.youtube-nocookie.com"],
   // PayU hosted checkout POST. Chrome applies form-action to the redirects after the POST too, and
   // PayU hops to other subdomains (api.payu.in etc.), so allow all of them or the submit is silently blocked.

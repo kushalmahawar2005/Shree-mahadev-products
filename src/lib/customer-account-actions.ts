@@ -34,6 +34,20 @@ function otpGateway() {
 const MOCK_OTP = "123456";
 const otpMock = () => !otpGateway() && process.env.NODE_ENV !== "production";
 
+/**
+ * Test numbers for the live site while no OTP gateway is set up: CUSTOMER_OTP_TEST_PHONES is a
+ * comma-separated list of 10-digit numbers (the owner's / staff phones). Only those numbers can sign
+ * in with the fixed code; every other number still gets "Mobile login is coming soon".
+ * Remove the variable once the real gateway works.
+ */
+function isTestPhone(phone: string) {
+  const list = (process.env.CUSTOMER_OTP_TEST_PHONES ?? "")
+    .split(",")
+    .map((p) => p.replace(/\D/g, "").slice(-10))
+    .filter((p) => p.length === 10);
+  return list.includes(phone.replace(/\D/g, "").slice(-10));
+}
+
 /** Sends the code. Returns false on any failure, so callers show a message instead of crashing the page. */
 async function sendOtp(phone: string, code: string): Promise<boolean> {
   const gw = otpGateway();
@@ -63,8 +77,8 @@ export async function requestCustomerOtpAction(raw: unknown) {
   const parsed = z.object({ phone: Phone }).strict().safeParse(raw);
   if (!parsed.success)
     return { ok: false, error: "Enter a valid Indian mobile number." };
-  // No gateway yet (and not local dev): say so plainly, guest checkout still works, and skip writing a code nobody receives.
-  const mock = otpMock();
+  // No gateway yet (and not local dev / a test number): say so plainly, guest checkout still works, and skip writing a code nobody receives.
+  const mock = otpMock() || (!otpGateway() && isTestPhone(cleanPhone(parsed.data.phone)));
   if (!otpGateway() && !mock)
     return {
       ok: false,

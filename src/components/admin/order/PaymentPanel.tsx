@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { unwrap } from "@/lib/action-result";
 import { useState, useTransition } from "react";
 import { Banknote, CreditCard, Loader2, RefreshCw, Wallet } from "lucide-react";
 import { verifyPaymentAction } from "@/lib/admin-actions";
@@ -96,7 +97,7 @@ export function PaymentPanel({
               start(async () => {
                 setMsg(null);
                 try {
-                  const outcome = await verifyPaymentAction(orderId);
+                  const outcome = unwrap(await verifyPaymentAction(orderId));
                   setMsg(VERIFY_MSG[outcome]);
                   router.refresh();
                 } catch (e) {

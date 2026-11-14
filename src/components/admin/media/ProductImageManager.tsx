@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import {
@@ -47,7 +48,7 @@ export function ProductImageManager({
         hint={compact ? "First photo = main. Square looks best." : "JPG, PNG, WebP or HEIC. First photo is the main one. Square (1:1) photos look best."}
         onUploaded={async (ups) => {
           try {
-            setImages(await addProductImagesAction(handle, ups, title));
+            setImages(unwrap(await addProductImagesAction(handle, ups, title)));
           } catch (e) {
             setError((e as Error).message);
           }
@@ -64,7 +65,7 @@ export function ProductImageManager({
             className={compact ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"}
             onReorder={(next) => {
               setImages(next);
-              run(() => reorderProductImagesAction(handle, next.map((i) => i.id)));
+              run(async () => unwrap(await reorderProductImagesAction(handle, next.map((i) => i.id))));
             }}
             render={(img, i, move) => (
               <div className="overflow-hidden rounded-2xl border border-line bg-surface">
@@ -79,7 +80,7 @@ export function ProductImageManager({
                     defaultValue={img.alt}
                     placeholder="Alt text"
                     aria-label="Alt text"
-                    onBlur={(e) => e.target.value !== img.alt && run(() => updateProductImageAltAction(handle, img.id, e.target.value))}
+                    onBlur={(e) => e.target.value !== img.alt && run(async () => unwrap(await updateProductImageAltAction(handle, img.id, e.target.value)))}
                     className="min-h-9 w-full rounded-lg border border-line px-2 text-sm"
                   />}
                   <div className="flex items-center justify-between gap-1">
@@ -96,7 +97,7 @@ export function ProductImageManager({
                       onClick={() => {
                         if (!window.confirm("Delete this photo?")) return;
                         setImages((xs) => xs.filter((x) => x.id !== img.id));
-                        run(() => deleteProductImageAction(img.id));
+                        run(async () => unwrap(await deleteProductImageAction(img.id)));
                       }}
                       className={compact ? "size-7 rounded-md text-sm text-red-700 hover:bg-red-50" : "min-h-9 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"}
                     >

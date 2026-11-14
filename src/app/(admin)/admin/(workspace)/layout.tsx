@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { requireAdmin } from "@/lib/server/admin-auth";
+import { helpdeskOpenCount } from "@/lib/server/helpdesk";
 import { connection } from "next/server";
 
 /** Protected admin workspace. Login lives outside this route group so its public layout is never cached here. */
@@ -21,7 +22,12 @@ async function AuthenticatedAdminWorkspace({ children }: { children: React.React
   const admin = await requireAdmin();
   const role =
     admin.role === "manager" || admin.role === "staff" ? admin.role : "owner";
-  return <AdminShell role={role} username={admin.username}>{children}</AdminShell>;
+  const helpdesk = await helpdeskOpenCount().catch(() => 0);
+  return (
+    <AdminShell role={role} username={admin.username} badges={{ "/admin/helpdesk": helpdesk }}>
+      {children}
+    </AdminShell>
+  );
 }
 
 function AdminWorkspaceLoading() {

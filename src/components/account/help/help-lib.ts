@@ -23,6 +23,8 @@ export const ISSUES = {
   product_question: "Product question",
   account: "Account",
   other: "Other",
+  /** "Request a call back" button (order page / help page): any order status, note optional. */
+  callback: "Call back request",
 } as const;
 export type IssueKey = keyof typeof ISSUES;
 export const ISSUE_KEYS = Object.keys(ISSUES) as [IssueKey, ...IssueKey[]];

@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -99,7 +100,7 @@ export function CollectionEditor({ initial, allProducts }: { initial: Data; allP
     setBusy(true);
     setMsg(null);
     try {
-      const result = await saveCollectionAction({ ...data, handle: slug(data.handle), products: selected }, initial.handle);
+      const result = unwrap(await saveCollectionAction({ ...data, handle: slug(data.handle), products: selected }, initial.handle));
       setSaved({ data, selected });
       setMsg({ ok: true, text: "Saved. Store pages and menus are refreshed." });
       if (result.handle !== initial.handle) router.replace(`/admin/categories/${result.handle}`);
@@ -249,7 +250,7 @@ export function CollectionEditor({ initial, allProducts }: { initial: Data; allP
 
           <Section icon={Search} title="Search engine listing" hint="Leave blank to use the name and description.">
             <div className="mb-4 rounded-xl border border-line bg-subtle p-4">
-              <p className="truncate text-xs text-ink-muted">swadeshimahadevproducts.com › collections › {slug(data.handle) || "…"}</p>
+              <p className="truncate text-xs text-ink-muted">swadeshimahadevproducts.in › collections › {slug(data.handle) || "…"}</p>
               <p className="mt-0.5 truncate text-lg leading-snug text-[#1a0dab] dark:text-[#8ab4f8]">{seoTitle || "Collection name"}</p>
               <p className="line-clamp-2 text-sm text-ink-muted">{seoDesc || "Description appears here."}</p>
             </div>

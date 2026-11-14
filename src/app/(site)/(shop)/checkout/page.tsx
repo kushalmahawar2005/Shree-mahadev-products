@@ -20,6 +20,8 @@ export default function CheckoutPage() {
   return (
     <div className="relative">
       <div className="relative mx-auto max-w-6xl px-4 pt-5 pb-10 md:px-6 md:pt-8 lg:pb-16">
+        {/* The checkout header is a slim logo bar, so the page title is for screen readers / SEO only. */}
+        <h1 className="sr-only">Checkout</h1>
         <Suspense fallback={<CheckoutSkeleton />}>
           <CheckoutContent />
         </Suspense>

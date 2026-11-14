@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { announcements as defaultAnnouncements, site } from "@/data/site";
 
 /** Store settings edited in /admin/settings (MySQL `settings` table). src/data/site.ts is only the fallback. */
 const phone = z.string().trim().regex(/^\+?[\d\s-]{10,16}$/, "Enter a valid phone number");
@@ -12,7 +11,7 @@ export const BusinessSchema = z.object({
   fssaiExpiry: z.string().trim().refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Use YYYY-MM-DD").default(""),
   iso: z.string().trim().max(60).default(""),
   phone,
-  whatsapp: z.string().trim().regex(/^91\d{10}$/, "WhatsApp: 91 + 10-digit number, e.g. 919251005103"),
+  whatsapp: z.string().trim().regex(/^91\d{10}$/, "WhatsApp: 91 + 10-digit number, e.g. 918440099585"),
   email: z.string().trim().email(),
   supportHours: z.string().trim().min(3).max(60),
   addressLine1: z.string().trim().min(5).max(200),
@@ -57,42 +56,6 @@ export const StoreSettingsSchema = z.object({
 
 export type StoreSettings = z.infer<typeof StoreSettingsSchema>;
 
-export const DEFAULT_SETTINGS: StoreSettings = {
-  pricesIncludeGst: true, // TODO(client): confirm catalog prices include GST before go-live.
-  business: {
-    legalName: site.name,
-    gstin: "",
-    fssai: site.fssai,
-    fssaiExpiry: "",
-    iso: site.iso,
-    phone: site.phone,
-    whatsapp: site.whatsapp,
-    email: site.email,
-    supportHours: site.supportHours,
-    addressLine1: site.address.line1,
-    city: site.address.city,
-    district: site.address.district,
-    state: site.address.state,
-    postalCode: site.address.postalCode,
-  },
-  shipping: {
-    freeShippingThreshold: site.freeShippingThreshold,
-    codEnabled: site.codAvailable,
-    codMaxOrder: 0,
-    flatShippingFee: site.shippingFee,
-    flatCodFee: site.codFee,
-  },
-  announcement: {
-    intervalSec: 4,
-    messages: defaultAnnouncements.map((text) => ({ text, href: "", startsAt: "", endsAt: "" })),
-  },
-  socials: [...site.socials],
-  lowStockThreshold: 5,
-};
-
-/** Messages live today (IST date), with {threshold} replaced. */
-export function liveAnnouncements(s: StoreSettings, today = new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10)) {
-  return s.announcement.messages
-    .filter((m) => (!m.startsAt || m.startsAt <= today) && (!m.endsAt || m.endsAt >= today))
-    .map((m) => ({ ...m, text: m.text.replace(/\{threshold\}/g, `₹${s.shipping.freeShippingThreshold}`) }));
-}
+// Defaults + liveAnnouncements live in a zod-free module so client components can import them
+// without shipping zod to the browser.
+export { DEFAULT_SETTINGS, liveAnnouncements } from "./store-settings-defaults";

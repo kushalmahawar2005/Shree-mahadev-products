@@ -5,7 +5,7 @@ import { PaymentLogos } from "@/components/layout/PaymentLogos";
 import { checkoutConfig } from "@/config/checkout";
 import { site, whatsappLink } from "@/data/site";
 
-const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png";
+const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
 
 /** Distraction-free checkout chrome: no nav, mega menus, announcement bar or big footer. */
 export default function CheckoutLayout({ children }: { children: React.ReactNode }) {

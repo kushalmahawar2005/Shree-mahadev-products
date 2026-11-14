@@ -57,7 +57,8 @@ export function ProductCard({ product, priority = false }: { product: CardProduc
           <SmartImage
             key={img.url}
             src={img.url}
-            alt=""
+            // Wrapper link is aria-hidden; the alt is for image search.
+            alt={img.alt || product.title}
             width={img.width}
             height={img.height}
             priority={priority}

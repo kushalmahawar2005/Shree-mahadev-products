@@ -12,6 +12,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { Dialog, DialogDescription, DialogPortal, DialogTitle } from "@/components/shadcn/dialog";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/shadcn/carousel";
 import { cldVideo, cldVideoPoster, thumbUrl } from "@/lib/image-loader";
+import { ReelFrame } from "./ReelFrame";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import { VideoTile } from "./VideoTile";
@@ -34,7 +35,13 @@ export type ReelItem = {
     variants?: { id: string; title: string; price: number }[];
   } | null;
   instagramUrl: string | null;
+  /** Instagram / YouTube player URL: plays in an iframe instead of our <video>. */
+  embedUrl?: string | null;
+  /** Poster for linked reels (YouTube still, uploaded cover, or the product photo). */
+  posterUrl?: string | null;
 };
+
+const posterOf = (r: ReelItem, w: number) => r.posterUrl || cldVideoPoster(r.videoUrl, w);
 
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -128,14 +135,12 @@ export function Reels({
                   {/* Always rendered visible (no scroll-triggered fade), so the row is never blank */}
                   <motion.div layoutId={`reel-${r.id}`} className="aspect-[9/16]">
                     <VideoTile
-                      src={cldVideo(r.videoUrl, 480)}
-                      poster={cldVideoPoster(r.videoUrl, 480)}
+                      src={r.embedUrl ? undefined : cldVideo(r.videoUrl, 480)}
+                      poster={posterOf(r, 480)}
                       title={r.caption || "From our ghani"}
-                      product={
-                        r.product
-                          ? { href: `/products/${r.product.handle}`, title: shortTitle(r.product.title), image: r.product.image, price: r.product.price }
-                          : { href: "/collections/wood-pressed-oils", title: "Shop wood-pressed oils" }
-                      }
+                      // Tagged reels get the shop card below instead of the glass chip on the video.
+                      product={r.product ? undefined : { href: "/collections/wood-pressed-oils", title: "Shop wood-pressed oils" }}
+                      footer={r.product ? <ReelShopCard product={r.product} /> : undefined}
                       compact
                       playOnHover
                       onOpen={() => setOpen(i)}
@@ -209,7 +214,7 @@ function StoryRow({
               >
                 <span className={cn("block rounded-full p-[2.5px]", dark ? "bg-[#0E3B26]" : "bg-page")}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- small video poster frame from Cloudinary */}
-                  <img src={cldVideoPoster(r.videoUrl, 160)} alt="" loading="lazy" className="size-[66px] rounded-full object-cover" />
+                  <img src={posterOf(r, 160)} alt="" loading="lazy" className="size-[66px] rounded-full object-cover" />
                 </span>
               </span>
               <span className={cn("w-full truncate text-center text-[11px] font-medium", dark ? "text-white/85" : "text-ink")}>{label}</span>
@@ -227,7 +232,7 @@ function StoryRow({
  * close after the last one. Arrow keys / side arrows on desktop. Product card with a size picker +
  * add to cart that turns into a − qty + stepper (the cart shows its own toast).
  */
-function ReelViewer({ reels, start, onClose }: { reels: ReelItem[]; start: number | null; onClose: () => void }) {
+export function ReelViewer({ reels, start, onClose }: { reels: ReelItem[]; start: number | null; onClose: () => void }) {
   const open = start !== null;
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -356,6 +361,9 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
             }}
             className="absolute inset-0"
           >
+            {reel.embedUrl ? (
+              <ReelFrame src={reel.embedUrl} title={reel.caption || "Reel"} className="top-16 bottom-40" />
+            ) : (
             <video
               ref={video}
               src={cldVideo(reel.videoUrl, 1080)}
@@ -369,7 +377,9 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
               onEnded={() => go(1)}
               className="absolute inset-0 size-full object-cover"
             />
-            {/* Tap left third: previous · tap elsewhere: next · hold: pause */}
+            )}
+            {/* Tap left third: previous · tap elsewhere: next · hold: pause (own videos only: an embed needs its own taps) */}
+            {!reel.embedUrl && (
             <div
               role="presentation"
               onPointerDown={onDown}
@@ -381,6 +391,7 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
               onContextMenu={(e) => e.preventDefault()}
               className="absolute inset-0 cursor-pointer touch-pan-y select-none [-webkit-touch-callout:none]"
             />
+            )}
             <AnimatePresence>
               {paused && (
                 <motion.span
@@ -416,12 +427,16 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
             </span>
           </span>
           <span className="flex gap-1.5">
+            {!reel.embedUrl && (
             <button type="button" onClick={togglePlay} className="grid size-9 place-items-center rounded-full bg-white/15 text-white backdrop-blur" aria-label={paused ? "Play" : "Pause"}>
               {paused ? <Play className="ml-0.5 size-4 fill-white" /> : <Pause className="size-4 fill-white" />}
             </button>
+            )}
+            {!reel.embedUrl && (
             <button type="button" onClick={() => setMuted((m) => !m)} className="grid size-9 place-items-center rounded-full bg-white/15 text-white backdrop-blur" aria-label={muted ? "Unmute" : "Mute"}>
               {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
             </button>
+            )}
             <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full bg-white/15 text-white backdrop-blur" aria-label="Close">
               <X className="size-4" />
             </button>
@@ -444,6 +459,67 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
       <button type="button" aria-label="Next story" disabled={i === reels.length - 1} onClick={() => go(1)} className={side}>
         <ChevronRight className="size-5" />
       </button>
+    </div>
+  );
+}
+
+/**
+ * Slim shoppable strip under a reel card: photo, name + price (both link to the product) and a
+ * small one-tap Add (default size) that turns into a stepper once it is in the cart.
+ */
+function ReelShopCard({ product }: { product: NonNullable<ReelItem["product"]> }) {
+  const { cart, add, update } = useCart();
+  const [busy, setBusy] = useState(false);
+  const variantId = product.variantId ?? product.variants?.[0]?.id;
+  const price = product.variants?.find((v) => v.id === variantId)?.price ?? product.price;
+  const line = cart?.lines.find((l) => l.variant.id === variantId);
+  const href = `/products/${product.handle}`;
+  const title = shortTitle(product.title);
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    // Glass strip inside the video's bottom edge (same glass as the play button), white text.
+    <div className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/15 p-1.5 pr-1.5 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md">
+      <Link href={href} tabIndex={-1} aria-hidden className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f6efe2]">
+        {product.image ? (
+          <Image src={thumbUrl(product.image, 36)} alt="" width={36} height={36} unoptimized className="size-8 object-contain" />
+        ) : (
+          <ShoppingBag className="size-4 text-forest" />
+        )}
+      </Link>
+      <Link href={href} className="min-w-0 flex-1 leading-tight">
+        <span className="block truncate text-[13px] font-semibold [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]">{title}</span>
+        {price ? <span className="block text-xs text-white/80 tabular-nums">{formatMoney(price)}</span> : null}
+      </Link>
+      {variantId &&
+        (line ? (
+          <div className="flex h-8 shrink-0 items-center rounded-full bg-[#e8c879] text-forest-deep" aria-label={`${line.quantity} in cart`}>
+            <button type="button" disabled={busy} onClick={() => run(() => update(line.id, line.quantity - 1))} className="grid size-8 place-items-center disabled:opacity-60" aria-label="Remove one">
+              <Minus className="size-3.5" />
+            </button>
+            <span className="min-w-4 text-center text-xs font-semibold tabular-nums">{busy ? <Loader2 className="size-3.5 animate-spin" /> : line.quantity}</span>
+            <button type="button" disabled={busy} onClick={() => run(() => update(line.id, line.quantity + 1))} className="grid size-8 place-items-center disabled:opacity-60" aria-label="Add one more">
+              <Plus className="size-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => run(() => add(variantId))}
+            aria-label={`Add ${title} to cart`}
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#e8c879] px-3 text-xs font-semibold text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
+          >
+            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <ShoppingCart className="size-3.5" />} Add
+          </button>
+        ))}
     </div>
   );
 }

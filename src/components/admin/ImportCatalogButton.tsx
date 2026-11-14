@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { importStarterCatalogAction } from "@/lib/catalog-actions";
@@ -18,7 +19,7 @@ export function ImportCatalogButton() {
         onClick={() =>
           start(async () => {
             try {
-              await importStarterCatalogAction();
+              unwrap(await importStarterCatalogAction());
               router.refresh();
             } catch (e) {
               setErr((e as Error).message);

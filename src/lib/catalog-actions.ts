@@ -1,5 +1,6 @@
 "use server";
 
+import { safe, type ActionResult } from "@/lib/action-result";
 import { updateTag } from "next/cache";
 import { collectionDefs } from "@/data/collections";
 import { products as starterProducts } from "@/data/products";
@@ -105,36 +106,42 @@ function validate(raw: ProductInput): ProductInput {
   };
 }
 
-export async function saveProductAction(raw: ProductInput, originalHandle?: string): Promise<{ handle: string }> {
-  await requireAdmin();
-  const input = validate(raw);
-  try {
-    const handle = await saveProduct(input, originalHandle);
-    bust([handle, ...(originalHandle && originalHandle !== handle ? [originalHandle] : [])]);
-    return { handle };
-  } catch (e) {
-    if ((e as { code?: string }).code === "ER_DUP_ENTRY") throw new Error("That URL handle or SKU is already used by another product");
-    throw e;
-  }
+export async function saveProductAction(raw: ProductInput, originalHandle?: string): Promise<ActionResult<{ handle: string }>> {
+  return safe(async () => {
+    await requireAdmin();
+    const input = validate(raw);
+    try {
+      const handle = await saveProduct(input, originalHandle);
+      bust([handle, ...(originalHandle && originalHandle !== handle ? [originalHandle] : [])]);
+      return { handle };
+    } catch (e) {
+      if ((e as { code?: string }).code === "ER_DUP_ENTRY") throw new Error("That URL handle or SKU is already used by another product");
+      throw e;
+    }
+  });
 }
 
-export async function bulkProductsAction(handles: string[], action: BulkAction): Promise<number> {
-  await requireAdmin();
-  if (!Array.isArray(handles) || handles.length > 500 || !handles.every((h) => HANDLE.test(h))) throw new Error("Invalid selection");
-  const ok =
-    (action?.type === "status" && STATUSES.includes(action.status)) ||
-    action?.type === "delete" ||
-    ((action?.type === "addToCollection" || action?.type === "removeFromCollection") && HANDLE.test(action.collection));
-  if (!ok) throw new Error("Invalid action");
-  const n = await bulkUpdate(handles, action);
-  bust(handles);
-  return n;
+export async function bulkProductsAction(handles: string[], action: BulkAction): Promise<ActionResult<number>> {
+  return safe(async () => {
+    await requireAdmin();
+    if (!Array.isArray(handles) || handles.length > 500 || !handles.every((h) => HANDLE.test(h))) throw new Error("Invalid selection");
+    const ok =
+      (action?.type === "status" && STATUSES.includes(action.status)) ||
+      action?.type === "delete" ||
+      ((action?.type === "addToCollection" || action?.type === "removeFromCollection") && HANDLE.test(action.collection));
+    if (!ok) throw new Error("Invalid action");
+    const n = await bulkUpdate(handles, action);
+    bust(handles);
+    return n;
+  });
 }
 
-export async function importStarterCatalogAction(): Promise<number> {
-  await requireAdmin();
-  if (!(await catalogIsEmpty())) throw new Error("The catalog already has products");
-  await importStarterCatalog(starterProducts, collectionDefs);
-  bust(starterProducts.map((p) => p.handle));
-  return starterProducts.length;
+export async function importStarterCatalogAction(): Promise<ActionResult<number>> {
+  return safe(async () => {
+    await requireAdmin();
+    if (!(await catalogIsEmpty())) throw new Error("The catalog already has products");
+    await importStarterCatalog(starterProducts, collectionDefs);
+    bust(starterProducts.map((p) => p.handle));
+    return starterProducts.length;
+  });
 }

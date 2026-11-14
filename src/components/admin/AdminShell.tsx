@@ -28,6 +28,8 @@ import {
   UserCog,
   Users,
   type LucideIcon,
+  LifeBuoy,
+  BookOpenText,
 } from "lucide-react";
 import { logoutAction } from "@/lib/admin-login-actions";
 import { Avatar, AvatarFallback } from "@/components/shadcn/avatar";
@@ -57,6 +59,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
@@ -77,6 +80,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Collections", href: "/admin/categories", section: "Catalog", icon: FolderTree },
   { label: "Abandoned carts", href: "/admin/abandoned-carts", section: "Customers", icon: ShoppingCart },
   { label: "Customers", href: "/admin/customers", section: "Customers", icon: Users },
+  { label: "Help desk", href: "/admin/helpdesk", section: "Customers", icon: LifeBuoy },
   { label: "Coupons", href: "/admin/discounts", section: "Growth", icon: TicketPercent },
   { label: "Reviews", href: "/admin/reviews", section: "Growth", icon: Star },
   { label: "Bulk inquiries", href: "/admin/inquiries", section: "Growth", icon: Inbox },
@@ -84,15 +88,16 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Messages", href: "/admin/messages", section: "Operations", icon: MessageSquare },
   { label: "Shipping ops", href: "/admin/shipping", section: "Operations", icon: Truck },
   { label: "Reports", href: "/admin/reports", section: "Operations", icon: BarChart3 },
-  { label: "Hero banners", href: "/admin/banners", section: "Storefront", icon: ImageIcon },
-  { label: "Videos", href: "/admin/videos", section: "Storefront", icon: Clapperboard },
+  { label: "Home banners", href: "/admin/banners", section: "Website", icon: ImageIcon },
+  { label: "Reels", href: "/admin/videos", section: "Website", icon: Clapperboard },
+  { label: "Product page content", href: "/admin/product-stories", section: "Website", icon: BookOpenText },
   { label: "Settings", href: "/admin/settings", section: "Settings", icon: Settings },
   { label: "Admin users", href: "/admin/settings/users", section: "Settings", icon: UserCog },
   { label: "Activity log", href: "/admin/activity", section: "Settings", icon: History },
 ];
 
 const OWNER_ONLY = ["/admin/settings", "/admin/settings/users", "/admin/activity"];
-const STAFF_PAGES = ["/admin", "/admin/orders", "/admin/inquiries", "/admin/reviews"];
+const STAFF_PAGES = ["/admin", "/admin/orders", "/admin/helpdesk", "/admin/inquiries", "/admin/reviews"];
 
 export function navForRole(role: AdminRole) {
   return ADMIN_NAV.filter((n) =>
@@ -109,10 +114,13 @@ export function AdminShell({
   children,
   role,
   username,
+  badges = {},
 }: {
   children: React.ReactNode;
   role: AdminRole;
   username: string;
+  /** Open-item counts shown next to nav items, keyed by href. */
+  badges?: Record<string, number>;
 }) {
   const pathname = usePathname();
   // The login page has no admin chrome.
@@ -132,7 +140,7 @@ export function AdminShell({
               <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent">
                 <Link href="/admin">
                   <Image
-                    src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png"
+                    src="https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png"
                     alt=""
                     width={36}
                     height={36}
@@ -174,6 +182,9 @@ export function AdminShell({
                               <span>{n.label}</span>
                             </Link>
                           </SidebarMenuButton>
+                          {!!badges[n.href] && (
+                            <SidebarMenuBadge className="rounded-full bg-mustard/90 px-1.5 text-[11px] font-bold text-forest-text tabular-nums">{badges[n.href]}</SidebarMenuBadge>
+                          )}
                         </SidebarMenuItem>
                       );
                     })}

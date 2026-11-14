@@ -2,7 +2,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { FlaskConical, Mail, MapPin, MessageCircle, Phone, ShieldCheck } from "@/components/icons/duo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
-import { DecoBg } from "@/components/ui/DecoBg";
+import { FooterHarvestArt } from "./FooterHarvestArt";
 import { PaymentLogos } from "./PaymentLogos";
 import Link from "next/link";
 import { footerNav, site, whatsappLink } from "@/data/site";
@@ -52,7 +52,7 @@ export async function Footer() {
           <div className="grid gap-6 pt-8 pb-4 sm:grid-cols-2 sm:gap-10 sm:pt-12 lg:grid-cols-[1.4fr_1fr_1fr_1fr_1.4fr] lg:gap-8">
             <div>
               <Link href="/" className="inline-flex items-center gap-3">
-                <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={64} height={64} unoptimized className="size-12 sm:size-16" />
+                <Image src="https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png" alt="" width={64} height={64} unoptimized className="size-12 sm:size-16" />
                 <span className="text-base leading-tight font-bold text-forest-text sm:text-lg">{site.name}</span>
               </Link>
               <p className="mt-3 max-w-xs text-[13px] leading-relaxed text-ink-muted sm:text-sm">Wood-pressed kachi ghani oils, raw honey and desi jaggery from our family ghani in Bijainagar, Rajasthan.</p>
@@ -105,18 +105,11 @@ export async function Footer() {
         </div>
 
         {/*
-          Hand-painted harvest scene (mustard field, ghani, bullock, honey, fort). Its top ~42% is empty white
-          sky: on desktop it is pulled up under the content; on smaller screens it is cropped to the scene.
+          Hand-painted harvest scene (mustard field, ghani, bullock, honey, fort) with its SVG animation.
+          Its top ~42% is empty sky, so it is pulled up under the content (never cropped: the overlay
+          is pixel-matched to the full image).
         */}
-        <div
-          className="relative -mt-10 aspect-[2172/430] w-full lg:-mt-[16vw] lg:aspect-[2172/724] mix-blend-multiply"
-          aria-hidden
-        >
-          <DecoBg
-            src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735967/swadeshi-mahadev/static/images/footer-harvest.webp"
-            position="center bottom"
-          />
-        </div>
+        <FooterHarvestArt className="pointer-events-none -mt-[12vw] lg:-mt-[16vw]" />
       </div>
 
       <div

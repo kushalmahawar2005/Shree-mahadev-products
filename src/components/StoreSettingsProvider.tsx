@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import { DEFAULT_SETTINGS, type StoreSettings } from "@/lib/store-settings";
+import { DEFAULT_SETTINGS } from "@/lib/store-settings-defaults";
+import type { StoreSettings } from "@/lib/store-settings";
 
 const Ctx = createContext<StoreSettings>(DEFAULT_SETTINGS);
 

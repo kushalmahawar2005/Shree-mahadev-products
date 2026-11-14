@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import confetti from "canvas-confetti";
 import { PartyPopper, Truck } from "@/components/icons/duo";
 import { Check } from "lucide-react";
 import { useStoreSettings } from "@/components/StoreSettingsProvider";
@@ -21,7 +20,8 @@ export function FreeShippingBar({ subtotal }: { subtotal: number }) {
   useEffect(() => {
     if (done && !prev.current && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const shoot = (x: number) =>
-        confetti({ particleCount: 110, spread: 85, startVelocity: 42, origin: { x, y: 0.15 }, colors: ["#0c3c24", "#b49024", "#f6efe2", "#f08a24"], zIndex: 9999 });
+        // Loaded only when it fires, so the library isn't in every page's JS.
+        void import("canvas-confetti").then(({ default: confetti }) => confetti({ particleCount: 110, spread: 85, startVelocity: 42, origin: { x, y: 0.15 }, colors: ["#0c3c24", "#b49024", "#f6efe2", "#f08a24"], zIndex: 9999 }));
       shoot(0.82);
       setTimeout(() => shoot(0.92), 180);
     }

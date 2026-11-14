@@ -3,7 +3,8 @@ import { VariantImageProvider } from "@/components/product/VariantImage";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Check, Star } from "lucide-react";
+import { oilWhyPoints } from "@/data/pdp-why";
 import { PaymentLogos } from "@/components/layout/PaymentLogos";
 import { BadgePercent, Banknote, Droplets, Factory, FlaskConical, Leaf, MapPin, ShieldCheck, ThermometerSnowflake, Truck } from "@/components/icons/duo";
 import { DetailsTabs, type DetailTab } from "@/components/product/DetailsTabs";
@@ -15,6 +16,7 @@ import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { Reveal } from "@/components/motion/Reveal";
 import { Gallery } from "@/components/product/Gallery";
+import { ProductVideos } from "@/components/product/ProductVideos";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { BAND, Band, HomeChecks, StoryBand } from "@/components/product/PdpStory";
 import { MethodSteps } from "@/components/product/MethodSteps";
@@ -22,7 +24,10 @@ import { RecordView } from "@/components/product/RecentlyViewed";
 import type { Art } from "@/data/brand-art";
 import { pdpArt, pdpMustardScene } from "@/data/pdp-art";
 import { Reels, type ReelItem } from "@/components/home/Reels";
-import { sceneFor, storyFor } from "@/data/pdp-story";
+import { DEFAULT_STORIES, sceneFor } from "@/data/pdp-story";
+import { getHomeVideos } from "@/lib/home-videos";
+import { getPdpStories } from "@/lib/server/pdp-story";
+import { parseReelLink, reelEmbedSrc, reelLinkPoster } from "@/lib/reel-link";
 import { ReviewList } from "@/components/product/ReviewList";
 import { BoughtTogether, type BundleItem } from "@/components/product/BoughtTogether";
 import { defaultVariant } from "@/lib/commerce/default-variant";
@@ -35,9 +40,9 @@ import { getStoreSettings } from "@/lib/server/store-settings";
 import { formatMoney } from "@/lib/utils/money";
 import { breadcrumbJsonLd, jsonLdString, pageMetadata, productJsonLd } from "@/lib/utils/seo";
 import { cn } from "@/lib/utils/cn";
+import { siteVideo } from "@/lib/site-videos";
+import { MIN_REVIEWS_FOR_RATING } from "@/lib/utils/reviews";
 
-/** Below this many reviews the hero shows "New" instead of an average (a 4.5 from 2 reviews misleads). */
-const MIN_REVIEWS_FOR_RATING = 5;
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -66,8 +71,8 @@ const band = (tone: keyof typeof BAND, art: Art | undefined, ...rest: [React.Rea
 
 /** Short process reels shown as the last gallery slide on oil pages. */
 const REELS = {
-  ghani: { src: "/videos/reels/ghani-pour.mp4", poster: "/videos/reels/ghani-pour.jpg", label: "Fresh oil pouring from our ghani" },
-  coconut: { src: "/videos/reels/coconut-in.mp4", poster: "/videos/reels/coconut-in.jpg", label: "Coconut going into our ghani" },
+  ghani: { ...siteVideo("reels/ghani-pour", 480), label: "Fresh oil pouring from our ghani" },
+  coconut: { ...siteVideo("reels/coconut-in", 480), label: "Coconut going into our ghani" },
 };
 
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
@@ -98,15 +103,31 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         ? [{ variantId: v.id, handle: p.handle, title: p.title, size: v.title, price: v.price.amount, mrp: v.compareAtPrice?.amount, image: p.images[0]?.url }]
         : [];
     });
-  const story = storyFor(product.category);
+  const [stories, siteVideos] = await Promise.all([getPdpStories(), getHomeVideos()]);
+  const story = stories[product.category] ?? {};
+  // Reels come from the admin Reels page (ticked for this category). None ticked yet: our built-in ghani clips.
+  const placed = siteVideos.reels.filter((r) => r.placements.includes(product.category));
+  const reelSource = placed.length
+    ? placed.map((r) => ({ video: r.videoUrl || undefined, link: r.videoUrl ? undefined : r.instagramUrl ?? undefined, caption: r.caption, cover: undefined as string | undefined }))
+    : (DEFAULT_STORIES[product.category]?.reels ?? []);
   // Our own ghani clips, each tagged with this product so "Add to cart" in the viewer adds it.
   const onSale = product.variants.filter((v) => v.availableForSale);
   const dv = defaultVariant(product);
-  const reelItems: ReelItem[] = (story.reels ?? []).map((r, n) => ({
-    id: -(n + 1),
-    videoUrl: r.video,
+  // This product's own videos (admin Reels → "Its product page" + tagged with this product).
+  const ownVideos = siteVideos.reels
+    .filter((r) => r.placements.includes("product") && r.productHandle === product.handle)
+    .map((r) => ({ video: r.videoUrl || undefined, link: r.videoUrl ? undefined : r.instagramUrl ?? undefined, caption: r.caption, cover: undefined as string | undefined }));
+  const toItems = (list: typeof reelSource, idBase: number): ReelItem[] => list.flatMap((r, n) => {
+    const parsed = r.link ? parseReelLink(r.link) : null;
+    const link = parsed?.ok ? parsed.link : null;
+    if (!link && !r.video) return [];
+    return [{
+    id: -(idBase + n + 1),
+    videoUrl: r.video ?? "",
     caption: r.caption,
     instagramUrl: null,
+    embedUrl: link ? reelEmbedSrc(link) : null,
+    posterUrl: link ? r.cover || reelLinkPoster(link) : null,
     product: {
       handle: product.handle,
       title: product.title,
@@ -116,10 +137,13 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
       variantTitle: dv?.title,
       variants: onSale.map((x) => ({ id: x.id, title: x.title, price: x.price.amount })),
     },
-  }));
+    }];
+  });
+  const reelItems = toItems(reelSource, 0);
+  const productVideoItems = toItems(ownVideos, 1000);
   const promises = isOil
     ? [
-        { I: Factory, t: "Kachi ghani pressed" },
+        { I: Factory, t: "Kolhu pressed" },
         { I: ThermometerSnowflake, t: "No external heat" },
         { I: Droplets, t: "Cloth filtered" },
         { I: FlaskConical, t: "Lab tested" },
@@ -185,7 +209,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
       body: (
         <div>
           <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {["Farm sourced", "Hand cleaned", "Wood pressed", "Cloth filtered", "Bottled"].map((step, i) => (
+            {["Farm sourced", "Hand cleaned", "Wood pressed", "Cloth filtered", "Gravity settled", "Bottled"].map((step, i) => (
               <li key={step} className="rounded-xl border border-line bg-surface px-3 py-2.5">
                 <span className="text-xs font-semibold text-co-accent-ink tabular-nums">0{i + 1}</span>
                 <p className="font-semibold text-ink">{step}</p>
@@ -326,10 +350,15 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
           </div>
 
           <div>
-            {/* Compact header: name (+ Hindi), rating, one-line pitch, one row of tags. */}
+            {/* Compact header: name (+ method for oils, + Hindi), rating, one-line pitch, tags. */}
             <h1 className="font-display text-[28px] leading-tight tracking-[-0.02em] sm:text-[34px]">
               {shortTitle(product.title)}
-              <span className="font-hindi ml-3 align-middle text-lg font-normal tracking-normal text-co-accent-ink" lang="hi">
+              {isOil && (
+                <>
+                  , <span className="whitespace-nowrap">Wood-Pressed</span>
+                </>
+              )}
+              <span className="font-hindi mt-1 block text-lg font-normal tracking-normal whitespace-nowrap text-co-accent-ink" lang="hi">
                 {product.titleHi}
               </span>
             </h1>
@@ -390,6 +419,24 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
               ))}
             </ul>
 
+            <ProductVideos reels={productVideoItems} />
+
+            {/* Why this oil: the client's six points, below the buy box (above the details tabs). */}
+            {isOil && (
+              <div className="pt-4 pb-2">
+                <p className="text-[15px] font-bold text-forest-text">Why Mahadev {shortTitle(product.title)}?</p>
+                <ul className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13.5px] font-medium text-ink sm:text-sm">
+                  {oilWhyPoints(product.handle).map((point) => (
+                    <li key={point} className="flex items-start gap-2">
+                      <span className="mt-px grid size-[18px] shrink-0 place-items-center rounded-full bg-forest text-white">
+                        <Check className="size-3" strokeWidth={3} aria-hidden />
+                      </span>
+                      {point}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="mt-2" id="details">
               <DetailsTabs tabs={tabs} />
             </div>
@@ -399,7 +446,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
       </div>
 
       {[
-        story.reels && reelItems.length > 0 ? band("forest", undefined,
+        reelItems.length > 0 ? band("forest", undefined,
           <Reels key="reels" align="left" dark eyebrow="घानी से सीधा" title="Our ghani, in action" subtitle="Real clips from our ghani in Bijainagar. Tap any reel to watch." reels={reelItems} />,
         ) : null,
         story.method ? band("ivory", pdpArt.method, <MethodSteps key="method" {...story.method} />) : null,
@@ -462,12 +509,14 @@ type Offer = { I: React.ComponentType<{ className?: string }>; title: string; su
 function Offers({ items }: { items: Offer[] }) {
   if (!items.length) return null;
   return (
-    <ul className="mt-4 divide-y divide-co-accent/20 rounded-2xl bg-co-accent-soft/70 px-4 text-sm">
+    // One row, one column per offer (2 or 3), title over its one-line detail.
+    <ul className="mt-4 grid auto-cols-fr grid-flow-col divide-x divide-co-accent/20 rounded-xl bg-co-accent-soft/70 text-sm">
       {items.map(({ I, title, sub }) => (
-        <li key={title} className="flex items-center gap-2.5 py-2.5">
+        <li key={title} className="flex min-w-0 items-center gap-2 px-3 py-2">
           <I className="size-5 shrink-0" />
-          <span className="text-ink">
-            <span className="font-semibold">{title}</span> <span className="text-ink-muted">{sub}</span>
+          <span className="min-w-0 leading-tight">
+            <span className="block font-semibold text-ink">{title}</span>
+            <span className="block text-xs text-ink-muted">{sub}</span>
           </span>
         </li>
       ))}

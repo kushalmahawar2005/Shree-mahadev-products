@@ -1,5 +1,6 @@
 "use client";
 
+import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ import {
   Tag,
   Trash2,
   X,
+  Clapperboard,
 } from "lucide-react";
 import { saveProductAction } from "@/lib/catalog-actions";
 import { addProductImagesAction, type UploadedImage } from "@/lib/media-actions";
@@ -134,12 +136,15 @@ export function ProductForm({
   collections,
   isNew,
   photos: photos_,
+  videos,
 }: {
   initial: ProductInput;
   collections: { handle: string; title: string }[];
   isNew: boolean;
   /** Photo manager for existing products; new products get an uploader here. */
   photos?: React.ReactNode;
+  /** Edit page only: this product's own videos. */
+  videos?: React.ReactNode;
 }) {
   const router = useRouter();
   const [p, setP] = useState(initial);
@@ -181,8 +186,8 @@ export function ProductForm({
     start(async () => {
       setMsg(null);
       try {
-        const { handle } = await saveProductAction(p, isNew ? undefined : initial.handle);
-        if (isNew && photos.length) await addProductImagesAction(handle, photos, p.title);
+        const { handle } = unwrap(await saveProductAction(p, isNew ? undefined : initial.handle));
+        if (isNew && photos.length) unwrap(await addProductImagesAction(handle, photos, p.title));
         setSaved(p);
         setPhotos([]);
         setMsg({ ok: true, text: isNew ? "Product created." : "Saved. Changes are live on the store." });
@@ -537,7 +542,7 @@ export function ProductForm({
 
           <Section icon={Search} title="Search engine listing" hint="How this page can look on Google. Leave blank to use the title and short description.">
             <div className="mb-4 rounded-xl border border-line bg-subtle p-4">
-              <p className="truncate text-xs text-ink-muted">swadeshimahadevproducts.com › products › {p.handle || "…"}</p>
+              <p className="truncate text-xs text-ink-muted">swadeshimahadevproducts.in › products › {p.handle || "…"}</p>
               <p className="mt-0.5 truncate text-lg leading-snug text-[#1a0dab] dark:text-[#8ab4f8]">{seoTitle || "Product title"}</p>
               <p className="line-clamp-2 text-sm text-ink-muted">{seoDesc || "Short description appears here."}</p>
             </div>
@@ -583,6 +588,12 @@ export function ProductForm({
           <Section icon={ImageIcon} title="Photos" hint="Square photos look best. First photo is the main one.">
             {photosSlot}
           </Section>
+
+          {videos && (
+            <Section icon={Clapperboard} title="Product videos" hint="Short clips shown on this product's page, next to Add to cart.">
+              {videos}
+            </Section>
+          )}
 
           <Section icon={Tag} title="Organise">
             <div className="space-y-4">

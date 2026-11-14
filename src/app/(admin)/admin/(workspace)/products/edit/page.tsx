@@ -1,6 +1,8 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ProductImageManager } from "@/components/admin/media/ProductImageManager";
+import { ProductVideoManager } from "@/components/admin/media/ProductVideoManager";
+import { listReels } from "@/lib/server/videos";
 import { ProductForm } from "@/components/admin/ProductForm";
 import { loadCollections, loadProducts, type ProductInput } from "@/lib/server/catalog";
 import { getProductImages } from "@/lib/server/media";
@@ -82,7 +84,7 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
         })),
       }
     : EMPTY;
-  const images = p ? await getProductImages(p.handle) : [];
+  const [images, reels] = p ? await Promise.all([getProductImages(p.handle), listReels()]) : [[], []];
 
   return (
     <>
@@ -92,6 +94,7 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
         isNew={!p}
         collections={collections.map((c) => ({ handle: c.handle, title: c.title }))}
         photos={p ? <ProductImageManager handle={p.handle} title={p.title} initial={images} compact /> : undefined}
+        videos={p ? <ProductVideoManager handle={p.handle} initial={reels} /> : undefined}
       />
     </>
   );

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { siteVideo } from "@/lib/site-videos";
 
 /** Accepts a bare ID or any YouTube URL (watch?v=, youtu.be/, shorts/, embed/). */
 export function youtubeIdFrom(input: string): string {
@@ -11,7 +12,7 @@ export function youtubeIdFrom(input: string): string {
   return m ? m[1] : "";
 }
 
-const FILM = { src: "/videos/ghani-film.mp4", poster: "/videos/ghani-film.jpg" };
+const FILM = siteVideo("ghani-film", 960);
 
 /**
  * Brand film. If a YouTube link is set in admin it plays that (click-to-load iframe).

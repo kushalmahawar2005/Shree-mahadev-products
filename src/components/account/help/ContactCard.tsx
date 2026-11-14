@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RequestCallback } from "./RequestCallback";
 import { ChevronRight, ExternalLink, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import { CopyId } from "@/components/account/OrderDetailClient";
 import { fullAddress, site, whatsappLink } from "@/data/site";
@@ -32,6 +33,7 @@ export function ContactCard({ name, phone }: { name: string; phone: string }) {
       <a href={wa} target="_blank" rel="noopener noreferrer" className={cn(primaryBtn, "mt-4 whitespace-nowrap")}>
         <MessageCircle className="size-4" /> Chat on WhatsApp
       </a>
+      <RequestCallback phone={formatPhone(phone)} className="mt-2 border border-forest bg-white text-forest hover:bg-forest hover:text-white" />
       <ul className="mt-4 divide-y divide-line text-sm">
         <li className="flex items-center gap-3 py-3">
           <Phone className="size-4 shrink-0 text-ink-muted" />
@@ -42,7 +44,7 @@ export function ContactCard({ name, phone }: { name: string; phone: string }) {
         </li>
         <li className="flex items-center gap-3 py-3">
           <Mail className="size-4 shrink-0 text-ink-muted" />
-          <a href={`mailto:${site.email}`} className="min-w-0 flex-1 truncate font-semibold text-ink hover:underline">
+          <a href={`mailto:${site.email}`} className="min-w-0 flex-1 text-sm font-semibold break-all text-ink hover:underline">
             {site.email}
           </a>
           <CopyId value={site.email} label="email" />
