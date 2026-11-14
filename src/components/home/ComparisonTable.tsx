@@ -2,7 +2,7 @@ import { Check, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const rows: [string, string, string][] = [
-  ["Heat", "Pressed slowly, no external heat", "High heat, often above 200°C"],
+  ["Heat", "Wood pressed slowly, no external heat", "High heat, often above 200°C"],
   ["Chemicals", "None. Just seeds and wood", "Solvents like hexane, bleach, deodorisers"],
   ["Nutrients", "Natural nutrients and antioxidants stay in", "Largely stripped during refining"],
   ["Taste & aroma", "Strong, natural taste of the seed", "Neutral, flat"],

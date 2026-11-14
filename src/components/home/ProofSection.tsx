@@ -88,7 +88,7 @@ export function ProofSection({ reports, fssaiNo, fssaiValidTill, lab }: { report
       seal: SEALS.ghani,
       title: "Wood-pressed, kachi ghani",
       fact: "Kachi ghani · no heat · no chemicals",
-      text: "Pressed slowly in a wooden ghani, then left to settle naturally before bottling.",
+      text: "Wood pressed slowly in a kolhu, then left to settle naturally before bottling.",
       media: { kind: "video", poster: POUR.poster, alt: "Oil pouring from our wooden ghani" },
       onOpenMedia: () => setOpen("video"),
       cta: { label: "See how it's made", href: "#story" },

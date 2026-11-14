@@ -9,7 +9,7 @@ import { siteVideo } from "@/lib/site-videos";
 /** Verified facts only (licence, lab, ISO, place). */
 export function FactsStrip() {
   const facts = [
-    { I: Factory, t: "Wooden kachi ghani", d: "Cold, slow pressing" },
+    { I: Factory, t: "Kolhu wood pressed", d: "Slow kachi ghani, no heat" },
     { I: BadgeCheck, t: "FSSAI licensed", d: `Lic. ${proof.fssaiNo}` },
     { I: FlaskConical, t: "Lab tested", d: proof.lab },
     { I: MapPin, t: "Made in Bijainagar", d: `Beawar, Rajasthan · ${site.iso}` },

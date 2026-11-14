@@ -1,12 +1,22 @@
-import Image from "next/image";
 import { thumbUrl } from "@/lib/image-loader";
 import { VariantImageProvider } from "@/components/product/VariantImage";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, BadgeCheck, Check, Star } from "lucide-react";
+import {
+  Award as LuAward,
+  Ban as LuBan,
+  Boxes as LuBoxes,
+  Cog as LuCog,
+  Filter as LuFilter,
+  FlaskConical as LuFlaskConical,
+  Leaf as LuLeaf,
+  MapPin as LuMapPin,
+  ThermometerSnowflake as LuThermometerSnowflake,
+} from "lucide-react";
 import { oilWhyPoints } from "@/data/pdp-why";
-import { Ban, Banknote, Droplets, Factory, FlaskConical, Leaf, Lock, MapPin, Package, ShieldCheck, ThermometerSnowflake, Truck } from "@/components/icons/duo";
+import { Banknote, FlaskConical, Lock, Truck } from "@/components/icons/duo";
 import { DetailsTabs, type DetailTab } from "@/components/product/DetailsTabs";
 import { Marquee } from "@/components/shadcn/marquee";
 import { SectionHeader, sectionClass } from "@/components/ui/SectionHeader";
@@ -137,20 +147,22 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   const reelItems = toItems(reelSource, 0);
   const productVideoItems = toItems(ownVideos, 1000);
   // Purity marquee in the buy column: real process facts only (no health claims).
+  // Purity marquee in the buy column: real process facts only (no health claims).
+  // Solid green badges with white line icons (lucide), like a certification row.
   const purity = isOil
     ? [
-        { I: Factory, t: "Kolhu pressed", s: "Slow wooden ghani" },
-        { I: ThermometerSnowflake, t: "No external heat", s: "Pressed cool" },
-        { I: Droplets, t: "Cloth filtered", s: "Then gravity settled" },
-        { I: FlaskConical, t: "Lab tested", s: "Every batch" },
-        { I: Ban, t: "No preservatives", s: "Nothing added" },
-        { I: Package, t: "Small batches", s: "Bottled in Bijainagar" },
+        { I: LuCog, t: "Kolhu wood pressed", s: "Slow kachi ghani" },
+        { I: LuThermometerSnowflake, t: "No external heat", s: "Oil stays cool" },
+        { I: LuFilter, t: "Cotton cloth filtered", s: "Then gravity settled" },
+        { I: LuFlaskConical, t: "Lab tested", s: "Every batch" },
+        { I: LuBan, t: "No preservatives", s: "Nothing added" },
+        { I: LuBoxes, t: "Small batches", s: "Always fresh" },
       ]
     : [
-        { I: Leaf, t: "Nothing added", s: isHoney ? "No sugar syrup" : "No bleaching" },
-        { I: FlaskConical, t: "Lab tested", s: "Every batch" },
-        { I: ShieldCheck, t: "FSSAI licensed", s: `Lic. ${site.fssai}` },
-        { I: MapPin, t: "Packed in Bijainagar", s: "By our family" },
+        { I: LuLeaf, t: "Nothing added", s: isHoney ? "No sugar syrup" : "No bleaching" },
+        { I: LuFlaskConical, t: "Lab tested", s: "Every batch" },
+        { I: LuAward, t: "FSSAI licensed", s: `Lic. ${site.fssai}` },
+        { I: LuMapPin, t: "Packed in Bijainagar", s: "By our family" },
       ];
   // Highlights: one list merging the old usage chips, icon badges and "Why" checklist, minus
   // anything the pill, the purity band or the trust strip already says.
@@ -172,7 +184,6 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   // A shelf life with an open TODO is not confirmed yet: don't state it.
   const shelfLife = hasTodo(product.shelfLife) ? undefined : product.shelfLife;
   const howToUse = noTodo(product.howToUse);
-  const steps = story.method?.steps ?? [];
   const tabs: DetailTab[] = [
     description || product.benefits.length
       ? {
@@ -181,6 +192,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
           body: (
             <div className="space-y-4">
               {description && <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: description.startsWith("<") ? description : `<p>${description}</p>` }} />}
+              {processNote && <p>{processNote}</p>}
               {product.benefits.length > 0 && (
                 <div>
                   <p className="font-semibold text-ink">Good for</p>
@@ -199,38 +211,6 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
             <div className="space-y-3">
               {howToUse && <p>{howToUse}</p>}
               {shelfLife && <p>{shelfLife}</p>}
-            </div>
-          ),
-        }
-      : null,
-    steps.length || processNote
-      ? {
-          id: "made",
-          title: "How it's made",
-          body: (
-            <div>
-              {steps.length > 0 && (
-                <ol className="space-y-3">
-                  {steps.map((s, n) => (
-                    <li key={s.title} className="flex items-center gap-3">
-                      <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl bg-sunken">
-                        {s.image ? <Image src={s.image} alt="" fill sizes="56px" className="object-cover" /> : null}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block font-semibold text-ink">
-                          <span className="mr-1.5 text-co-accent-ink tabular-nums">{n + 1}.</span>
-                          {s.title}
-                        </span>
-                        <span className="block text-sm">{s.body}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-              {processNote && <p className="mt-4">{processNote}</p>}
-              <Link href="/our-ghani" className="mt-4 inline-flex items-center gap-1 font-semibold text-forest hover:underline">
-                Read our story <ArrowRight className="size-4" />
-              </Link>
             </div>
           ),
         }
@@ -402,8 +382,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
                 <Marquee pauseOnHover repeat={3} className="p-0 [--duration:32s] [--gap:0.5rem] motion-reduce:[&>*]:animate-none">
                   {purity.map(({ I, t, s }) => (
                     <span key={t} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface py-1.5 pr-4 pl-1.5 whitespace-nowrap">
-                      <span className="grid size-8 place-items-center rounded-full bg-co-brand-soft">
-                        <I className="size-5" />
+                      <span className="grid size-8 place-items-center rounded-full bg-forest text-white">
+                        <I className="size-4" strokeWidth={2.2} />
                       </span>
                       <span className="text-[13px] leading-tight">
                         <b className="block font-semibold text-ink">{t}</b>

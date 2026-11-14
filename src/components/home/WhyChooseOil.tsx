@@ -18,10 +18,10 @@ type Step = { title: string; titleHi: string; text: string; img: string };
 const STEPS: Step[] = [
   { title: "Farm sourced", titleHi: "खेत से बीज", text: "Seeds sourced directly from farmers", img: "1-farm" },
   { title: "Hand cleaned", titleHi: "हाथ से सफ़ाई", text: "Every batch cleaned and sorted by hand", img: "2-hand-cleaned" },
-  { title: "Wood pressed", titleHi: "लकड़ी की घानी", text: "Pressed slowly in a wooden kachi ghani, without high heat", img: "3-wood-pressed" },
-  { title: "Cloth filtered", titleHi: "कपड़े से छनाई", text: "Strained through fine cotton cloth", img: "4-cloth-filtered" },
+  { title: "Wood pressed", titleHi: "लकड़ी की घानी", text: "Kolhu wood pressed in our kachi ghani, without high heat", img: "3-wood-pressed" },
+  { title: "Cloth filtered", titleHi: "कपड़े से छनाई", text: "Filtered through pure cotton cloth", img: "4-cloth-filtered" },
   { title: "Gravity settled", titleHi: "10 दिन निथार", text: "Rested 10 days so fine particles settle on their own", img: "4b-gravity-settled" },
-  { title: "Bottled", titleHi: "बोतल में भराई", text: "Bottled fresh, every batch lab tested", img: "5-bottled" },
+  { title: "Bottled", titleHi: "बोतल में भराई", text: "Food-grade PET bottles, every batch lab tested", img: "5-bottled" },
 ];
 const HERO = 2; // "Wood pressed", the heart of the process
 
@@ -29,7 +29,7 @@ const HERO = 2; // "Wood pressed", the heart of the process
 const CHIPS: { label: string; href?: string }[] = [
   { label: "No chemicals" },
   { label: "No high heat" },
-  { label: "Natural taste & aroma" },
+  { label: "Natural aroma" },
   { label: "Lab tested", href: "#proof" },
 ];
 
@@ -173,10 +173,14 @@ export function WhyChooseOil() {
 
             <ul className="mt-6 grid grid-cols-2 gap-2 md:mt-10 md:flex md:flex-wrap md:justify-center lg:justify-start lg:pl-14">
               {CHIPS.map((c) => {
-                const cls = "inline-flex h-9 w-full items-center justify-center gap-1 rounded-full md:w-auto border border-forest/15 bg-white/60 px-3 text-[12px] font-medium text-forest-text md:h-9 md:gap-1.5 md:px-3.5 md:text-sm";
+                const cls = "inline-flex h-11 w-full items-center gap-2 rounded-full border border-forest/15 bg-white pr-3 pl-1.5 text-[13px] font-semibold whitespace-nowrap text-forest-text shadow-[0_6px_16px_-12px_rgba(7,47,27,0.45)] md:w-auto md:pr-4 md:text-sm";
                 const inner = (
                   <>
-                    <Check className="size-3.5 text-forest" strokeWidth={2.5} aria-hidden /> {c.label}
+                    {/* Filled green tick badge, so the promise reads as "checked", not as a bullet. */}
+                    <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-forest text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.15)]">
+                      <Check className="size-4" strokeWidth={3} />
+                    </span>
+                    {c.label}
                   </>
                 );
                 return (

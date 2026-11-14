@@ -59,6 +59,21 @@ try {
     changed = true;
     console.log("Added step at position", at + 1, "→", method.steps.map((s) => s.title).join(" · "));
   }
+  // Client wording (2026-11-15): "Kolhu wood pressed", "pure cotton cloth", "food-grade PET bottles".
+  const WORDING = [
+    [/^slow pressed$|^wood pressed$/i, "Wood pressed", "Kolhu wood pressed slowly in our kachi ghani, so the oil stays cool."],
+    [/cloth/i, "Cloth filtered", "Filtered through pure cotton cloth to catch the seed bits."],
+    [/bottled/i, "Bottled fresh", "Filled in food-grade PET bottles and sealed in small batches in Bijainagar."],
+  ];
+  for (const st of method?.steps ?? []) {
+    const w = WORDING.find(([re]) => re.test(st.title));
+    if (w && (st.title !== w[1] || st.body !== w[2])) {
+      st.title = w[1];
+      st.body = w[2];
+      changed = true;
+      console.log("Wording updated:", w[1]);
+    }
+  }
   if (changed) await db.query("UPDATE settings SET value = ? WHERE `key` = 'pdp_story'", [JSON.stringify(map)]);
   else console.log("Story override already up to date.");
 } finally {

@@ -31,10 +31,10 @@ const OIL: Story = {
     steps: [
       { title: "Farm sourced", body: "We start with whole, clean seeds from trusted farms.", image: "/illustrations/process/1-farm.webp" },
       { title: "Hand cleaned", body: "Stones, dust and husk are picked out before pressing.", image: "/illustrations/process/2-hand-cleaned.webp" },
-      { title: "Slow pressed", body: "Pressed slowly in our kachi ghani, so the oil stays cool.", image: "/illustrations/process/3-wood-pressed.webp" },
-      { title: "Cloth filtered", body: "Strained through fine cotton cloth to catch the seed bits.", image: "/illustrations/process/4-cloth-filtered.webp" },
+      { title: "Wood pressed", body: "Kolhu wood pressed slowly in our kachi ghani, so the oil stays cool.", image: "/illustrations/process/3-wood-pressed.webp" },
+      { title: "Cloth filtered", body: "Filtered through pure cotton cloth to catch the seed bits.", image: "/illustrations/process/4-cloth-filtered.webp" },
       { title: "Gravity settled", body: "Rested still for 10 days so the finest particles sink on their own.", image: "/illustrations/process/4b-gravity-settled.webp" },
-      { title: "Bottled fresh", body: "Filled and sealed in small batches in Bijainagar.", image: "/illustrations/process/5-bottled.webp" },
+      { title: "Bottled fresh", body: "Filled in food-grade PET bottles and sealed in small batches in Bijainagar.", image: "/illustrations/process/5-bottled.webp" },
     ],
   },
   checks: {

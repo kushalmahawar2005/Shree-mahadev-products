@@ -21,7 +21,7 @@ const REFINED = [
   { icon: Factory, text: "Made fast, in bulk, by machines" },
 ];
 const GHANI = [
-  { icon: Hand, text: "Pressed slowly in a wooden ghani, the natural way" },
+  { icon: Hand, text: "Kolhu wood pressed, the natural way" },
   { icon: Sparkles, text: "Natural vitamins and antioxidants stay in" },
   { icon: Wheat, text: "The real taste and aroma of the seed" },
   { icon: Leaf, text: "Nothing added, nothing taken out" },

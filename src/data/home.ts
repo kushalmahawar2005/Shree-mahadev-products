@@ -77,7 +77,7 @@ export const proofCards = [
     seal: "Kachi ghani",
     sealSub: "No heat",
     image: "https://res.cloudinary.com/bmqxsylj/image/upload/v1793735946/swadeshi-mahadev/static/images/deco/seal-kachi-ghani.webp",
-    text: "Pressed slowly in a wooden ghani. No heat, no chemicals, no refining. The oil settles naturally before bottling.",
+    text: "Wood pressed slowly in a kolhu. No heat, no chemicals, no refining. The oil settles naturally before bottling.",
     href: "/our-ghani",
   },
 ];
