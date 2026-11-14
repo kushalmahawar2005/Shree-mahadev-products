@@ -21,18 +21,26 @@ export function StickyHeader({ children, className }: { children: React.ReactNod
   const [compact, setCompact] = useState(false);
   const [full, setFull] = useState(0);
   const el = useRef<HTMLElement>(null);
+  // Until this time the header is animating back from compact: the spacer may only grow meanwhile.
+  const expandingUntil = useRef(0);
+  const remeasure = useRef<() => void>(() => {});
 
   // Measure the full (expanded) height for the spacer; keep --sticky-top in sync with the live height.
   useLayoutEffect(() => {
     const h = el.current;
     if (!h) return;
-    // While expanding back from compact the height passes through in-between values: only ever grow
-    // the spacer here; a real viewport resize (below) re-measures from scratch.
+    // While expanding back from compact the height passes through in-between values: only grow the
+    // spacer then. Otherwise follow the real height both ways (header got shorter: breakpoint change,
+    // announcement strip hidden), so no empty gap is left under it.
     const write = () => {
-      if (!h.dataset.compact) setFull((f) => Math.max(f, h.offsetHeight));
+      if (!h.dataset.compact) {
+        const now = h.offsetHeight;
+        setFull((f) => (Date.now() < expandingUntil.current ? Math.max(f, now) : now));
+      }
       document.documentElement.style.setProperty("--sticky-top", `${h.offsetHeight}px`);
     };
-    const onResize = () => {
+    const onResize = () => remeasure.current();
+    remeasure.current = () => {
       if (!h.dataset.compact) setFull(h.offsetHeight);
     };
     write();
@@ -52,7 +60,16 @@ export function StickyHeader({ children, className }: { children: React.ReactNod
       ticking = true;
       requestAnimationFrame(() => {
         // Menus/drawers lock scroll; don't flip state underneath them.
-        if (document.documentElement.style.overflow !== "hidden") setCompact(window.scrollY > COMPACT_AT);
+        if (document.documentElement.style.overflow !== "hidden") {
+          const next = window.scrollY > COMPACT_AT;
+          // Leaving compact: the header animates taller for a moment; let the spacer only grow meanwhile.
+          if (!next && el.current?.dataset.compact) {
+            expandingUntil.current = Date.now() + 700;
+            // Animation done: settle the spacer on the real expanded height (it may have shrunk meanwhile).
+            window.setTimeout(() => remeasure.current(), 750);
+          }
+          setCompact(next);
+        }
         ticking = false;
       });
     };

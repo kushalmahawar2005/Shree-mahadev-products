@@ -40,11 +40,13 @@ const OIL: Story = {
   checks: {
     eyebrow: "घर पर पहचानें",
     title: "Know real kachi ghani oil at home",
-    intro: "Three simple checks. Unrefined oil behaves a little differently, and that's a good sign.",
+    intro: "Four simple checks. Unrefined oil behaves a little differently, and that's a good sign.",
     items: [
       { image: "/images/product-story/check-smell-v1.webp", icon: "smell", title: "Smell it", body: "Open the cap. Kachi ghani oil smells strongly of the seed it came from." },
       { image: "/images/product-story/check-cold-v1.webp", icon: "cold", title: "The fridge check", body: "Keep a little in the fridge. Unrefined oil may turn cloudy or thicken, and clears again at room temperature." },
       { image: "/images/product-story/check-sediment-v1.webp", icon: "look", title: "Look at the bottom", body: "A thin layer of natural sediment can settle in the bottle. It comes from the seed, not a defect." },
+      // TODO(art): check-thick-v1.webp (pouring shot), then add `image` here and in the saved admin override.
+      { icon: "pour", title: "Naturally thick, rich in texture", body: "Pour a spoonful. Traditionally wood-pressed oil is thicker and richer than refined oil, because nothing is stripped out." },
     ],
   },
   reels: [

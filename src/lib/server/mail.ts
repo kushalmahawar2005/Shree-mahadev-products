@@ -67,9 +67,24 @@ async function loadEmailOrder(
   );
   if (!o) return null;
   const [items] = await db().query<Rows>(
-    "SELECT product_title, variant_title, quantity, line_total FROM order_items WHERE order_id = ?",
+    "SELECT product_handle, product_title, variant_title, quantity, line_total FROM order_items WHERE order_id = ?",
     [orderId],
   );
+  // One photo per line: that size's front shot when there is one, else the product's first photo.
+  const handles = [...new Set(items.map((i) => String(i.product_handle)))];
+  const [imgs] = handles.length
+    ? await db().query<Rows>(
+        `SELECT product_handle, url FROM product_images WHERE product_handle IN (${handles.map(() => "?").join(",")}) ORDER BY sort_order, id`,
+        handles,
+      )
+    : [[] as Rows];
+  const photoFor = (handle: string, size: string) => {
+    const own = imgs.filter((im) => im.product_handle === handle).map((im) => String(im.url));
+    const slug = size.toLowerCase().replace(/\s+/g, "");
+    const url = own.find((u) => u.includes(`/${slug}-front.`)) ?? own[0];
+    // Email-safe: JPEG, small, padded on the brand cream (no WebP/AVIF for Outlook).
+    return url?.includes("/image/upload/") ? url.replace("/image/upload/", "/image/upload/f_jpg,q_auto,c_pad,w_112,h_140,b_rgb:FBF5E5/") : undefined;
+  };
   return {
     id: o.id,
     token: o.token,
@@ -86,6 +101,7 @@ async function loadEmailOrder(
       .join(", "),
     paymentMethod: o.payment_method,
     items: items.map((i) => ({
+      image: photoFor(String(i.product_handle), String(i.variant_title)),
       title: i.product_title,
       size: i.variant_title,
       qty: i.quantity,

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSignedIn } from "@/hooks/use-signed-in";
+import { LoginNudge } from "./LoginNudge";
 import { useCart } from "@/components/cart/CartProvider";
 import { BagIcon, SearchIcon, ShopIcon, UserIcon } from "./icons";
 
@@ -14,6 +16,8 @@ export function MobileBottomBar() {
   const { cart, open } = useCart();
   const pathname = usePathname();
   const count = cart?.totalQuantity ?? 0;
+  const signedIn = useSignedIn();
+  const guest = signedIn === false;
   if (pathname?.startsWith("/checkout")) return null;
   const item = "flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-xs font-semibold text-forest-text";
 
@@ -42,10 +46,15 @@ export function MobileBottomBar() {
         Cart
       </button>
       {/* No prefetch: signed-out visitors get a proxy redirect to /login, which 404s as a prefetch. */}
+      {/* Signed out: "Login" with a small gold dot; the nudge bubble explains the perks. */}
       <Link href="/account" prefetch={false} className={item}>
-        <UserIcon className="size-5" />
-        Account
+        <span className="relative">
+          <UserIcon className="size-5" />
+          {guest && <span aria-hidden className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-co-accent ring-2 ring-white" />}
+        </span>
+        {guest ? "Login" : "Account"}
       </Link>
+      {guest && <LoginNudge />}
     </nav>
   );
 }

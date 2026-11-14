@@ -9,11 +9,9 @@ import { DUR } from "@/lib/motion";
 import { Zap } from "@/components/icons/duo";
 import { QtyStepper } from "@/components/cart/CartLine";
 import { useCart } from "@/components/cart/CartProvider";
-import { WhatsAppIcon } from "@/components/layout/icons";
 import NumberFlow from "@number-flow/react";
 import { DeliveryCheck } from "./DeliveryCheck";
 import { NotifyMe } from "./NotifyMe";
-import { whatsappLink } from "@/data/site";
 import { flyToCart } from "@/lib/fly-to-cart";
 import { formatMoney } from "@/lib/utils/money";
 import { unitPrice } from "@/lib/utils/unitPrice";
@@ -27,13 +25,13 @@ type Props = Pick<Product, "handle" | "title" | "variants" | "defaultSize"> & {
   compact?: boolean;
   /** Offers row, shown right under the price. */
   offers?: React.ReactNode;
-  /** Shown under the buttons (payment logos etc.). */
+  /** Shown under the pincode check (PDP: the one trust strip). */
   footer?: React.ReactNode;
   /** "Only N left" below this many units (admin low-stock threshold). */
   lowStock?: number;
 };
 
-/** Size cards + price + qty + Add to cart / Buy now + WhatsApp, with a sticky bar once the CTA scrolls away. */
+/** Price + size cards + qty / Add to cart + Buy now + pincode check, with a sticky bar once the CTA scrolls away. */
 export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10 }: Props) {
   const { add, open } = useCart();
   // Admin's "Shown first" size, else 1 L / 1 kg, else the first size on sale.
@@ -74,7 +72,6 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
   const onSale = variants.filter((v) => v.availableForSale && v.price.amount > 0);
   const bestValueId = onSale.length > 2 ? onSale.reduce((a, b) => (perUnit(b) < perUnit(a) ? b : a)).id : null;
   const canBuy = variant.availableForSale;
-  const waMessage = `Hi, I'd like to order ${title} (${variant.title}) × ${qty}.`;
 
   async function addToCart(e?: React.MouseEvent) {
     if (!variant) return;
@@ -106,11 +103,15 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
       <PriceBlock variant={variant} qty={qty} lowStock={lowStock} />
       {offers}
 
-      <fieldset className="mt-5 min-w-0">
+      <fieldset className="mt-4 min-w-0">
         <legend className="mb-1.5 text-sm font-semibold text-ink">
           Choose size <span className="font-normal text-ink-muted">· {variant.title}</span>
         </legend>
-        <div role="radiogroup" aria-label="Size" className="grid grid-cols-[repeat(auto-fit,minmax(82px,1fr))] gap-x-2 gap-y-4 pt-2.5 pb-1">
+        <div role="radiogroup" aria-label="Size" className={cn(
+            // Phones: wrapping rows whose last row stretches to fill (5 → 3 + 2, 4 → 2 × 2); sm+: one grid row.
+            "flex flex-wrap gap-x-2 gap-y-4 pt-2.5 pb-1 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(82px,1fr))]",
+            variants.length === 4 ? "[&>button]:basis-[40%]" : "[&>button]:basis-[28%]",
+          )}>
           {variants.map((v) => {
             const on = v.id === variant.id;
             const off = !v.availableForSale;
@@ -133,7 +134,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
                 aria-checked={on}
                 aria-label={`${v.title}${v.availableForSale ? "" : v.outOfStock ? ", out of stock" : ", price coming soon"}`}
                 className={cn(
-                  "relative flex min-w-[74px] flex-1 shrink-0 flex-col items-center rounded-xl border-[1.5px] px-1.5 pt-2.5 pb-2 text-center transition-all disabled:cursor-not-allowed disabled:opacity-40",
+                  "relative flex min-w-[74px] flex-1 shrink-0 flex-col items-center rounded-2xl border-[1.5px] px-1.5 pt-2.5 pb-2 text-center transition-all disabled:cursor-not-allowed disabled:opacity-40",
                   on ? "border-forest bg-co-brand-soft" : "border-line bg-white hover:border-forest/30",
                 )}
               >
@@ -158,14 +159,15 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
           <NotifyMe key={variant.id} variantKey={variant.id} sizeLabel={`${title} ${variant.title}`} />
         </div>
       ) : (
-        <div ref={ctaRef} className="mt-5 space-y-3">
-          <div className="flex flex-wrap items-center gap-2.5 sm:flex-nowrap">
+        <div ref={ctaRef} className="mt-4 space-y-2">
+          {/* One row on sm+: qty · Add to cart · Buy now. Phones: Buy now wraps to its own line. */}
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <QtyStepper value={qty} min={1} onChange={setQty} label={title} disabled={!canBuy} />
             <button
               type="button"
               disabled={!canBuy || !!busy}
               onClick={addToCart}
-              className="inline-flex h-12 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-5 text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
+              className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
             >
               {busy === "add" ? <LoadingDots /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
               {!canBuy ? "Price coming soon" : added ? "Added" : "Add to cart"}
@@ -175,7 +177,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
                 type="button"
                 disabled={!!busy}
                 onClick={buyNow}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-co-accent px-5 text-[15px] font-semibold whitespace-nowrap text-ink transition-colors hover:brightness-95 disabled:opacity-60 sm:w-auto sm:flex-1"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-co-accent px-4 text-[15px] font-semibold whitespace-nowrap text-ink transition-colors hover:brightness-95 disabled:opacity-60 sm:w-auto sm:flex-1"
               >
                 {busy === "buy" ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Buy now
               </button>
@@ -189,14 +191,6 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
         </div>
       )}
       {canBuy && !compact && <DeliveryCheck variant={variant} qty={qty} />}
-      <a
-        href={whatsappLink(waMessage)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-3 inline-flex w-full items-center justify-center gap-2 text-sm font-semibold text-forest-text hover:text-forest"
-      >
-        <WhatsAppIcon className="size-4 text-[#25d366]" /> Prefer WhatsApp? Order in chat
-      </a>
       {footer}
 
       {/* Sticky add-to-cart once the main CTA scrolls away */}
@@ -277,23 +271,16 @@ function PriceBlock({ variant, qty, lowStock }: { variant: ProductVariant; qty: 
           ) : (
             <p className="text-2xl font-semibold text-ink-muted">Price coming soon</p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-          <p className="text-[13px] text-ink-muted">
+          {/* One small line: unit price, taxes, and stock (low stock in mustard). */}
+          <p className="mt-2 text-[13px] text-ink-muted">
             {unit ? `${unit} · ` : ""}Inclusive of all taxes
             {qty > 1 && variant.price.amount ? ` · ${qty} for ${formatMoney(variant.price.amount * qty)}` : ""}
+            {variant.availableForSale && (variant.stock ?? Infinity) <= lowStock ? (
+              <b className="font-semibold text-co-accent-ink"> · Only {variant.stock} left</b>
+            ) : variant.availableForSale ? (
+              <span className="font-semibold text-forest"> · In stock</span>
+            ) : null}
           </p>
-          {variant.availableForSale && (variant.stock ?? Infinity) <= lowStock ? (
-            <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-co-accent-ink">
-              <span aria-hidden className="size-2 rounded-full bg-mustard ring-4 ring-mustard/20" />
-              Only {variant.stock} left · ships within 24 hours
-            </p>
-          ) : variant.availableForSale ? (
-            <p className="inline-flex items-center gap-2 text-[13px] font-semibold text-forest">
-              <span aria-hidden className="live-dot size-2 rounded-full bg-co-success ring-4 ring-co-success/15" />
-              In stock · ships within 24 hours
-            </p>
-          ) : null}
-          </div>
         </motion.div>
       </AnimatePresence>
     </div>

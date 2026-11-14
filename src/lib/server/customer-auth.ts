@@ -5,6 +5,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 
 const COOKIE = "smp_customer";
+/** Non-secret "signed in" flag the browser can read (UI only; every real check uses COOKIE). */
+const SIGNED_IN_HINT = "smp_in";
 const DAYS = 30;
 const secret = () => process.env.ADMIN_SESSION_SECRET || "development-only-change-me";
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
@@ -23,7 +25,10 @@ export async function createCustomerSession(customerId: number) {
   // Signing in again cancels a pending account deletion (7-day grace period).
   await db().execute("UPDATE customers SET last_login_at=NOW(), delete_requested_at=NULL WHERE id=?", [customerId]);
   const value = `${raw}.${sign(raw)}`;
-  (await cookies()).set(COOKIE, value, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", expires });
+  const jar = await cookies();
+  jar.set(COOKIE, value, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", expires });
+  // Readable hint (no secret in it) so the header can show "Account" instead of the "Login" nudge.
+  jar.set(SIGNED_IN_HINT, "1", { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", expires });
 }
 
 export async function getCustomerSession() {
@@ -54,6 +59,7 @@ export async function clearCustomerSession() {
     if (raw) await db().execute("DELETE FROM customer_sessions WHERE token_hash=?", [hash(raw)]);
   }
   cookieStore.delete(COOKIE);
+  cookieStore.delete(SIGNED_IN_HINT);
 }
 
 export { cleanPhone };

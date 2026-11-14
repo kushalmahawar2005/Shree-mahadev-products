@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Star, X } from "lucide-react";
-import { Camera, CheckCircle2 } from "@/components/icons/duo";
+import { Loader2, Star } from "lucide-react";
+import { CheckCircle2 } from "@/components/icons/duo";
+import { ReviewPhotoPicker, uploadReviewPhotos, type PickedPhoto } from "./ReviewPhotos";
 import { Chips, SUGGEST, type Cat } from "@/components/reviews/WriteReview";
 import { cn } from "@/lib/utils/cn";
 import {
@@ -10,7 +11,6 @@ import {
   submitVerifiedReviewAction,
 } from "@/lib/review-actions";
 
-type Uploaded = { url: string; publicId: string };
 
 const field =
   "w-full rounded-xl border border-line bg-white px-4 text-[15px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10";
@@ -26,7 +26,7 @@ export function VerifiedReviewForm({
   category?: string;
 }) {
   const [hover, setHover] = useState(0);
-  const [files, setFiles] = useState<{ file: File; url: string }[]>([]);
+  const [files, setFiles] = useState<PickedPhoto[]>([]);
   const [rating, setRating] = useState(5);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -34,44 +34,12 @@ export function VerifiedReviewForm({
   const [done, setDone] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  async function uploadPhotos(files: File[]): Promise<Uploaded[]> {
-    if (!files.length) return [];
-    if (
-      files.length > 3 ||
-      files.some((file) => !file.type.startsWith("image/"))
-    )
-      throw new Error("Choose up to 3 image files.");
-    const signature = await signReviewUploadAction({ token, productHandle });
-    if (!signature.ok) throw new Error(signature.error);
-    const output: Uploaded[] = [];
-    for (const file of files) {
-      const form = new FormData();
-      form.append("file", file);
-      form.append("api_key", signature.apiKey);
-      form.append("timestamp", String(signature.timestamp));
-      form.append("folder", signature.folder);
-      form.append("allowed_formats", signature.allowed_formats);
-      form.append("signature", signature.signature);
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${signature.cloudName}/image/upload`,
-        { method: "POST", body: form },
-      );
-      if (!response.ok)
-        throw new Error(
-          "A photo couldn't be uploaded. Please remove it and try again.",
-        );
-      const image = await response.json();
-      output.push({ url: image.secure_url, publicId: image.public_id });
-    }
-    return output;
-  }
-
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
     startTransition(async () => {
       try {
-        const photos = await uploadPhotos(files.map((f) => f.file));
+        const photos = await uploadReviewPhotos(files.map((f) => f.file), () => signReviewUploadAction({ token, productHandle }));
         const result = await submitVerifiedReviewAction({
           token,
           productHandle,
@@ -151,41 +119,7 @@ export function VerifiedReviewForm({
         />
         <Chips items={pool.body} active={(t) => body.includes(t)} onPick={(t) => setBody((b) => (b.includes(t) ? b : `${b.trim()} ${t}`.trim()))} plus />
       </label>
-      <div>
-        <p className="mb-1.5 text-[13px] font-medium text-ink-muted">Photos (optional, up to 3)</p>
-        <div className="flex flex-wrap gap-2">
-          {files.map((f, n) => (
-            <span key={f.url} className="relative size-20 overflow-hidden rounded-xl border border-line">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local preview */}
-              <img src={f.url} alt="" className="size-full object-cover" />
-              <button
-                type="button"
-                onClick={() => setFiles((fs) => fs.filter((_, k) => k !== n))}
-                aria-label="Remove photo"
-                className="absolute top-1 right-1 grid size-6 place-items-center rounded-full bg-black/60 text-white"
-              >
-                <X className="size-3.5" />
-              </button>
-            </span>
-          ))}
-          {files.length < 3 && (
-            <label className="grid size-20 cursor-pointer place-items-center rounded-xl border-2 border-dashed border-line text-ink-muted hover:border-forest/40 hover:text-forest">
-              <Camera className="size-6" />
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="sr-only"
-                onChange={(e) => {
-                  const picked = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));
-                  setFiles((fs) => [...fs, ...picked.map((file) => ({ file, url: URL.createObjectURL(file) }))].slice(0, 3));
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          )}
-        </div>
-      </div>
+      <ReviewPhotoPicker files={files} onChange={setFiles} />
       {notice && (
         <p role="alert" className="rounded-xl bg-alert-soft px-3 py-2 text-sm text-alert">
           {notice}

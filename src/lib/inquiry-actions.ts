@@ -34,7 +34,7 @@ const bulkInquirySchema = z
     city: z.string().trim().min(2).max(80),
     phone,
     email,
-    product: z.string().trim().min(2).max(160),
+    product: z.string().trim().min(2).max(600),
     quantity: z.string().trim().min(1).max(60),
     message: z.string().trim().max(1000),
     website: z.string().max(200),

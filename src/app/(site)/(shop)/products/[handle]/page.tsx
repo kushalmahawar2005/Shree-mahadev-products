@@ -1,43 +1,42 @@
+import Image from "next/image";
 import { thumbUrl } from "@/lib/image-loader";
 import { VariantImageProvider } from "@/components/product/VariantImage";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, Check, Star } from "lucide-react";
+import { ArrowRight, BadgeCheck, Check, Star } from "lucide-react";
 import { oilWhyPoints } from "@/data/pdp-why";
-import { PaymentLogos } from "@/components/layout/PaymentLogos";
-import { BadgePercent, Banknote, Droplets, Factory, FlaskConical, Leaf, MapPin, ShieldCheck, ThermometerSnowflake, Truck } from "@/components/icons/duo";
+import { Ban, Banknote, Droplets, Factory, FlaskConical, Leaf, Lock, MapPin, Package, ShieldCheck, ThermometerSnowflake, Truck } from "@/components/icons/duo";
 import { DetailsTabs, type DetailTab } from "@/components/product/DetailsTabs";
+import { Marquee } from "@/components/shadcn/marquee";
 import { SectionHeader, sectionClass } from "@/components/ui/SectionHeader";
-import { fullAddress, site, whatsappLink } from "@/data/site";
 import { GhaniVsRefined } from "@/components/product/GhaniVsRefined";
-import { getPublicLeadPopup } from "@/lib/server/leads";
-import { PickCard } from "@/components/home/PickCard";
-import { toPickProduct } from "@/components/home/pickProduct";
 import { Reveal } from "@/components/motion/Reveal";
-import { Gallery } from "@/components/product/Gallery";
-import { ProductVideos } from "@/components/product/ProductVideos";
-import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { BAND, Band, HomeChecks, StoryBand } from "@/components/product/PdpStory";
 import { MethodSteps } from "@/components/product/MethodSteps";
-import { RecordView } from "@/components/product/RecentlyViewed";
 import type { Art } from "@/data/brand-art";
 import { pdpArt, pdpMustardScene } from "@/data/pdp-art";
+import { BoughtTogether, type BundleItem } from "@/components/product/BoughtTogether";
+import { fullAddress, site } from "@/data/site";
+import { PickCard } from "@/components/home/PickCard";
+import { toPickProduct } from "@/components/home/pickProduct";
+import { Gallery } from "@/components/product/Gallery";
+import { ProductPurchase } from "@/components/product/ProductPurchase";
+import { RecordView } from "@/components/product/RecentlyViewed";
 import { Reels, type ReelItem } from "@/components/home/Reels";
 import { DEFAULT_STORIES, sceneFor } from "@/data/pdp-story";
 import { getHomeVideos } from "@/lib/home-videos";
 import { getPdpStories } from "@/lib/server/pdp-story";
 import { parseReelLink, reelEmbedSrc, reelLinkPoster } from "@/lib/reel-link";
 import { ReviewList } from "@/components/product/ReviewList";
-import { BoughtTogether, type BundleItem } from "@/components/product/BoughtTogether";
 import { defaultVariant } from "@/lib/commerce/default-variant";
 import { WriteReview } from "@/components/reviews/WriteReview";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { getProduct, getProducts, type Product } from "@/lib/commerce";
 import { getOtherProductReviews, getProductReviews, type PublicReview } from "@/lib/server/reviews";
-import { BadgeCheck } from "lucide-react";
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { formatMoney } from "@/lib/utils/money";
+import { hasTodo, noTodo } from "@/lib/utils/no-todo";
 import { breadcrumbJsonLd, jsonLdString, pageMetadata, productJsonLd } from "@/lib/utils/seo";
 import { cn } from "@/lib/utils/cn";
 import { siteVideo } from "@/lib/site-videos";
@@ -65,10 +64,6 @@ const CATEGORY = {
   sweetener: { label: "Natural sweeteners", href: "/collections/natural-sweeteners" },
 } as const;
 
-/** One PDP band: its tint, its own corner ornament and the section inside. */
-const band = (tone: keyof typeof BAND, art: Art | undefined, ...rest: [React.ReactNode] | [string, React.ReactNode]) =>
-  rest.length === 2 ? { tone, art, artClass: rest[0], node: rest[1] } : { tone, art, artClass: undefined, node: rest[0] };
-
 /** Short process reels shown as the last gallery slide on oil pages. */
 const REELS = {
   ghani: { ...siteVideo("reels/ghani-pour", 480), label: "Fresh oil pouring from our ghani" },
@@ -82,16 +77,16 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   const product = await getProduct(handle);
   if (!product) notFound();
 
-  const [related, reviews, settings, welcome] = await Promise.all([pairsWellWith(product), getProductReviews(handle), getStoreSettings(), getPublicLeadPopup()]);
+  const [related, reviews, settings] = await Promise.all([pairsWellWith(product), getProductReviews(handle), getStoreSettings()]);
   // No reviews here yet: show real, approved reviews of our other products instead of an empty box.
   const otherReviews = reviews.length ? [] : await getOtherProductReviews(product.handle);
   const cat = CATEGORY[product.category as keyof typeof CATEGORY] ?? CATEGORY.oil;
   const isOil = product.category === "oil";
+  const isHoney = product.category === "honey";
 
   const sizes = product.variants.filter((v) => v.price.amount > 0);
-  // This product + one complement from each other category (oil → honey + jaggery).
+  // "Complete your kitchen": this product + one more from the same shelf + one from another shelf.
   const catalog = (await getProducts()).filter((p) => p.handle !== product.handle && p.priceRange.min.amount > 0);
-  // A sensible set: one more from the same shelf (oil → another oil) + one from another shelf (honey / jaggery).
   const picks = [catalog.find((p) => p.category === product.category), catalog.find((p) => p.category !== product.category)].filter(
     (p): p is Product => !!p,
   );
@@ -141,159 +136,153 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   });
   const reelItems = toItems(reelSource, 0);
   const productVideoItems = toItems(ownVideos, 1000);
-  const promises = isOil
+  // Purity marquee in the buy column: real process facts only (no health claims).
+  const purity = isOil
     ? [
-        { I: Factory, t: "Kolhu pressed" },
-        { I: ThermometerSnowflake, t: "No external heat" },
-        { I: Droplets, t: "Cloth filtered" },
-        { I: FlaskConical, t: "Lab tested" },
+        { I: Factory, t: "Kolhu pressed", s: "Slow wooden ghani" },
+        { I: ThermometerSnowflake, t: "No external heat", s: "Pressed cool" },
+        { I: Droplets, t: "Cloth filtered", s: "Then gravity settled" },
+        { I: FlaskConical, t: "Lab tested", s: "Every batch" },
+        { I: Ban, t: "No preservatives", s: "Nothing added" },
+        { I: Package, t: "Small batches", s: "Bottled in Bijainagar" },
       ]
     : [
-        { I: Leaf, t: "Nothing added" },
-        { I: FlaskConical, t: "Lab tested" },
-        { I: ShieldCheck, t: "FSSAI licensed" },
-        { I: MapPin, t: "Packed in Bijainagar" },
+        { I: Leaf, t: "Nothing added", s: isHoney ? "No sugar syrup" : "No bleaching" },
+        { I: FlaskConical, t: "Lab tested", s: "Every batch" },
+        { I: ShieldCheck, t: "FSSAI licensed", s: `Lic. ${site.fssai}` },
+        { I: MapPin, t: "Packed in Bijainagar", s: "By our family" },
       ];
-  // Real offers only: first-order coupon (when the welcome popup is on), free delivery, COD.
-  const offers: Offer[] = [
-    ...(welcome ? [{ I: BadgePercent, title: `${welcome.percent}% off`, sub: "on your first order" }] : []),
-    { I: Truck, title: "Free delivery", sub: `on orders above ${formatMoney(settings.shipping.freeShippingThreshold)}` },
-    ...(settings.shipping.codEnabled ? [{ I: Banknote, title: "Cash on delivery", sub: "pay when it arrives" }] : []),
-  ];
+  // Highlights: one list merging the old usage chips, icon badges and "Why" checklist, minus
+  // anything the pill, the purity band or the trust strip already says.
+  const bestForLine = product.bestFor.length ? `Best for ${listJoin(product.bestFor.map((b) => b.toLowerCase()))}` : null;
+  // Benefits that only restate a purity fact (heat, preservatives, lab, batches) stay in the marquee.
+  const benefitHighlights = product.benefits.filter((b) => !(bestForLine && /^for\s/i.test(b)) && !/external heat|preservative|lab[- ]tested|small batch/i.test(b));
+  const extra = isOil
+    ? [
+        benefitHighlights.some((b) => /aroma/i.test(b)) ? null : oilWhyPoints(product.handle)[1],
+        "Never filter-pressed, rested 10 days to settle",
+        "100% natural, no chemicals, no refining",
+      ]
+    : [];
+  const highlights = [...new Set([bestForLine, ...benefitHighlights, ...extra].filter((x): x is string => !!x))].slice(0, 6);
+  const tagPill = isOil ? "Kachi ghani" : product.tags.includes("bestseller") ? "Bestseller" : isHoney ? "Raw honey" : null;
+
+  const description = noTodo(product.descriptionHtml) ?? noTodo(product.shortDescription);
+  const processNote = noTodo(product.processNote);
+  // A shelf life with an open TODO is not confirmed yet: don't state it.
+  const shelfLife = hasTodo(product.shelfLife) ? undefined : product.shelfLife;
+  const howToUse = noTodo(product.howToUse);
+  const steps = story.method?.steps ?? [];
   const tabs: DetailTab[] = [
-    {
-      id: "about",
-      title: "About",
-      body: (
-        <div className="space-y-4">
-          <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: product.descriptionHtml || `<p>${product.shortDescription}</p>` }} />
-          {product.benefits.length > 0 && (
-            <div>
-              <p className="font-semibold text-ink">Good for</p>
-              <ul className="mt-3 space-y-2">
-                {product.benefits.map((b) => (
-                  <li key={b} className="flex items-start gap-2">
-                    <Leaf className="mt-0.5 size-4 shrink-0 text-forest" /> {b}
-                  </li>
-                ))}
-              </ul>
+    description || product.benefits.length
+      ? {
+          id: "about",
+          title: "About",
+          body: (
+            <div className="space-y-4">
+              {description && <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: description.startsWith("<") ? description : `<p>${description}</p>` }} />}
+              {product.benefits.length > 0 && (
+                <div>
+                  <p className="font-semibold text-ink">Good for</p>
+                  <p className="mt-1">{listJoin(product.benefits)}.</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ),
-    },
-    product.howToUse || product.bestFor.length
+          ),
+        }
+      : null,
+    howToUse || shelfLife
       ? {
           id: "use",
           title: "How to use",
           body: (
-            <div>
-              {product.bestFor.length > 0 && (
-                <ul className="mb-4 grid grid-cols-2 gap-2">
-                  {product.bestFor.map((b) => (
-                    <li key={b} className="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2.5 text-sm font-semibold text-ink">
-                      <Droplets className="size-5 shrink-0" /> {b}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {product.howToUse && <p>{product.howToUse}</p>}
-              {product.shelfLife && <p className="mt-3 text-ink-muted">{product.shelfLife}</p>}
+            <div className="space-y-3">
+              {howToUse && <p>{howToUse}</p>}
+              {shelfLife && <p>{shelfLife}</p>}
             </div>
           ),
         }
       : null,
-    {
-      id: "made",
-      title: "How it's made",
-      body: (
-        <div>
-          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {["Farm sourced", "Hand cleaned", "Wood pressed", "Cloth filtered", "Gravity settled", "Bottled"].map((step, i) => (
-              <li key={step} className="rounded-xl border border-line bg-surface px-3 py-2.5">
-                <span className="text-xs font-semibold text-co-accent-ink tabular-nums">0{i + 1}</span>
-                <p className="font-semibold text-ink">{step}</p>
-              </li>
-            ))}
-          </ol>
-          {product.processNote && <p className="mt-5">{product.processNote}</p>}
-          <Link href="/our-ghani" className="mt-4 inline-flex items-center gap-1 font-semibold text-forest hover:underline">
-            Read our story <ArrowRight className="size-4" />
-          </Link>
-        </div>
-      ),
-    },
-    {
-      id: "lab",
-      title: "Lab report",
-      body: product.labReportUrl ? (
-        <a href={product.labReportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-forest underline underline-offset-2">
-          <FlaskConical className="size-5" /> View this batch&apos;s lab report (PDF)
-        </a>
-      ) : (
-        // TODO(client): upload this product's lab report PDF.
-        <p>
-          Every batch is tested before it is packed.{" "}
-          <Link href="/lab-reports" className="font-semibold text-forest underline underline-offset-2">
-            See our lab reports
-          </Link>
-          .
-        </p>
-      ),
-    },
+    steps.length || processNote
+      ? {
+          id: "made",
+          title: "How it's made",
+          body: (
+            <div>
+              {steps.length > 0 && (
+                <ol className="space-y-3">
+                  {steps.map((s, n) => (
+                    <li key={s.title} className="flex items-center gap-3">
+                      <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl bg-sunken">
+                        {s.image ? <Image src={s.image} alt="" fill sizes="56px" className="object-cover" /> : null}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block font-semibold text-ink">
+                          <span className="mr-1.5 text-co-accent-ink tabular-nums">{n + 1}.</span>
+                          {s.title}
+                        </span>
+                        <span className="block text-sm">{s.body}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {processNote && <p className="mt-4">{processNote}</p>}
+              <Link href="/our-ghani" className="mt-4 inline-flex items-center gap-1 font-semibold text-forest hover:underline">
+                Read our story <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          ),
+        }
+      : null,
+    product.labReportUrl
+      ? {
+          id: "lab",
+          title: "Lab report",
+          body: (
+            <a href={product.labReportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold text-forest underline underline-offset-2">
+              <FlaskConical className="size-5" /> View this batch&apos;s lab report (PDF)
+            </a>
+          ),
+        }
+      : null,
     {
       id: "info",
       title: "Product info",
       body: (
-        // Legal Metrology (e-commerce) declaration. TODO(client): confirm ingredients + best before per product.
+        // Legal Metrology (e-commerce) declaration. Rows the client hasn't confirmed yet stay hidden.
         <dl>
-          {[
-            ["Product name", product.title],
-            ["Ingredients", `100% ${shortTitle(product.title).replace(/\s*(Oil|Raw Honey|Honey)$/i, "").toLowerCase()}${isOil ? " seeds" : ""} (to be confirmed)`],
-            ["Net quantity", sizes.map((v) => v.title).join(" · ")],
-            ["MRP (incl. of all taxes)", sizes.map((v) => `${v.title} ${formatMoney((v.compareAtPrice ?? v.price).amount)}`).join(" · ")],
-            ["Best before", product.shelfLife || "To be confirmed"],
-            ["Storage", isOil ? "Store in a cool, dry place away from direct sunlight." : "Store in a cool, dry place. Keep the lid tightly closed."],
-            ["Country of origin", "India"],
-            ["Manufactured & packed by", `${site.name}, ${fullAddress}`],
-            ["FSSAI Lic. No.", site.fssai],
-            ["Customer care", `${site.phone} · ${site.email}`],
-          ].map(([k, v]) => (
-            <div key={k} className="flex flex-col gap-0.5 border-b border-line py-2.5 last:border-0 sm:flex-row sm:gap-4">
-              <dt className="w-40 shrink-0 text-sm text-ink-muted">{k}</dt>
-              <dd className="text-sm text-ink">{v}</dd>
-            </div>
-          ))}
+          {(
+            [
+              ["Product name", product.title],
+              ["Net quantity", sizes.map((v) => v.title).join(" · ")],
+              ["MRP (incl. of all taxes)", sizes.map((v) => `${v.title} ${formatMoney((v.compareAtPrice ?? v.price).amount)}`).join(" · ")],
+              ["Best before", shelfLife],
+              ["Storage", isOil ? "Store in a cool, dry place away from direct sunlight." : "Store in a cool, dry place. Keep the lid tightly closed."],
+              ["Country of origin", "India"],
+              ["Manufactured & packed by", `${site.name}, ${fullAddress}`],
+              ["FSSAI Lic. No.", site.fssai],
+              ["Customer care", `${site.phone} · ${site.email}`],
+            ] as [string, string | undefined][]
+          )
+            .filter((row): row is [string, string] => !!row[1])
+            .map(([k, v]) => (
+              <div key={k} className="flex flex-col gap-1 border-b border-line py-2 last:border-0 sm:flex-row sm:gap-4">
+                <dt className="w-40 shrink-0 text-sm text-ink-muted">{k}</dt>
+                <dd className="text-sm text-ink">{v}</dd>
+              </div>
+            ))}
         </dl>
       ),
     },
-    product.faqs?.length
-      ? {
-          id: "faqs",
-          title: "FAQs",
-          body: (
-            <div>
-              <dl className="space-y-4">
-                {product.faqs.map((f) => (
-                  <div key={f.q}>
-                    <dt className="font-semibold text-ink">{f.q}</dt>
-                    <dd className="mt-1">{f.a}</dd>
-                  </div>
-                ))}
-              </dl>
-              <a
-                href={whatsappLink(`Hi, I have a question about ${product.title}.`)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-forest hover:underline"
-              >
-                Ask us on WhatsApp <ArrowRight className="size-4" />
-              </a>
-            </div>
-          ),
-        }
-      : null,
   ].filter(Boolean) as DetailTab[];
+  const faqs = (product.faqs ?? []).filter((f) => !hasTodo(f.q) && !hasTodo(f.a));
+  const trust = [
+    { I: Truck, t: "Free delivery", s: `above ${formatMoney(settings.shipping.freeShippingThreshold)}` },
+    ...(settings.shipping.codEnabled ? [{ I: Banknote, t: "Cash on delivery", s: "pay at your door" }] : []),
+    { I: Lock, t: "Secure payments", s: "UPI · cards · netbanking" },
+  ];
+  const reels = [...productVideoItems, ...reelItems];
 
   return (
     <div className="co-theme bg-page">
@@ -308,12 +297,12 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
               { name: "Shop", path: "/shop" },
               { name: product.title, path: `/products/${product.handle}` },
             ]),
-            ...(product.faqs?.length
+            ...(faqs.length
               ? [
                   {
                     "@context": "https://schema.org",
                     "@type": "FAQPage",
-                    mainEntity: product.faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+                    mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
                   },
                 ]
               : []),
@@ -321,7 +310,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         }}
       />
 
-      <div className="mx-auto max-w-[1360px] px-4 pt-5 pb-14 md:px-8 md:pt-7 md:pb-20">
+      <div className="mx-auto max-w-[1360px] px-4 pt-4 pb-12 md:px-8 md:pt-6 md:pb-16">
         <Breadcrumb>
           <BreadcrumbList className="no-scrollbar flex-nowrap overflow-x-auto whitespace-nowrap">
             <BreadcrumbItem>
@@ -339,115 +328,122 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         </Breadcrumb>
 
         <VariantImageProvider>
-        <div className="mt-5 grid grid-cols-1 gap-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-12 xl:gap-16 [&>*]:min-w-0">
-          <div className="lg:sticky lg:top-[calc(var(--sticky-top,120px)+16px)] lg:self-start">
-            <Gallery
-              images={product.images}
-              title={product.title}
-              swatch={product.swatch}
-              video={isOil ? (product.handle.includes("coconut") ? REELS.coconut : REELS.ghani) : undefined}
-            />
-          </div>
-
-          <div>
-            {/* Compact header: name (+ method for oils, + Hindi), rating, one-line pitch, tags. */}
-            <h1 className="font-display text-[28px] leading-tight tracking-[-0.02em] sm:text-[34px]">
-              {shortTitle(product.title)}
-              {isOil && (
-                <>
-                  , <span className="whitespace-nowrap">Wood-Pressed</span>
-                </>
-              )}
-              <span className="font-hindi mt-1 block text-lg font-normal tracking-normal whitespace-nowrap text-co-accent-ink" lang="hi">
-                {product.titleHi}
-              </span>
-            </h1>
-            <a href="#reviews" className="mt-1.5 inline-flex items-center gap-2 text-sm text-ink-muted hover:text-forest">
-              {(product.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING ? (
-                <>
-                  <Stars n={Math.round(product.rating ?? 0)} />
-                  <span className="font-semibold text-ink">{product.rating?.toFixed(1)}</span>
-                  <span className="underline-offset-2 hover:underline">{product.reviewCount} reviews</span>
-                </>
-              ) : (
-                <>
-                  <Stars n={0} />
-                  <span className="underline-offset-2 hover:underline">New · be the first to review</span>
-                </>
-              )}
-            </a>
-            <p className="mt-2.5 text-[15px] leading-relaxed text-ink-muted">{product.shortDescription}</p>
-            <ul className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold">
-              {product.tags.includes("bestseller") && <li className="rounded-full bg-forest px-2.5 py-1 text-white">Bestseller</li>}
-              {isOil && <li className="rounded-full bg-co-accent-soft px-2.5 py-1 text-co-accent-ink">Kachi ghani</li>}
-              {product.bestFor.map((b) => (
-                <li key={b} className="rounded-full bg-co-brand-soft px-2.5 py-1 text-forest-text">
-                  {b}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-5">
-              <ProductPurchase
-                handle={product.handle}
+          {/* Zone 1: sticky gallery (stage + thumbnail rail) | buy column. One column below lg. */}
+          <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-12 xl:gap-16 [&>*]:min-w-0">
+            <div className="lg:sticky lg:top-[calc(var(--sticky-top,120px)+16px)] lg:self-start">
+              <Gallery
+                images={product.images}
                 title={product.title}
-                variants={product.variants}
-                defaultSize={product.defaultSize}
-                lowStock={settings.lowStockThreshold}
-                image={product.images[0] ? thumbUrl(product.images[0].url, 44) : undefined}
-                offers={<Offers items={offers} />}
-                footer={
-                  <div className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-muted">
-                      <ShieldCheck className="size-3.5" /> Secure checkout
-                    </span>
-                    <PaymentLogos size="sm" />
-                  </div>
-                }
+                swatch={product.swatch}
+                video={isOil ? (product.handle.includes("coconut") ? REELS.coconut : REELS.ghani) : undefined}
               />
             </div>
 
-            {/* Product promise: four icon badges (real process facts, no health claims). */}
-            <ul className="mt-6 grid grid-cols-4 gap-2 border-y border-line py-4">
-              {promises.map(({ I, t }) => (
-                <li key={t} className="flex flex-col items-center gap-1.5 text-center">
-                  <span className="grid size-11 place-items-center rounded-full bg-co-brand-soft">
-                    <I className="size-6" />
-                  </span>
-                  <span className="text-[11px] leading-tight font-semibold text-ink-muted">{t}</span>
-                </li>
-              ))}
-            </ul>
+            <div>
+              {/* A. Buy box */}
+              <section aria-label="Buy">
+                {tagPill && <p className="mb-2 inline-flex rounded-full bg-co-accent-soft px-3 py-1 text-xs font-semibold text-co-accent-ink">{tagPill}</p>}
+                <h1 className="font-display text-[28px] leading-tight tracking-[-0.02em] sm:text-[32px]">
+                  {shortTitle(product.title)}
+                  {isOil && (
+                    <>
+                      , <span className="whitespace-nowrap">Wood-Pressed</span>
+                    </>
+                  )}
+                  {product.titleHi && (
+                    <span className="font-hindi mt-1 block text-lg font-normal tracking-normal whitespace-nowrap text-co-accent-ink" lang="hi">
+                      {product.titleHi}
+                    </span>
+                  )}
+                </h1>
+                <a href="#reviews" className="mt-1 inline-flex items-center gap-2 text-sm text-ink-muted hover:text-forest">
+                  {(product.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING ? (
+                    <>
+                      <Stars n={Math.round(product.rating ?? 0)} />
+                      <span className="font-semibold text-ink">{product.rating?.toFixed(1)}</span>
+                      <span className="underline-offset-2 hover:underline">{product.reviewCount} reviews</span>
+                    </>
+                  ) : (
+                    <>
+                      <Stars n={0} />
+                      <span className="underline-offset-2 hover:underline">New · be the first to review</span>
+                    </>
+                  )}
+                </a>
 
-            <ProductVideos reels={productVideoItems} />
+                <div className="mt-4">
+                  <ProductPurchase
+                    handle={product.handle}
+                    title={product.title}
+                    variants={product.variants}
+                    defaultSize={product.defaultSize}
+                    lowStock={settings.lowStockThreshold}
+                    image={product.images[0] ? thumbUrl(product.images[0].url, 44) : undefined}
+                    footer={
+                      // The only place free delivery, COD and secure payments are stated on this page.
+                      <ul className="mt-4 grid auto-cols-fr grid-flow-col divide-x divide-line rounded-2xl border border-line bg-surface">
+                        {trust.map(({ I, t, s }) => (
+                          <li key={t} className="flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center sm:flex-row sm:gap-2 sm:px-3 sm:text-left">
+                            <I className="size-6 shrink-0" />
+                            <span className="min-w-0 leading-tight">
+                              <span className="block text-[13px] font-semibold text-ink">{t}</span>
+                              <span className="block text-[11px] text-ink-muted">{s}</span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    }
+                  />
+                </div>
+              </section>
 
-            {/* Why this oil: the client's six points, below the buy box (above the details tabs). */}
-            {isOil && (
-              <div className="pt-4 pb-2">
-                <p className="text-[15px] font-bold text-forest-text">Why Mahadev {shortTitle(product.title)}?</p>
-                <ul className="mt-2.5 grid grid-cols-2 gap-x-4 gap-y-2.5 text-[13.5px] font-medium text-ink sm:text-sm">
-                  {oilWhyPoints(product.handle).map((point) => (
-                    <li key={point} className="flex items-start gap-2">
-                      <span className="mt-px grid size-[18px] shrink-0 place-items-center rounded-full bg-forest text-white">
-                        <Check className="size-3" strokeWidth={3} aria-hidden />
+              {/* Purity proof: one slow marquee of process facts (pauses on hover, still for reduced motion). */}
+              <section aria-label="How you know it's pure" className="mt-6 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
+                <Marquee pauseOnHover repeat={3} className="p-0 [--duration:32s] [--gap:0.5rem] motion-reduce:[&>*]:animate-none">
+                  {purity.map(({ I, t, s }) => (
+                    <span key={t} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface py-1.5 pr-4 pl-1.5 whitespace-nowrap">
+                      <span className="grid size-8 place-items-center rounded-full bg-co-brand-soft">
+                        <I className="size-5" />
                       </span>
-                      {point}
-                    </li>
+                      <span className="text-[13px] leading-tight">
+                        <b className="block font-semibold text-ink">{t}</b>
+                        <span className="text-[11px] text-ink-muted">{s}</span>
+                      </span>
+                    </span>
                   ))}
-                </ul>
+                </Marquee>
+              </section>
+
+              {/* B. Highlights */}
+              {highlights.length > 0 && (
+                <section aria-labelledby="hl-h" className="mt-8">
+                  <h2 id="hl-h" className="text-base font-bold text-ink">
+                    Highlights
+                  </h2>
+                  <ul className="mt-2 space-y-2 text-[15px] text-ink">
+                    {highlights.map((h) => (
+                      <li key={h} className="flex items-start gap-2">
+                        <Check className="mt-1 size-4 shrink-0 text-forest" strokeWidth={3} aria-hidden />
+                        {h}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {/* C. Details */}
+              <div className="mt-8" id="details">
+                <DetailsTabs tabs={tabs} />
               </div>
-            )}
-            <div className="mt-2" id="details">
-              <DetailsTabs tabs={tabs} />
             </div>
           </div>
-        </div>
         </VariantImageProvider>
       </div>
 
+      {/* Zone 2: full-width story bands, each on its own tint. */}
       {[
-        reelItems.length > 0 ? band("forest", undefined,
-          <Reels key="reels" align="left" dark eyebrow="घानी से सीधा" title="Our ghani, in action" subtitle="Real clips from our ghani in Bijainagar. Tap any reel to watch." reels={reelItems} />,
+        reels.length > 0 ? band("forest", undefined,
+          <Reels key="reels" align="left" dark eyebrow="घानी से सीधा" title="Our ghani, in action" subtitle="Real clips from our ghani in Bijainagar. Tap any reel to watch." reels={reels} />,
         ) : null,
         story.method ? band("ivory", pdpArt.method, <MethodSteps key="method" {...story.method} />) : null,
         isOil ? band("green", pdpArt.compare,
@@ -460,10 +456,17 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         ) : null,
         story.checks ? band("mustard", pdpArt.checks, <HomeChecks key="checks" {...story.checks} />) : null,
         band("ivory", pdpArt.reviews,
-        <section key="reviews" id="reviews" className={cn(sectionClass, "scroll-mt-32")} aria-labelledby="rev-h">
-          <SectionHeader id="rev-h" eyebrow="आपकी राय" title="Customer reviews" />
-          <ReviewsBlock others={otherReviews} productTitle={shortTitle(product.title)} reviews={reviews} rating={product.rating} count={product.reviewCount} write={<WriteReview productHandle={product.handle} productTitle={product.title} category={product.category} />} />
-        </section>),
+          <section key="reviews" id="reviews" className={cn(sectionClass, "scroll-mt-32")} aria-labelledby="rev-h">
+            <SectionHeader id="rev-h" eyebrow="आपकी राय" title="Customer reviews" />
+            <ReviewsBlock others={otherReviews} productTitle={shortTitle(product.title)} reviews={reviews} rating={product.rating} count={product.reviewCount} write={<WriteReview productHandle={product.handle} productTitle={product.title} category={product.category} />} />
+          </section>,
+        ),
+        faqs.length > 0 ? band("mustard", undefined,
+          <section key="faqs" className={cn(sectionClass, "max-w-[800px]")} aria-labelledby="faq-h">
+            <SectionHeader id="faq-h" eyebrow="सवाल-जवाब" title="Frequently asked questions" />
+            <DetailsTabs tabs={faqs.map((f, n) => ({ id: `faq-${n}`, title: f.q, body: <p>{f.a}</p> }))} />
+          </section>,
+        ) : null,
         bundle.length > 2 ? band("green", undefined,
           <section key="set" className={sectionClass} aria-labelledby="fbt-h">
             <SectionHeader id="fbt-h" eyebrow="साथ में लें" title="Complete your kitchen" subtitle="Choose your favourites from our family of everyday essentials." />
@@ -503,25 +506,13 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   );
 }
 
-type Offer = { I: React.ComponentType<{ className?: string }>; title: string; sub: string };
+/** One PDP band: its tint, its own corner ornament and the section inside. */
+const band = (tone: keyof typeof BAND, art: Art | undefined, ...rest: [React.ReactNode] | [string, React.ReactNode]) =>
+  rest.length === 2 ? { tone, art, artClass: rest[0], node: rest[1] } : { tone, art, artClass: undefined, node: rest[0] };
 
-/** Real offers under the price: one soft panel, one line each. */
-function Offers({ items }: { items: Offer[] }) {
-  if (!items.length) return null;
-  return (
-    // One row, one column per offer (2 or 3), title over its one-line detail.
-    <ul className="mt-4 grid auto-cols-fr grid-flow-col divide-x divide-co-accent/20 rounded-xl bg-co-accent-soft/70 text-sm">
-      {items.map(({ I, title, sub }) => (
-        <li key={title} className="flex min-w-0 items-center gap-2 px-3 py-2">
-          <I className="size-5 shrink-0" />
-          <span className="min-w-0 leading-tight">
-            <span className="block font-semibold text-ink">{title}</span>
-            <span className="block text-xs text-ink-muted">{sub}</span>
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
+/** "a, b and c" */
+function listJoin(items: string[]) {
+  return items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }
 
 /** No reviews for this product yet: one invite strip, then real reviews from our other products (labelled). */

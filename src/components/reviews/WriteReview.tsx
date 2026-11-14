@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { Loader2, Star } from "lucide-react";
 import { CheckCircle2, PenLine } from "@/components/icons/duo";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
-import { submitProductReviewAction } from "@/lib/review-actions";
+import { signPublicReviewUploadAction, submitProductReviewAction } from "@/lib/review-actions";
+import { ReviewPhotoPicker, uploadReviewPhotos, type PickedPhoto } from "./ReviewPhotos";
 import { cn } from "@/lib/utils/cn";
 
 const field =
@@ -48,15 +49,21 @@ export function WriteReview({ productHandle, productTitle, category = "oil" }: {
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [pending, start] = useTransition();
+  const [files, setFiles] = useState<PickedPhoto[]>([]);
 
   function submit(form: HTMLFormElement) {
     const v = (n: string) => ((form.elements.namedItem(n) as HTMLInputElement | null)?.value ?? "").trim();
     if (!rating) return setError("Tap the stars to give a rating.");
     setError("");
     start(async () => {
-      const r = await submitProductReviewAction({ productHandle, name: v("name"), city: v("city"), rating, title: v("title"), body: v("body"), website: v("website") });
-      if (r.ok) setDone(r.message ?? "Thank you!");
-      else setError(r.error ?? "Couldn't send your review.");
+      try {
+        const photos = await uploadReviewPhotos(files.map((f) => f.file), () => signPublicReviewUploadAction({ productHandle }));
+        const r = await submitProductReviewAction({ productHandle, name: v("name"), city: v("city"), rating, title: v("title"), body: v("body"), photos, website: v("website") });
+        if (r.ok) setDone(r.message ?? "Thank you!");
+        else setError(r.error ?? "Couldn't send your review.");
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not upload your photos.");
+      }
     });
   }
 
@@ -147,6 +154,7 @@ export function WriteReview({ productHandle, productTitle, category = "oil" }: {
                 <textarea name="body" required minLength={10} maxLength={3000} rows={4} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Taste, smell, how you used it…" className={cn(field, "h-auto py-3 leading-relaxed")} />
                 {rating > 0 && <Chips items={pool.body} active={(t) => body.includes(t)} onPick={addToBody} plus />}
               </label>
+              <ReviewPhotoPicker files={files} onChange={setFiles} />
               {/* Honeypot, hidden from people */}
               <input name="website" tabIndex={-1} autoComplete="off" aria-hidden className="hidden" />
               {error && (

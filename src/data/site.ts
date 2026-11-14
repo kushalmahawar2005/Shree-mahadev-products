@@ -30,8 +30,11 @@ export const site = {
   shippingFee: 60,
   codFee: 0,
   codAvailable: true,
-  // TODO(client): social media links
-  socials: [] as { label: string; href: string }[],
+  socials: [
+    { label: "Instagram", href: "https://www.instagram.com/woodpressoil.by.mahadevproduct" },
+    { label: "Facebook", href: "https://www.facebook.com/share/1Cybi8gVQE/" },
+    { label: "YouTube", href: "https://youtube.com/@taksahabvlogs" },
+  ] as { label: string; href: string }[],
   /** Festive marigold toran hung once under the header (see FestiveToran). Shown only while
    *  `enabled` and today (IST) is within [start, end]; it hides itself after the season. */
   festive: { enabled: false, start: "2026-10-15", end: "2026-11-30" },

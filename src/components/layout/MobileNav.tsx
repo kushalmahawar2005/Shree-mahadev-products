@@ -17,7 +17,6 @@ const shortName = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 const MORE = [
   { label: "Our Ghani", href: "/our-ghani" },
   { label: "Lab Reports", href: "/lab-reports" },
-  { label: "Bulk orders", href: "/bulk-orders" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -100,6 +99,19 @@ export function MobileNav({ open, onClose, menus, nav }: { open: boolean; onClos
 
           {/* Brand pages */}
           <ul className="mt-5 divide-y divide-line rounded-2xl border border-line bg-white">
+            <li className="p-2">
+              <Link
+                href="/bulk-orders"
+                onClick={onClose}
+                className="border-animation btn-shine relative flex min-h-14 items-center justify-between overflow-hidden rounded-2xl bg-co-accent px-4 text-ink"
+              >
+                <span>
+                  <span className="block text-[15px] font-bold">Bulk orders</span>
+                  <span className="block text-xs text-ink/70">5 L &amp; 15 L packs · best price for shops &amp; families</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0" />
+              </Link>
+            </li>
             {MORE.map((m) => (
               <li key={m.href}>
                 <Link href={m.href} onClick={onClose} className="flex min-h-12 items-center justify-between px-4 text-[15px] font-medium text-forest-text">

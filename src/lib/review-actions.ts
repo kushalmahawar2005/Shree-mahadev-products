@@ -401,9 +401,27 @@ const publicInput = z
     rating: z.number().int().min(1).max(5),
     title: z.string().trim().max(160),
     body: z.string().trim().min(10, "Please write at least a line (10+ characters).").max(3000),
+    photos: z.array(imageSchema).max(3).default([]),
     website: z.string().max(0), // honeypot: real people leave it empty
   })
   .strict();
+
+/** Signed photo upload for a product-page review (any visitor; rate limited, product must be live). */
+export async function signPublicReviewUploadAction(raw: unknown) {
+  const limit = await rateLimit("review_upload", await clientIp(), 10, 60);
+  if (!limit.ok) return { ok: false as const, error: `Too many uploads. Try again in ${limit.retryInMin} min.` };
+  const p = z.object({ productHandle: z.string().regex(/^[a-z0-9-]{2,80}$/) }).strict().safeParse(raw);
+  if (!p.success) return { ok: false as const, error: "Invalid review upload." };
+  if (!cloudinaryConfigured()) return { ok: false as const, error: "Photo uploads are not configured yet. You can still send a text review." };
+  const [product] = await db().execute<RowDataPacket[]>("SELECT handle FROM products WHERE handle=? AND status='active' LIMIT 1", [p.data.productHandle]);
+  if (!product.length) return { ok: false as const, error: "This product isn't available." };
+  try {
+    return { ok: true as const, ...signUpload("reviews") };
+  } catch (error) {
+    console.error("Review upload signature failed", error);
+    return { ok: false as const, error: "Could not prepare photo upload." };
+  }
+}
 
 /** Review from the product page (no order link). Always lands as `pending` for moderation and is never marked verified. */
 export async function submitProductReviewAction(raw: unknown) {
@@ -414,10 +432,15 @@ export async function submitProductReviewAction(raw: unknown) {
   const input = p.data;
   const [product] = await db().execute<RowDataPacket[]>("SELECT handle FROM products WHERE handle=? AND status='active' LIMIT 1", [input.productHandle]);
   if (!product.length) return { ok: false, error: "This product isn't available." };
+  for (const image of input.photos)
+    if (!isOwnCloudinaryUrl(image.url, image.publicId) || !image.publicId.startsWith("swadeshi-mahadev/reviews/"))
+      return { ok: false, error: "One of the photos was not uploaded to our image store." };
   const reason = holdReason(input.body);
-  await db().execute(
+  const [result] = await db().execute<ResultSetHeader>(
     "INSERT INTO reviews (product_handle, name, city, rating, title, body, status, source, auto_hold_reason) VALUES (?,?,?,?,?,?,'pending','site',?)",
     [input.productHandle, input.name, input.city || null, input.rating, input.title || null, input.body, reason],
   );
+  for (const image of input.photos)
+    await db().execute("INSERT INTO review_photos (review_id, url, public_id) VALUES (?,?,?)", [result.insertId, image.url, image.publicId]);
   return { ok: true, message: "Thank you! Your review will appear here once our team has checked it." };
 }

@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { AnimatedShinyText } from "@/components/shadcn/animated-shiny-text";
 import { Check, Copy } from "lucide-react";
-import { BadgePercent, Leaf, PackageCheck, Truck } from "@/components/icons/duo";
+import { BadgePercent, Boxes, Leaf, PackageCheck, Truck } from "@/components/icons/duo";
 import { Marquee } from "@/components/shadcn/marquee";
 import { cn } from "@/lib/utils/cn";
 
@@ -97,7 +97,6 @@ function Spark() {
 const QUICK_LINKS = [
   { label: "Our Ghani", href: "/our-ghani" },
   { label: "Lab Reports", href: "/lab-reports" },
-  { label: "Bulk orders", href: "/bulk-orders" },
 ];
 
 /**
@@ -144,6 +143,15 @@ export function AnnouncementStrip({ items, intervalSec }: { items: Msg[]; interv
               {l.label}
             </Link>
           ))}
+          {/* Bulk orders stands out as a thin gold outline pill (fills gold on hover). */}
+          <Link
+            href="/bulk-orders"
+            className="group/bulk border-animation btn-shine relative inline-flex h-7 items-center gap-1.5 overflow-hidden rounded-full border border-[#e8c879]/40 px-3 text-[13px] font-semibold text-[#f3dc9a] transition-colors hover:border-[#e8c879] hover:bg-[#e8c879] hover:text-forest-deep"
+          >
+            <Boxes className="size-3.5" />
+            Bulk orders
+            <span className="text-[11px] font-medium text-[#e8c879]/80 group-hover/bulk:text-forest-deep/70">5L · 15L</span>
+          </Link>
         </nav>
       </div>
 

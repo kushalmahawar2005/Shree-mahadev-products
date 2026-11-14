@@ -800,3 +800,38 @@ html.js-motion:not(.motion-failsafe) [data-pdp-thumbs]:not([data-revealed]) > * 
 @media (prefers-reduced-motion: reduce) {
   .kf svg { display: none; }
 }
+
+/* Rotating gold border (Bulk orders pill / card). Needs position: relative + a border-radius. */
+@property --angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.border-animation::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from var(--angle), transparent 0deg, transparent 300deg, #cfa040 330deg);
+  /* Only the 2px ring shows: content box minus border box. Longhands so the CSS compiler keeps them. */
+  -webkit-mask-image: linear-gradient(#fff 0 0), linear-gradient(#fff 0 0);
+  -webkit-mask-clip: content-box, border-box;
+  -webkit-mask-composite: xor;
+  mask-image: linear-gradient(#fff 0 0), linear-gradient(#fff 0 0);
+  mask-clip: content-box, border-box;
+  mask-composite: exclude;
+  animation: spinBorder 4s linear infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+@keyframes spinBorder {
+  to {
+    --angle: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .border-animation::before {
+    animation: none;
+  }
+}

@@ -88,12 +88,6 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: PAGE_OPEN_SCRIPT }} />
         <PageReady />
         <LoadingBar />
-        <a
-          href="#main"
-          className="sr-only z-[60] rounded-full bg-forest px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
-        >
-          Skip to content
-        </a>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

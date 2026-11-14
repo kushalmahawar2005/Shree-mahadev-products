@@ -1,4 +1,3 @@
-import { accountConfig } from "@/config/account";
 import { supportConfig } from "@/config/support";
 import { site } from "@/data/site";
 import type { StoreSettings } from "@/lib/store-settings";
@@ -33,7 +32,6 @@ export type FaqEntry = {
 type Shipping = StoreSettings["shipping"];
 
 export function buildFaqs(shipping: Shipping): FaqEntry[] {
-  const days = accountConfig.returnWindowDays;
   return [
     /* Orders & delivery */
     {
@@ -127,8 +125,8 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
     {
       id: "damaged",
       category: "returns",
-      question: "My item arrived damaged, leaking or wrong. What now?",
-      answer: `Report it within **${days} days of delivery**. Pick the order in [Help & support](/account/help), choose the issue and add photos of the bottle/box and the label. We replace or refund it as per our [refund & returns policy](/policies/refund-return).`,
+      question: "My item arrived damaged, leaking or expired. What now?",
+      answer: "Report it as soon as you can after delivery. Pick the order in [Help & support](/account/help), choose the issue and add photos of the bottle/box and the label. We replace or refund it as per our [refund & returns policy](/policies/refund-return).",
       keywords: ["damaged", "leak", "leaking", "broken", "wrong item", "missing", "replacement"],
     },
     {
@@ -136,14 +134,14 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
       category: "returns",
       question: "Can I return an opened product?",
       answer:
-        "Food items can't be taken back once opened or used, for hygiene reasons, unless it is a quality problem we confirm. See the [refund & returns policy](/policies/refund-return).",
+        "No. Refunds or replacements are given only when the product arrives damaged or expired. Food items can't be taken back once opened or used. See the [refund & returns policy](/policies/refund-return).",
       keywords: ["return", "opened", "used", "exchange"],
     },
     {
       id: "return-how",
       category: "returns",
       question: "How do I request a return?",
-      answer: `For eligible items, open the delivered order in [My orders](/account/orders) and use **Request a return** within ${days} days of delivery. Our team reviews it and replies on WhatsApp.`,
+      answer: "Only damaged or expired products qualify. Open the delivered order in [My orders](/account/orders) and use **Request a return** with photos. Our team reviews it and replies on WhatsApp.",
       keywords: ["return request", "return window", "how to return"],
       accountOnly: true,
     },

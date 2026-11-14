@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { CheckCircle2, Loader2, MapPin, XCircle } from "lucide-react";
 import { checkDeliveryAction, type DeliveryCheck as Result } from "@/lib/delivery-actions";
-import { formatMoney } from "@/lib/utils/money";
 import type { ProductVariant } from "@/lib/commerce/types";
 
 // Shared with checkout: the pincode lives in the checkout draft so it's prefilled on both pages.
@@ -25,7 +24,7 @@ const savePin = (pincode: string) => {
   }
 };
 
-/** Pincode → "Delivers by Sat, 15 Nov · FREE shipping · COD available" (NimbusPost quote on the server). */
+/** Pincode → "Delivers by Sat, 15 Nov to Jaipur" (NimbusPost quote on the server). */
 export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: number }) {
   const [pin, setPin] = useState("");
   const [res, setRes] = useState<Result | null>(null);
@@ -81,15 +80,14 @@ export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: 
           {pending && <Loader2 className="size-3.5 animate-spin" />} Check delivery
         </button>
       </form>
-      <div aria-live="polite" className="mt-2 min-h-5 text-sm">
+      <div aria-live="polite" className="mt-2 text-sm empty:hidden">
         {res && !res.ok && <p className="text-co-danger">{res.error}</p>}
         {res?.ok && res.serviceable && (
           <p className="flex items-start gap-1.5 text-ink">
             <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-co-success" />
+            {/* Date + city only: free delivery and COD are stated once, in the trust strip. */}
             <span>
-              Delivers by <b>{res.by}</b> to {res.place} ·{" "}
-              {res.freeShipping ? <b className="text-co-success">FREE shipping</b> : `Shipping ${formatMoney(res.shipping)}`}
-              {res.cod ? " · Cash on delivery available" : ""}
+              Delivers by <b>{res.by}</b> to {res.place}
             </span>
           </p>
         )}

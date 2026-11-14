@@ -3,7 +3,8 @@
 //    needed because a saved admin override replaces the code defaults;
 // 2. sets the client's new groundnut oil short description;
 // 3. fills the business GSTIN (from the GST certificate) if it is still empty;
-// 4. switches the store phone + WhatsApp to the client's support number 8440099585.
+// 4. adds the 4th at-home check ("Naturally thick") to the saved oil story;
+// 5. switches the store phone + WhatsApp to the client's support number 8440099585.
 // Usage: node scripts/add-gravity-step.mjs   (reads DATABASE_* from .env.local / env)
 import mysql from "mysql2/promise";
 
@@ -13,6 +14,12 @@ const STEP = {
   title: "Gravity settled",
   body: "Rested still for 10 days so the finest particles sink on their own.",
   image: "/illustrations/process/4b-gravity-settled.webp",
+};
+
+const THICK = {
+  icon: "pour",
+  title: "Naturally thick, rich in texture",
+  body: "Pour a spoonful. Traditionally wood-pressed oil is thicker and richer than refined oil, because nothing is stripped out.",
 };
 
 const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +(process.env.DATABASE_PORT ?? 3306), user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
@@ -33,18 +40,27 @@ try {
   const [[row]] = await db.query("SELECT value FROM settings WHERE `key` = 'pdp_story'");
   if (!row) { console.log("No saved story override: code defaults already include the step."); process.exit(0); }
   const map = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
+  let changed = false;
+  // Fourth at-home check ("Naturally thick").
+  const checks = map.oil?.checks;
+  if (checks?.items && !checks.items.some((c) => c.title === THICK.title)) {
+    checks.items.push(THICK);
+    checks.intro = checks.intro.replace(/^Three\b/, "Four");
+    changed = true;
+    console.log("Added home check:", THICK.title);
+  }
   const method = map.oil?.method;
-  if (!method) { console.log("Oil story has no saved method: code defaults apply."); process.exit(0); }
-  if (method.steps.some((s) => s.title === STEP.title)) { console.log("Already present."); process.exit(0); }
-
-  const cloth = method.steps.findIndex((s) => /cloth/i.test(s.title));
-  const at = cloth >= 0 ? cloth + 1 : Math.max(method.steps.length - 1, 0);
-  if (cloth >= 0 && /settle/i.test(method.steps[cloth].body)) method.steps[cloth].body = "Strained through fine cotton cloth to catch the seed bits.";
-  method.steps.splice(at, 0, STEP);
-  method.intro = method.intro.replace(/^Five\b/, "Six");
-
-  await db.query("UPDATE settings SET value = ? WHERE `key` = 'pdp_story'", [JSON.stringify(map)]);
-  console.log("Added at position", at + 1, "→", method.steps.map((s) => s.title).join(" · "));
+  if (method && !method.steps.some((s) => s.title === STEP.title)) {
+    const cloth = method.steps.findIndex((s) => /cloth/i.test(s.title));
+    const at = cloth >= 0 ? cloth + 1 : Math.max(method.steps.length - 1, 0);
+    if (cloth >= 0 && /settle/i.test(method.steps[cloth].body)) method.steps[cloth].body = "Strained through fine cotton cloth to catch the seed bits.";
+    method.steps.splice(at, 0, STEP);
+    method.intro = method.intro.replace(/^Five\b/, "Six");
+    changed = true;
+    console.log("Added step at position", at + 1, "→", method.steps.map((s) => s.title).join(" · "));
+  }
+  if (changed) await db.query("UPDATE settings SET value = ? WHERE `key` = 'pdp_story'", [JSON.stringify(map)]);
+  else console.log("Story override already up to date.");
 } finally {
   await db.end();
 }

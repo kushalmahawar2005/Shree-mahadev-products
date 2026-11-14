@@ -17,13 +17,16 @@ export function BulkForm({ products }: { products: string[] }) {
     name: "",
     business: "",
     city: "",
-    product: products[0] ?? "",
+    product: "",
     quantity: "",
     phone: "",
     email: "",
     message: "",
     website: "",
   });
+  // A buyer often wants several products in one inquiry: tick as many as needed.
+  const [picked, setPicked] = useState<string[]>([]);
+  const toggle = (p: string) => setPicked((list) => (list.includes(p) ? list.filter((x) => x !== p) : [...list, p]));
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState("");
@@ -40,12 +43,17 @@ export function BulkForm({ products }: { products: string[] }) {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!picked.length) {
+      setFeedback("Tick at least one product.");
+      return;
+    }
+    const product = picked.join(", ");
     const message = [
       "Bulk order inquiry",
       `Name: ${values.name}`,
       `Business: ${values.business}`,
       `City: ${values.city}`,
-      `Product: ${values.product}`,
+      `Products: ${product}`,
       `Quantity: ${values.quantity}`,
       `Phone: ${values.phone}`,
       values.email ? `Email: ${values.email}` : "",
@@ -58,7 +66,7 @@ export function BulkForm({ products }: { products: string[] }) {
     setFallbackUrl(url);
     setPending(true);
     setFeedback("");
-    const result = await submitBulkInquiryAction(values);
+    const result = await submitBulkInquiryAction({ ...values, product });
     if (popup) {
       popup.opener = null;
       popup.location.href = url;
@@ -152,20 +160,29 @@ export function BulkForm({ products }: { products: string[] }) {
           autoComplete="email"
         />
       </label>
-      <label className={labelClass}>
-        Product
-        <select
-          className={fieldClass}
-          value={values.product}
-          onChange={set("product")}
-        >
-          {products.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </label>
+      <fieldset className="grid gap-1.5 sm:col-span-2">
+        <legend className="mb-1.5 text-[13px] font-medium text-ink-muted">
+          Products <span className="text-ink-muted/70">(tick all you need)</span>
+        </legend>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {products.map((p) => {
+            const on = picked.includes(p);
+            return (
+              <label
+                key={p}
+                className={cn(
+                  "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl border px-3 text-sm font-medium transition-colors",
+                  on ? "border-forest bg-co-brand-soft text-forest-text" : "border-line bg-white text-ink hover:border-forest/40",
+                )}
+              >
+                <input type="checkbox" checked={on} onChange={() => toggle(p)} className="size-4 shrink-0 accent-[#0e3b26]" />
+                <span className="min-w-0 leading-tight">{p}</span>
+              </label>
+            );
+          })}
+        </div>
+        {picked.length > 0 && <p className="text-xs text-ink-muted">{picked.length} selected</p>}
+      </fieldset>
       <label className={cn(labelClass, "sm:col-span-2")}>
         Quantity
         <input

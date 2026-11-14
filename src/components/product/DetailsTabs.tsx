@@ -4,14 +4,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 
 export type DetailTab = { id: string; title: string; body: React.ReactNode };
 
-/** Product details inside the buy column: hairline accordion, first panel open (same on every screen). */
-export function DetailsTabs({ tabs }: { tabs: DetailTab[] }) {
+/** Product details (and the PDP FAQs): one hairline accordion, every panel closed on load. */
+export function DetailsTabs({ tabs, className }: { tabs: DetailTab[]; className?: string }) {
   return (
-    <Accordion type="single" collapsible defaultValue={tabs[0]?.id} className="border-t border-line">
+    <Accordion type="multiple" className={className ?? "border-t border-line"}>
       {tabs.map((t) => (
         <AccordionItem key={t.id} value={t.id} className="border-line">
-          <AccordionTrigger className="py-4 text-[15px] font-semibold text-ink hover:no-underline">{t.title}</AccordionTrigger>
-          <AccordionContent className="pb-5 text-[15px] leading-relaxed text-ink-muted">{t.body}</AccordionContent>
+          <AccordionTrigger className="py-4 text-base font-bold text-ink hover:no-underline">{t.title}</AccordionTrigger>
+          <AccordionContent className="pb-6 text-[15px] leading-relaxed text-ink-muted">{t.body}</AccordionContent>
         </AccordionItem>
       ))}
     </Accordion>

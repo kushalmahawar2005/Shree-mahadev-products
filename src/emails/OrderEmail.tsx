@@ -31,7 +31,7 @@ export type EmailOrder = {
   email: string;
   address: string;
   paymentMethod: "cod" | "payu" | "offline";
-  items: { title: string; size: string; qty: number; lineTotal: number }[];
+  items: { title: string; size: string; qty: number; lineTotal: number; image?: string }[];
   subtotal: number;
   discount: number;
   couponCode: string | null;
@@ -298,6 +298,20 @@ export function OrderEmail({
             >
               {copy.cta ?? "View order"}
             </Button>
+            {isStore && (
+              <Text style={{ margin: "12px 0 0", fontSize: 14 }}>
+                <Link href={`tel:+91${o.phone.replace(/\D/g, "").slice(-10)}`} style={{ color: C.forest, fontWeight: 700 }}>
+                  Call customer
+                </Link>
+                {"  ·  "}
+                <Link
+                  href={`https://wa.me/91${o.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(`Hi ${o.name.split(" ")[0]}, this is Swadeshi Mahadev Products about your order ${o.orderNo}.`)}`}
+                  style={{ color: C.forest, fontWeight: 700 }}
+                >
+                  WhatsApp customer
+                </Link>
+              </Text>
+            )}
           </Section>
           {kind === "delivered" && (
             <Section style={{ padding: "0 28px 16px" }}>
@@ -309,16 +323,26 @@ export function OrderEmail({
 
           <Section style={{ padding: "0 28px" }}>
             <Hr style={{ borderColor: C.line }} />
+            <Text style={{ margin: "4px 0 6px", fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: C.muted }}>
+              {isStore ? "Items to pack" : "Your items"} · {o.items.reduce((n, i) => n + i.qty, 0)}
+            </Text>
             {o.items.map((i, n) => (
               <Row key={n} style={{ padding: "6px 0" }}>
-                <Column>
-                  <Text style={{ margin: 0, fontSize: 14, color: C.ink }}>
-                    {i.qty} × {i.title}{" "}
-                    <span style={{ color: C.muted }}>({i.size})</span>
+                <Column style={{ width: 64, verticalAlign: "middle" }}>
+                  {i.image ? (
+                    <Img src={i.image} width="52" height="65" alt={i.title} style={{ borderRadius: 10, border: `1px solid ${C.line}`, display: "block" }} />
+                  ) : (
+                    <div style={{ width: 52, height: 65, borderRadius: 10, backgroundColor: C.khakiSoft }} />
+                  )}
+                </Column>
+                <Column style={{ verticalAlign: "middle" }}>
+                  <Text style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.ink, lineHeight: "20px" }}>{i.title}</Text>
+                  <Text style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: "18px" }}>
+                    {i.size} · Qty {i.qty}
                   </Text>
                 </Column>
-                <Column align="right" style={{ width: 90 }}>
-                  <Text style={{ margin: 0, fontSize: 14, color: C.ink }}>
+                <Column align="right" style={{ width: 90, verticalAlign: "middle" }}>
+                  <Text style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.ink }}>
                     {inr(i.lineTotal)}
                   </Text>
                 </Column>

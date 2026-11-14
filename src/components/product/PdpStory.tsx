@@ -16,12 +16,13 @@ export function HomeChecks({ eyebrow, title, intro, items }: { eyebrow: string; 
     <section className={sectionClass} aria-labelledby="checks-h">
       <SectionHeader id="checks-h" eyebrow={eyebrow} title={title} subtitle={intro} />
       <Reveal>
-        <ul className="grid grid-cols-3 gap-2 md:gap-4">
+        {/* Phones: one card per row (photo beside the full text). md+: three across. */}
+        <ul className={cn("grid grid-cols-1 gap-3 md:gap-4", items.length === 4 ? "md:grid-cols-2 lg:grid-cols-4" : "md:grid-cols-3")}>
           {items.map((c, i) => {
             const Icon = CHECK_ICON[c.icon];
             return (
-              <li key={c.title} className="overflow-hidden rounded-2xl border border-line bg-surface md:rounded-3xl">
-                <div className="relative aspect-square bg-co-brand-soft md:aspect-[4/3]">
+              <li key={c.title} className="flex overflow-hidden rounded-2xl border border-line bg-surface md:block md:rounded-3xl">
+                <div className="relative aspect-square w-28 shrink-0 bg-co-brand-soft md:aspect-[4/3] md:w-auto">
                   {c.image ? (
                     <Image src={c.image} alt="" fill sizes="(min-width: 768px) 400px, 33vw" className="object-cover" />
                   ) : (
@@ -34,9 +35,9 @@ export function HomeChecks({ eyebrow, title, intro, items }: { eyebrow: string; 
                   )}
                   <span className="absolute top-1.5 left-1.5 grid size-6 place-items-center rounded-full bg-co-accent text-[11px] font-bold md:top-3 md:left-3 md:size-8 md:text-sm text-ink tabular-nums">{i + 1}</span>
                 </div>
-                <div className="p-2 md:p-5">
-                  <p className="text-[12.5px] leading-tight font-semibold text-ink md:text-base">{c.title}</p>
-                  <p className="mt-1 line-clamp-3 text-[11px] leading-snug text-ink-muted md:line-clamp-none md:text-sm md:leading-relaxed">{c.body}</p>
+                <div className="min-w-0 self-center p-3 md:p-5">
+                  <p className="text-[15px] leading-tight font-semibold text-ink md:text-base">{c.title}</p>
+                  <p className="mt-1 text-[13px] leading-snug text-ink-muted md:text-sm md:leading-relaxed">{c.body}</p>
                 </div>
               </li>
             );
@@ -59,8 +60,8 @@ export function StoryBand({ scene, isOil = true }: { scene: Art; isOil?: boolean
             </p>
             <p className="text-[11px] font-semibold uppercase tracking-[.18em] text-ink-muted">Bijainagar, Rajasthan · Family run</p>
             <h2 className="max-w-md text-[30px] leading-[1.12] tracking-[-0.025em] text-forest sm:text-[40px]">{isOil ? <>From our ghani<br />to your kitchen.</> : <>From our family<br />to yours.</>}</h2>
-            <p className="max-w-md text-[15px] leading-relaxed text-ink-muted">
-              {isOil ? "A family ghani in Bijainagar, Rajasthan. Small batches, seeds we pick ourselves, and oil that rests before it is bottled." : "Everyday essentials, thoughtfully chosen by our family in Bijainagar, Rajasthan. Simple ingredients, carefully packed for your home."}
+            <p className={cn("max-w-md leading-relaxed text-ink-muted", isOil ? "font-hindi text-base" : "text-[15px]")} lang={isOil ? "hi" : undefined}>
+              {isOil ? "आज के केमिकल और रिफाइंड तेलों के युग में, हम आपको वापस ले आते हैं एक ऐसे सफर पर जहां प्रकृति की सच्चाई और गांव की मिट्टी की सुगंध महसूस होती है।" : "Everyday essentials, thoughtfully chosen by our family in Bijainagar, Rajasthan. Simple ingredients, carefully packed for your home."}
             </p>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-4"><Link
               href="/our-ghani"
