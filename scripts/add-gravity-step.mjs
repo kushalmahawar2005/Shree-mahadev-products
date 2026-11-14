@@ -17,6 +17,7 @@ const STEP = {
 };
 
 const THICK = {
+  image: "/images/product-story/check-thick-v1.webp",
   icon: "pour",
   title: "Naturally thick, rich in texture",
   body: "Pour a spoonful. Traditionally wood-pressed oil is thicker and richer than refined oil, because nothing is stripped out.",
@@ -43,6 +44,12 @@ try {
   let changed = false;
   // Fourth at-home check ("Naturally thick").
   const checks = map.oil?.checks;
+  const savedThick = checks?.items?.find((c) => c.title === THICK.title);
+  if (savedThick && !savedThick.image) {
+    savedThick.image = THICK.image;
+    changed = true;
+    console.log("Home check photo set:", THICK.image);
+  }
   if (checks?.items && !checks.items.some((c) => c.title === THICK.title)) {
     checks.items.push(THICK);
     checks.intro = checks.intro.replace(/^Three\b/, "Four");
