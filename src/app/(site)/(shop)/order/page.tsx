@@ -165,9 +165,19 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
       )}
 
       {order.status === "pending_payment" && (
-        <p className="mt-6 flex items-start gap-2 rounded-2xl md:mt-8 border border-warm-line bg-warm px-4 py-3 text-sm text-ink">
-          <AlertCircle className="mt-0.5 size-4 shrink-0 text-mustard" /> Refresh this page in a minute. If it still says waiting, WhatsApp us with order {order.orderNo}.
-        </p>
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-warm-line bg-warm px-4 py-3 text-sm text-ink sm:flex-row sm:items-center md:mt-8">
+          <p className="flex flex-1 items-start gap-2">
+            <AlertCircle className="mt-0.5 size-4 shrink-0 text-mustard" />
+            <span>
+              If money was deducted, refresh in a minute and it will show as paid. Payment didn&apos;t go through? Complete it here; your items are kept for you.
+            </span>
+          </p>
+          {order.paymentMethod === "payu" && (
+            <a href={`/checkout/pay?t=${order.token}`} className="inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-forest px-5 text-sm font-bold text-white hover:bg-forest-mid">
+              Complete payment
+            </a>
+          )}
+        </div>
       )}
 
       <div className="mt-4 grid grid-cols-[minmax(0,1fr)] items-start gap-4 md:mt-6 md:grid-cols-[1.4fr_1fr] md:gap-5">

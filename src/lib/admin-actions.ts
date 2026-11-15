@@ -20,6 +20,7 @@ import {
   type Shipment,
 } from "@/lib/server/shipments";
 import { getOrderById, setOrderStatus, type OrderStatus } from "@/lib/server/orders";
+import { BULK_STATUS, bulkBookShipments, bulkCancelShipments, bulkSetStatus, type BulkResult, type BulkStatus } from "@/lib/server/bulk-orders";
 
 export async function markReminderSentAction(cartId: number) {
   return safe(async () => {
@@ -54,6 +55,39 @@ export async function bookShipmentAction(orderId: number, courierId: string, wei
       throw new Error("Check courier, weight and box size");
     }
     const out = await bookShipment(orderId, { courierId, weightGrams, dims });
+    revalidatePath("/admin/orders");
+    return out;
+  });
+}
+
+// ───────────── Bulk (orders list) ─────────────
+
+const bulkIds = zz.array(zz.number().int().positive()).min(1).max(50);
+
+/** Book shipments for many orders at once (cheapest courier, weight from the catalog). */
+export async function bulkBookShipmentsAction(ids: number[]): Promise<ActionResult<BulkResult[]>> {
+  return safe(async () => {
+    await requireAdmin();
+    const out = await bulkBookShipments([...new Set(bulkIds.parse(ids))]);
+    revalidatePath("/admin/orders");
+    return out;
+  });
+}
+
+export async function bulkCancelShipmentsAction(ids: number[]): Promise<ActionResult<BulkResult[]>> {
+  return safe(async () => {
+    await requireAdmin();
+    const out = await bulkCancelShipments([...new Set(bulkIds.parse(ids))]);
+    revalidatePath("/admin/orders");
+    return out;
+  });
+}
+
+export async function bulkStatusAction(ids: number[], status: BulkStatus): Promise<ActionResult<BulkResult[]>> {
+  return safe(async () => {
+    await requireAdmin();
+    if (!(status in BULK_STATUS)) throw new Error("Invalid status");
+    const out = await bulkSetStatus([...new Set(bulkIds.parse(ids))], status);
     revalidatePath("/admin/orders");
     return out;
   });

@@ -22,7 +22,10 @@ export type EmailKind =
   | "delivered"
   | "cancelled"
   | "refund"
-  | "store_new_order";
+  | "store_new_order"
+  | "payment_pending"
+  | "out_for_delivery"
+  | "delivery_failed";
 
 export type EmailOrder = {
   orderNo: string;
@@ -42,6 +45,7 @@ export type EmailOrder = {
   reviewUrl: string;
   invoiceUrl: string;
   trackingPageUrl: string;
+  payUrl: string;
   courier?: string | null;
   awb?: string | null;
   trackingUrl?: string | null;
@@ -130,6 +134,29 @@ const COPY: Record<
       `We've processed a refund of ${inr(o.refundAmount ?? o.total)} for order ${o.orderNo}. It should reach your original payment method in a few working days, depending on your bank.`,
     cta: "View order",
   },
+  payment_pending: {
+    preview: (o) => `Your order ${o.orderNo} is saved. Complete the payment of ${inr(o.total)}.`,
+    heading: "Your order is waiting for payment",
+    intro: (o) =>
+      `Your order ${o.orderNo} is saved, but the payment didn't go through. Tap below to complete it; your items are kept for you. If money was already deducted, please don't pay again: it updates on its own.`,
+    cta: "Complete payment",
+  },
+  out_for_delivery: {
+    preview: (o) => `Order ${o.orderNo} is out for delivery today.`,
+    heading: "Out for delivery today",
+    intro: (o) =>
+      o.paymentMethod === "cod"
+        ? `Your order ${o.orderNo} will reach you today. Please keep ${inr(o.total)} ready for the delivery partner.`
+        : `Your order ${o.orderNo} will reach you today. Please keep your phone handy for the delivery partner.`,
+    cta: "Track your order",
+  },
+  delivery_failed: {
+    preview: (o) => `We couldn't deliver order ${o.orderNo} today.`,
+    heading: "We missed you today",
+    intro: (o) =>
+      `The courier couldn't deliver order ${o.orderNo} today. Reply on WhatsApp with a good time, or a correct address or phone number, and we'll arrange the next attempt.`,
+    cta: "Reply on WhatsApp",
+  },
   store_new_order: {
     preview: (o) =>
       `New order ${o.orderNo} – ${inr(o.total)} – ${o.paymentMethod === "cod" ? "COD" : o.paymentMethod === "offline" ? "paid offline" : "paid online"}`,
@@ -154,6 +181,12 @@ export function subjectFor(kind: EmailKind, o: EmailOrder) {
       return `Order ${o.orderNo} cancelled`;
     case "refund":
       return `Refund processed – order ${o.orderNo}`;
+    case "payment_pending":
+      return `Complete your payment – order ${o.orderNo}`;
+    case "out_for_delivery":
+      return `Out for delivery today: order ${o.orderNo}`;
+    case "delivery_failed":
+      return `Delivery attempt missed: order ${o.orderNo}`;
     case "store_new_order":
       return `New order ${o.orderNo} – ${inr(o.total)} – ${o.paymentMethod === "cod" ? "COD" : o.paymentMethod === "offline" ? "paid offline" : "PayU"}`;
   }
@@ -388,7 +421,9 @@ export function OrderEmail({
                   }}
                 >
                   Total{" "}
-                  {o.paymentMethod === "cod"
+                  {kind === "payment_pending"
+                    ? "(to pay)"
+                    : o.paymentMethod === "cod"
                     ? "(pay on delivery)"
                     : o.paymentMethod === "offline"
                       ? "(paid offline)"

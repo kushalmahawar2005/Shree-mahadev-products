@@ -630,7 +630,24 @@ const FILTER_SQL: Record<OrderFilter, string> = {
 };
 
 /** Small global counts for the order workspace filter tabs. */
-export async function getOrderFilterCounts(): Promise<Record<OrderFilter, number>> {
+/** "YYYY-MM-DD" bounds → SQL on created_at (stored in IST, so plain date strings compare correctly). */
+const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+function dateWhere(from?: string, to?: string) {
+  const where: string[] = [];
+  const params: string[] = [];
+  if (isDay(from)) {
+    where.push("o.created_at >= ?");
+    params.push(`${from} 00:00:00`);
+  }
+  if (isDay(to)) {
+    where.push("o.created_at < DATE_ADD(?, INTERVAL 1 DAY)");
+    params.push(to!);
+  }
+  return { where, params };
+}
+
+export async function getOrderFilterCounts(range: { from?: string; to?: string } = {}): Promise<Record<OrderFilter, number>> {
+  const d = dateWhere(range.from, range.to);
   const [[row]] = await db().query<Row[]>(
     `SELECT COUNT(*) AS all_orders,
        SUM(status IN ('paid','cod_pending','confirmed','packed','pending_payment','payment_failed','rto')) AS needs_action,
@@ -639,7 +656,8 @@ export async function getOrderFilterCounts(): Promise<Record<OrderFilter, number
        SUM(status='shipped') AS shipped,
        SUM(status='delivered') AS delivered,
        SUM(status IN ('cancelled','rto','refunded')) AS cancelled
-     FROM orders`,
+     FROM orders o${d.where.length ? ` WHERE ${d.where.join(" AND ")}` : ""}`,
+    d.params,
   );
   const count = (value: unknown) => Number(value ?? 0);
   return {
@@ -660,6 +678,10 @@ export async function listOrders(
     perPage?: number;
     filter?: OrderFilter;
     q?: string;
+    /** Placed on/after this day (YYYY-MM-DD). */
+    from?: string;
+    /** Placed on/before this day (YYYY-MM-DD). */
+    to?: string;
   } = {},
 ) {
   const perPage = Math.min(Math.max(opts.perPage ?? 25, 5), 100);
@@ -671,9 +693,13 @@ export async function listOrders(
     where.push("(o.order_no = ? OR o.phone = ? OR o.customer_name LIKE ?)");
     params.push(q.toUpperCase(), q.replace(/\D/g, "").slice(-10), `%${q}%`);
   }
+  const d = dateWhere(opts.from, opts.to);
+  where.push(...d.where);
+  params.push(...d.params);
   const w = where.join(" AND ");
-  const [[{ total }]] = await db().query<Row[]>(
-    `SELECT COUNT(*) AS total FROM orders o WHERE ${w}`,
+  // Count + value of everything in this view (all pages), for the summary line.
+  const [[{ total, value }]] = await db().query<Row[]>(
+    `SELECT COUNT(*) AS total, COALESCE(SUM(o.total),0) AS value FROM orders o WHERE ${w}`,
     params,
   );
   const [rows] = await db().query<Row[]>(
@@ -685,7 +711,7 @@ export async function listOrders(
     [...params, perPage, (page - 1) * perPage],
   );
   if (!rows.length)
-    return { orders: [] as Order[], total: Number(total), page, perPage };
+    return { orders: [] as Order[], total: Number(total), value: Number(value), page, perPage };
   const [items] = await db().query<Row[]>(
     "SELECT * FROM order_items WHERE order_id IN (?)",
     [rows.map((r) => r.id)],
@@ -693,6 +719,7 @@ export async function listOrders(
   return {
     orders: rows.map((r) => toOrder(r, items)),
     total: Number(total),
+    value: Number(value),
     page,
     perPage,
   };

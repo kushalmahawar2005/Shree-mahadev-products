@@ -12,9 +12,10 @@ import {
   queueOrderWhatsApp,
   setWhatsAppTemplate,
 } from "@/lib/server/whatsapp";
+import type { OrderTemplate } from "@/lib/server/whatsapp";
 
 const templateSchema = z.enum([
-  "order_placed", "cod_confirmation", "shipped", "delivered", "cancelled",
+  "order_placed", "cod_confirmation", "shipped", "out_for_delivery", "delivery_failed", "delivered", "cancelled", "payment_pending",
   "abandoned_cart_1h", "abandoned_cart_24h", "back_in_stock",
 ]);
 
@@ -32,7 +33,7 @@ export async function testWhatsAppAction(raw: unknown) {
   return safe(async () => {
     const admin = await requireRole("owner", "manager");
     const parsed = z.object({ orderId: z.number().int().positive(), template: templateSchema }).strict().parse(raw);
-    await queueOrderWhatsApp(parsed.orderId, parsed.template as "order_placed" | "cod_confirmation" | "shipped" | "delivered" | "cancelled");
+    await queueOrderWhatsApp(parsed.orderId, parsed.template as OrderTemplate);
     const result = await processWhatsAppOutbox(1);
     await logAdminActivity(admin.username, "whatsapp.test_sent", String(parsed.orderId), { template: parsed.template, result });
     return result;

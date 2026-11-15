@@ -108,7 +108,7 @@ export function OrderCelebrate({ orderNo, total, cod = false }: { orderNo: strin
           </motion.p>
           {total !== undefined && (
             <motion.p
-              className="mt-2 font-display text-4xl font-bold tabular-nums md:text-5xl"
+              className="mt-2 font-display text-4xl font-bold text-white tabular-nums md:text-5xl"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9, duration: 0.5, ease }}

@@ -63,7 +63,7 @@ export function RefundPanel({ orderId, paid, left, refunds }: { orderId: number;
           <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason (optional)" maxLength={200} className={cn(field, "min-w-40 flex-1")} />
           <ConfirmAction
             trigger={
-              <button type="button" disabled={pending || !valid} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-red-700 px-4 font-semibold text-white transition-colors hover:bg-red-800 disabled:opacity-50">
+              <button type="button" disabled={pending || !valid} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#b91c1c] px-4 font-semibold text-white transition-colors hover:bg-[#991b1b] disabled:opacity-50">
                 {pending ? <Loader2 className="size-4 animate-spin" /> : <Undo2 className="size-4" />}
                 {pending ? "Refunding…" : "Refund"}
               </button>

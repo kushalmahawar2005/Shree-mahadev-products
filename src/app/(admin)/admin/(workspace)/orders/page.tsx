@@ -5,7 +5,8 @@ import { ORDER_LABEL } from "@/components/admin/orderLabels";
 import { getOrderFilterCounts, listOrders, type OrderFilter } from "@/lib/server/orders";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
-import { InvoiceBulkButton } from "@/components/admin/InvoiceBulkButton";
+import { OrdersBulkBar, SelectAllOrders } from "@/components/admin/OrdersBulkBar";
+import { OrdersDateFilter } from "@/components/admin/OrdersDateFilter";
 
 export const metadata = { title: "Orders" };
 
@@ -45,9 +46,12 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
   const filter = (FILTERS.some((item) => item.id === str("f")) ? str("f") : "needs_action") as OrderFilter;
   const page = Math.max(Number(str("page")) || 1, 1);
   const query = str("q").slice(0, 60);
+  const day = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(str(k)) ? str(k) : "");
+  const from = day("from");
+  const to = day("to") || from;
   const [result, counts] = await Promise.all([
-    listOrders({ filter, page, perPage: 25, q: query }),
-    getOrderFilterCounts(),
+    listOrders({ filter, page, perPage: 25, q: query, from, to }),
+    getOrderFilterCounts({ from, to }),
   ]).catch((error) => {
     console.error("Orders could not be loaded", error);
     return [null, null] as const;
@@ -60,6 +64,10 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
     const params = new URLSearchParams({ f: changes.f ?? filter });
     const q = changes.q ?? query;
     if (q) params.set("q", q);
+    if (from) {
+      params.set("from", from);
+      params.set("to", to);
+    }
     const nextPage = changes.page ?? 1;
     if (nextPage > 1) params.set("page", String(nextPage));
     return `/admin/orders?${params.toString()}`;
@@ -68,6 +76,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
   return (
     <>
       <div className="mb-5 space-y-3">
+        <OrdersDateFilter from={from} to={to} />
         <nav aria-label="Filter orders" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {FILTERS.map((item) => (
             <Link key={item.id} href={href({ f: item.id, page: 1 })} aria-current={filter === item.id ? "page" : undefined} className={cn("inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors", filter === item.id ? "border-forest bg-forest text-white shadow-sm" : "border-line bg-surface text-ink-muted hover:border-forest/40 hover:text-forest-fg")}>
@@ -78,13 +87,22 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
         <div className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
           <form action="/admin/orders" className="flex min-w-0 flex-1 gap-2">
             <input type="hidden" name="f" value={filter} />
+            {from && <input type="hidden" name="from" value={from} />}
+            {from && <input type="hidden" name="to" value={to} />}
             <input name="q" defaultValue={query} placeholder="Order no., phone or customer name" aria-label="Search orders" className="min-h-10 min-w-0 flex-1 rounded-xl border border-line bg-subtle px-3.5 text-sm outline-none transition focus:border-forest focus:ring-2 focus:ring-forest/10 sm:max-w-md" />
             <button className="min-h-10 shrink-0 rounded-xl bg-forest px-4 text-sm font-semibold text-white transition hover:bg-forest-deep">Search</button>
             {query && <Link href={href({ q: "", page: 1 })} className="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3 text-sm font-medium text-ink-muted hover:bg-khaki-soft">Clear</Link>}
           </form>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-2 sm:justify-end sm:border-0 sm:pt-0">
-            <span className="text-xs text-ink-muted">{result.total} order{result.total === 1 ? "" : "s"} in this view</span>
-            <InvoiceBulkButton />
+            <span className="text-xs text-ink-muted">
+              {result.total} order{result.total === 1 ? "" : "s"} · <b className="font-semibold text-ink tabular-nums">{formatMoney(result.value)}</b> in this view
+            </span>
+            <a
+              href={`/admin/orders/export?${new URLSearchParams({ f: filter, ...(query ? { q: query } : {}), ...(from ? { from, to } : {}) }).toString()}`}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-forest px-4 text-sm font-semibold text-forest-fg hover:bg-khaki-soft"
+            >
+              Download CSV
+            </a>
           </div>
         </div>
       </div>
@@ -96,7 +114,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
               <table className="w-full min-w-[1100px] table-fixed text-left text-sm">
                 <colgroup><col className="w-[4%]" /><col className="w-[9%]" /><col className="w-[12%]" /><col className="w-[17%]" /><col className="w-[26%]" /><col className="w-[12%]" /><col className="w-[8%]" /><col className="w-[12%]" /></colgroup>
                 <thead className="border-b border-line bg-subtle text-[11px] uppercase tracking-[0.12em] text-ink-muted">
-                  <tr><th className="px-3 py-3 text-center font-bold">PDF</th><th className="px-3 py-3 font-bold">Order</th><th className="px-3 py-3 font-bold">Placed</th><th className="px-3 py-3 font-bold">Customer</th><th className="px-3 py-3 font-bold">Items</th><th className="px-3 py-3 font-bold">Payment</th><th className="px-3 py-3 text-right font-bold">Total</th><th className="px-3 py-3 text-right font-bold">Status</th></tr>
+                  <tr><th className="px-3 py-3 text-center font-bold"><SelectAllOrders /></th><th className="px-3 py-3 font-bold">Order</th><th className="px-3 py-3 font-bold">Placed</th><th className="px-3 py-3 font-bold">Customer</th><th className="px-3 py-3 font-bold">Items</th><th className="px-3 py-3 font-bold">Payment</th><th className="px-3 py-3 text-right font-bold">Total</th><th className="px-3 py-3 text-right font-bold">Status</th></tr>
                 </thead>
                 <tbody className="divide-y divide-line/80">
                   {result.orders.map((order) => <OrderRow key={order.id} order={order} />)}
@@ -110,7 +128,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
               return (
                 <li key={order.id}>
                   <div className="flex items-start gap-3 p-4">
-                    <label className="grid min-h-11 min-w-11 place-items-center" aria-label={`Select invoice for ${order.orderNo}`}><input className="invoice-order-checkbox size-5 accent-[var(--color-forest)] disabled:cursor-not-allowed disabled:opacity-35" type="checkbox" value={order.id} disabled={!INVOICE_STATUSES.has(order.status)} aria-label={`Select invoice for ${order.orderNo}${INVOICE_STATUSES.has(order.status) ? "" : " (available after payment or COD placement)"}`} /></label>
+                    <label className="grid min-h-11 min-w-11 place-items-center"><input className="order-select size-5 accent-[var(--color-forest)]" type="checkbox" value={order.id} data-invoice={INVOICE_STATUSES.has(order.status) ? "1" : "0"} data-status={order.status} aria-label={`Select ${order.orderNo}`} /></label>
                     <Link href={`/admin/orders/view?id=${order.id}`} className="min-w-0 flex-1 rounded-lg focus-visible:outline">
                       <span className="flex items-center justify-between gap-2"><span className="font-bold text-forest-text">{order.orderNo}</span><StatusBadge tone={label?.tone ?? "gray"}>{label?.text ?? order.status}</StatusBadge></span>
                       <span className="mt-1.5 flex items-center justify-between gap-2"><span className="truncate text-sm font-medium text-ink">{order.address.name}</span><strong className="shrink-0 text-sm text-forest-text">{formatMoney(order.total)}</strong></span>
@@ -123,6 +141,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
             })}
           </ul>
           <Pagination page={result.page} pages={totalPages} total={result.total} perPage={result.perPage} href={href} />
+          <OrdersBulkBar />
         </>
       ) : (
         <div className="rounded-2xl border border-line bg-surface px-5 py-12 text-center shadow-sm">
@@ -140,7 +159,7 @@ function OrderRow({ order }: { order: Awaited<ReturnType<typeof listOrders>>["or
   const label = ORDER_LABEL[order.status as keyof typeof ORDER_LABEL];
   return (
     <tr className="group transition-colors hover:bg-subtle">
-      <td className="px-2 py-3 text-center"><label className="grid min-h-11 min-w-11 place-items-center" aria-label={`Select invoice for ${order.orderNo}`}><input className="invoice-order-checkbox size-5 accent-[var(--color-forest)] disabled:cursor-not-allowed disabled:opacity-35" type="checkbox" value={order.id} disabled={!INVOICE_STATUSES.has(order.status)} aria-label={`Select invoice for ${order.orderNo}${INVOICE_STATUSES.has(order.status) ? "" : " (available after payment or COD placement)"}`} /></label></td>
+      <td className="px-2 py-3 text-center"><label className="grid min-h-11 min-w-11 place-items-center"><input className="order-select size-5 accent-[var(--color-forest)]" type="checkbox" value={order.id} data-invoice={INVOICE_STATUSES.has(order.status) ? "1" : "0"} data-status={order.status} aria-label={`Select ${order.orderNo}`} /></label></td>
       <td className="px-3 py-3"><Link href={`/admin/orders/view?id=${order.id}`} className="font-bold text-forest-fg underline decoration-forest/25 underline-offset-4 group-hover:decoration-forest">{order.orderNo}</Link></td>
       <td className="whitespace-nowrap px-3 py-3 text-xs text-ink-muted">{dateLabel(order.createdAt)}</td>
       <td className="px-3 py-3"><span className="block truncate font-semibold text-ink">{order.address.name}</span><span className="mt-0.5 block truncate text-xs text-ink-muted">{order.address.phone}</span><span className="block truncate text-xs text-ink-muted">{order.address.city} · {order.address.pincode}</span></td>

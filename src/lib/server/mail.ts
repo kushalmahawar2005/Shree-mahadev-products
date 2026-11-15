@@ -11,6 +11,7 @@ import {
   type EmailOrder,
 } from "@/emails/OrderEmail";
 import { InquiryEmail, type InquiryEmailData } from "@/emails/InquiryEmail";
+import { CartEmail } from "@/emails/CartEmail";
 import { db } from "./db";
 
 /**
@@ -56,6 +57,24 @@ function brand(): EmailBrand {
   };
 }
 
+/** One photo per line: that size's front shot when there is one, else the product's first photo. */
+async function photoLookup(handlesIn: string[]) {
+  const handles = [...new Set(handlesIn)];
+  const [imgs] = handles.length
+    ? await db().query<Rows>(
+        `SELECT product_handle, url FROM product_images WHERE product_handle IN (${handles.map(() => "?").join(",")}) ORDER BY sort_order, id`,
+        handles,
+      )
+    : [[] as Rows];
+  return (handle: string, size: string) => {
+    const own = imgs.filter((im) => im.product_handle === handle).map((im) => String(im.url));
+    const slug = size.toLowerCase().replace(/\s+/g, "");
+    const url = own.find((u) => u.includes(`/${slug}-front.`)) ?? own[0];
+    // Email-safe: JPEG, small, padded on the brand cream (no WebP/AVIF for Outlook).
+    return url?.includes("/image/upload/") ? url.replace("/image/upload/", "/image/upload/f_jpg,q_auto,c_pad,w_112,h_140,b_rgb:FBF5E5/") : undefined;
+  };
+}
+
 async function loadEmailOrder(
   orderId: number,
 ): Promise<(EmailOrder & { id: number; token: string }) | null> {
@@ -70,21 +89,7 @@ async function loadEmailOrder(
     "SELECT product_handle, product_title, variant_title, quantity, line_total FROM order_items WHERE order_id = ?",
     [orderId],
   );
-  // One photo per line: that size's front shot when there is one, else the product's first photo.
-  const handles = [...new Set(items.map((i) => String(i.product_handle)))];
-  const [imgs] = handles.length
-    ? await db().query<Rows>(
-        `SELECT product_handle, url FROM product_images WHERE product_handle IN (${handles.map(() => "?").join(",")}) ORDER BY sort_order, id`,
-        handles,
-      )
-    : [[] as Rows];
-  const photoFor = (handle: string, size: string) => {
-    const own = imgs.filter((im) => im.product_handle === handle).map((im) => String(im.url));
-    const slug = size.toLowerCase().replace(/\s+/g, "");
-    const url = own.find((u) => u.includes(`/${slug}-front.`)) ?? own[0];
-    // Email-safe: JPEG, small, padded on the brand cream (no WebP/AVIF for Outlook).
-    return url?.includes("/image/upload/") ? url.replace("/image/upload/", "/image/upload/f_jpg,q_auto,c_pad,w_112,h_140,b_rgb:FBF5E5/") : undefined;
-  };
+  const photoFor = await photoLookup(items.map((i) => String(i.product_handle)));
   return {
     id: o.id,
     token: o.token,
@@ -117,17 +122,64 @@ async function loadEmailOrder(
     reviewUrl: `${siteUrl()}/review?t=${o.token}`,
     invoiceUrl: `${siteUrl()}/order/invoice?t=${o.token}`,
     trackingPageUrl: `${siteUrl()}/track-order?t=${o.token}`,
+    payUrl: `${siteUrl()}/checkout/pay?t=${o.token}`,
     courier: o.courier,
     awb: o.awb,
     trackingUrl: o.tracking_url,
   };
 }
 
+/**
+ * Abandoned-cart reminder email (stage 1 ≈ 1 h, stage 2 ≈ 24 h). Only carts that left an email at
+ * checkout. Queued once per cart and stage; returns true when queued.
+ */
+export async function queueCartEmail(cartId: number, stage: 1 | 2) {
+  const [[cart]] = await db().query<Rows>(
+    "SELECT id, token, name, email, subtotal FROM carts WHERE id = ? AND status = 'active'",
+    [cartId],
+  );
+  const to = cart?.email ? String(cart.email) : "";
+  if (!cart || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return false;
+  const [items] = await db().query<Rows>(
+    "SELECT product_handle, product_title, variant_title, unit_price, quantity FROM cart_items WHERE cart_id = ?",
+    [cartId],
+  );
+  if (!items.length) return false;
+  const photoFor = await photoLookup(items.map((i) => String(i.product_handle)));
+  const data = {
+    name: String(cart.name ?? "").split(" ")[0] || "there",
+    stage,
+    recoveryUrl: `${siteUrl()}/cart/recover/${cart.token}`,
+    subtotal: items.reduce((n, i) => n + Number(i.unit_price) * Number(i.quantity), 0),
+    items: items.map((i) => ({
+      title: String(i.product_title),
+      size: String(i.variant_title),
+      qty: Number(i.quantity),
+      lineTotal: Number(i.unit_price) * Number(i.quantity),
+      image: photoFor(String(i.product_handle), String(i.variant_title)),
+    })),
+  };
+  const element = CartEmail({ cart: data, brand: brand() });
+  const [html, text] = await Promise.all([render(element), render(element, { plainText: true })]);
+  const [r] = await db().execute<ResultSetHeader>(
+    `INSERT IGNORE INTO email_outbox (order_id, template, to_email, subject, html, text_body, dedupe_key) VALUES (NULL,?,?,?,?,?,?)`,
+    [
+      stage === 1 ? "cart_reminder_1" : "cart_reminder_2",
+      to,
+      stage === 1 ? "You left something in your cart" : "Your cart is still waiting – Swadeshi Mahadev",
+      html,
+      text,
+      `cart_reminder_${stage}:${cartId}`,
+    ],
+  );
+  return r.affectedRows > 0;
+}
+
 /** Render one email and store it in the outbox. Same event is queued only once unless `resend`. */
 export async function queueOrderEmail(
   orderId: number,
   kind: EmailKind,
-  opts: { resend?: boolean; refundAmount?: number; note?: string } = {},
+  opts: { resend?: boolean; refundAmount?: number; note?: string; dedupeSuffix?: string } = {},
 ) {
   const order = await loadEmailOrder(orderId);
   if (!order) return null;
@@ -143,9 +195,13 @@ export async function queueOrderEmail(
     ? `${siteUrl()}/admin/orders/view?id=${order.id}`
     : kind === "delivered"
       ? order.reviewUrl
-      : kind === "shipped"
+      : kind === "shipped" || kind === "out_for_delivery"
         ? order.trackingPageUrl
-        : order.orderUrl;
+        : kind === "payment_pending"
+          ? order.payUrl
+          : kind === "delivery_failed"
+            ? whatsappLink(`Hi, about order ${order.orderNo}: the courier couldn't deliver it. `)
+            : order.orderUrl;
   const element = OrderEmail({ kind, order: data, brand: brand(), ctaUrl });
   const [html, text] = await Promise.all([
     render(element),
@@ -160,7 +216,7 @@ export async function queueOrderEmail(
       subjectFor(kind, data),
       html,
       text,
-      opts.resend ? null : `${kind}:${orderId}:${to}`,
+      opts.resend ? null : `${kind}:${orderId}:${to}${opts.dedupeSuffix ? `:${opts.dedupeSuffix}` : ""}`,
     ],
   );
   return r.affectedRows ? r.insertId : null;

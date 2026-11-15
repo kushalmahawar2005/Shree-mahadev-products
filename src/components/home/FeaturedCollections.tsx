@@ -35,6 +35,9 @@ export type CategoryTile = {
   span: "hero" | "wide" | "small";
 };
 
+/** Sampled from the top edge of each category photo (phone crop). */
+const PHONE_BG: Record<string, string> = { honey: "#cf9d38", jaggery: "#66320b", seeds: "#efd9bb", cake: "#5f4119" };
+
 const SPAN = {
   hero: "lg:col-span-2 lg:row-span-2",
   wide: "lg:col-span-2",
@@ -77,6 +80,8 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
               <>
                 {/* colour mood + soft light */}
                 <span aria-hidden className="absolute inset-0" style={{ background: t.tone.bg }} />
+                {/* Phones: tile colour = the photo's own top colour, so the photo melts in with no pale band. */}
+                {phoneHalf && PHONE_BG[t.key] && <span aria-hidden className="absolute inset-0 sm:hidden" style={{ background: PHONE_BG[t.key] }} />}
                 <span
                   aria-hidden
                   className="absolute -right-10 -bottom-16 size-72 rounded-full opacity-70 blur-2xl transition-transform duration-700 group-hover:scale-125"
@@ -95,10 +100,10 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                       // square sweeteners photo in a wide tile: enlarge it (anchored bottom-right, tile clips the rest)
                       t.key === "jaggery" && "h-[150%]",
                       t.key === "oils" && "max-lg:h-auto max-lg:w-full max-lg:[mask-image:linear-gradient(to_bottom,transparent,black_12%,black)]",
-                      phoneHalf && "max-sm:aspect-auto max-sm:h-[58%] max-sm:w-full max-sm:[mask-image:linear-gradient(to_bottom,transparent,black_18%,black)]",
+                      phoneHalf && "max-sm:aspect-auto max-sm:h-[64%] max-sm:w-full max-sm:[mask-image:linear-gradient(to_bottom,transparent,black_22%,black)]",
                     )}
                   >
-                    <Image src={t.cover} alt="" fill sizes="(min-width: 1360px) 640px, (min-width: 1024px) 50vw, 100vw" className={cn("object-right-bottom", widePhoto ? "object-cover" : "object-contain", phoneHalf && "max-sm:object-cover max-sm:object-bottom")} />
+                    <Image src={t.cover} alt="" fill sizes="(min-width: 1360px) 640px, (min-width: 1024px) 50vw, 100vw" className={cn("object-right-bottom", widePhoto ? "object-cover" : "object-contain", phoneHalf && "max-sm:object-cover max-sm:object-[92%_100%]")} />
                   </span>
                 )}
 
@@ -179,7 +184,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     {t.blurb}
                   </span>
 
-                  <span className="mt-auto flex items-center gap-2">
+                  <span className={cn("mt-auto flex items-center gap-2", phoneHalf && "max-sm:mt-2")}>
                     {t.href ? (
                       <>
                         <span

@@ -1,7 +1,7 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
-import { notifyOrder } from "./mail";
+import { kickOutbox, notifyOrder, queueOrderEmail } from "./mail";
 import { queueOrderWhatsApp } from "./whatsapp";
 import {
   actOnNdr,
@@ -83,8 +83,8 @@ export async function bookShipment(
   if (activeShipment(await listShipments(orderId))) throw new Error("This order already has an active shipment");
 
   const a = order.address;
-  const booked = await npCreate({
-    orderNumber: order.orderNo,
+  const create = (orderNumber: string) => npCreate({
+    orderNumber,
     paymentType: order.paymentMethod === "cod" ? "cod" : "prepaid",
     orderAmount: order.total,
     shippingCharges: order.shipping,
@@ -96,6 +96,17 @@ export async function bookShipment(
     consignee: { name: a.name, email: a.email, address: a.line1, address_2: a.line2, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone },
     items: order.items.map((i) => ({ name: `${i.productTitle} (${i.variantTitle})`, qty: i.quantity, price: i.unitPrice, sku: i.sku })),
   });
+  // NimbusPost keeps an order number for good, even after its shipment is cancelled. A re-booked order (or a
+  // number reused after a test reset) gets "already exists": retry as SMP1002-2, SMP1002-3 … (the label and
+  // tracking still carry our order; the suffix only matters inside NimbusPost).
+  let booked: Awaited<ReturnType<typeof create>> | undefined;
+  for (let n = 1; !booked; n++) {
+    try {
+      booked = await create(n === 1 ? order.orderNo : `${order.orderNo}-${n}`);
+    } catch (e) {
+      if (n >= 6 || !/already exists/i.test(e instanceof Error ? e.message : "")) throw e;
+    }
+  }
 
   const expectedDelivery = booked.expectedDelivery && !Number.isNaN(new Date(booked.expectedDelivery).getTime())
     ? new Intl.DateTimeFormat("en-CA", {
@@ -141,7 +152,11 @@ export function normaliseStatus(raw: string): { shipment: string; order?: Order[
   if (/rto|return/.test(s)) return { shipment: "rto", order: "rto" };
   if (/deliver(ed)?$|^delivered/.test(s) && !/out for/.test(s)) return { shipment: "delivered", order: "delivered" };
   if (/out for delivery|ofd/.test(s)) return { shipment: "out_for_delivery", order: "shipped" };
-  if (/transit|picked|pickup completed|reached at destination|shipped|dispatch|ndr|exception/.test(s)) {
+  // Delivery attempted but failed (customer unavailable, wrong address, refused…): courier "NDR".
+  if (/ndr|undelivered|not delivered|delivery attempt|attempt(ed)? (failed|unsuccessful)|failed delivery|customer (not available|unavailable)|consignee (not available|unavailable)|refused|exception/.test(s)) {
+    return { shipment: "ndr", order: "shipped" };
+  }
+  if (/transit|picked|pickup completed|reached at destination|shipped|dispatch/.test(s)) {
     return { shipment: "in_transit", order: "shipped" };
   }
   if (/cancel/.test(s)) return { shipment: "cancelled" };
@@ -161,7 +176,7 @@ export async function applyTrackingUpdate(
   const n = normaliseStatus(status);
   if (s.status !== "cancelled") {
     await db().execute(
-      `UPDATE shipments SET status = ?, shipped_at = IF(? IN ('in_transit','out_for_delivery') AND shipped_at IS NULL, NOW(), shipped_at),
+      `UPDATE shipments SET status = ?, shipped_at = IF(? IN ('in_transit','out_for_delivery','ndr') AND shipped_at IS NULL, NOW(), shipped_at),
          delivered_at = IF(? = 'delivered', NOW(), delivered_at) WHERE id = ?`,
       [n.shipment, n.shipment, n.shipment, s.id],
     );
@@ -174,6 +189,19 @@ export async function applyTrackingUpdate(
     ]);
   }
   if (n.order && s.status !== "cancelled") await setOrderStatus(s.order_id, n.order, actor, `Courier: ${status}`);
+  // Tell the customer when the parcel is out for delivery, and each day a delivery attempt fails.
+  if (s.status !== "cancelled" && n.shipment !== s.status && (n.shipment === "out_for_delivery" || n.shipment === "ndr")) {
+    const orderId = Number(s.order_id);
+    const day = new Date().toISOString().slice(0, 10);
+    if (n.shipment === "out_for_delivery") {
+      await queueOrderWhatsApp(orderId, "out_for_delivery", day).catch((e) => console.error("WhatsApp out for delivery", e));
+      await queueOrderEmail(orderId, "out_for_delivery", { dedupeSuffix: day }).catch((e) => console.error("Email out for delivery", e));
+    } else {
+      await queueOrderWhatsApp(orderId, "delivery_failed", day).catch((e) => console.error("WhatsApp delivery failed", e));
+      await queueOrderEmail(orderId, "delivery_failed", { dedupeSuffix: day }).catch((e) => console.error("Email delivery failed", e));
+    }
+    kickOutbox();
+  }
   return true;
 }
 

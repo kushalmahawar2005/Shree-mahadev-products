@@ -41,6 +41,7 @@ const SHIP_LABEL: Record<string, string> = {
   picked: "Picked up",
   in_transit: "In transit",
   out_for_delivery: "Out for delivery",
+  ndr: "Delivery attempt failed",
   delivered: "Delivered",
   rto: "Returning (RTO)",
   cancelled: "Cancelled",

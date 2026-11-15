@@ -7,6 +7,9 @@
 //        node scripts/wipe-test-data.mjs --yes    → delete
 // Reads DATABASE_* from .env.local / env.
 import mysql from "mysql2/promise";
+import { writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 try { process.loadEnvFile(".env.local"); } catch {}
 const apply = process.argv.includes("--yes");
@@ -43,6 +46,14 @@ try {
     console.log("\nNothing changed. Run again with --yes to delete.");
     process.exit(0);
   }
+  // Safety net: every row about to be deleted is written to a JSON file in the home folder first.
+  const backup = {};
+  for (const t of tables) [backup[t]] = await db.query(`SELECT * FROM \`${t}\``);
+  [backup.reviews] = await db.query("SELECT * FROM reviews WHERE source <> 'google'");
+  [backup.review_photos] = await db.query("SELECT rp.* FROM review_photos rp JOIN reviews r ON r.id = rp.review_id WHERE r.source <> 'google'");
+  const file = join(homedir(), `smp-wipe-backup-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+  writeFileSync(file, JSON.stringify(backup));
+  console.log("Backup written:", file);
   await db.query("SET FOREIGN_KEY_CHECKS = 0");
   await db.query("DELETE rp FROM review_photos rp JOIN reviews r ON r.id = rp.review_id WHERE r.source <> 'google'");
   await db.query("DELETE FROM reviews WHERE source <> 'google'");

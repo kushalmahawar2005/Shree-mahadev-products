@@ -17,13 +17,18 @@ const card = "rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0
 const INFO: Record<string, { label: string; hint: string; group: "orders" | "recovery" }> = {
   order_placed: { label: "Order placed", hint: "Thank-you with order link", group: "orders" },
   cod_confirmation: { label: "COD confirmation", hint: "Asks to confirm a COD order", group: "orders" },
+  payment_pending: { label: "Payment not completed", hint: "30 min after an online payment fails, with a pay-now link (+ email)", group: "recovery" },
   shipped: { label: "Shipped", hint: "Tracking link once booked", group: "orders" },
+  out_for_delivery: { label: "Out for delivery", hint: "Morning of delivery, COD amount to keep ready (+ email)", group: "orders" },
+  delivery_failed: { label: "Delivery attempt failed", hint: "Courier missed them: reply with time / address (+ email)", group: "orders" },
   delivered: { label: "Delivered", hint: "Delivery note + review link", group: "orders" },
   cancelled: { label: "Cancelled", hint: "Lets them know it's cancelled", group: "orders" },
   abandoned_cart_1h: { label: "Abandoned cart · 1 hr", hint: "First nudge with recovery link", group: "recovery" },
   abandoned_cart_24h: { label: "Abandoned cart · 24 hr", hint: "Second, final reminder", group: "recovery" },
   back_in_stock: { label: "Back in stock", hint: "When a waited-for size returns", group: "recovery" },
 };
+/** Display order: the customer's journey, not the database order. */
+const ORDER = Object.keys(INFO);
 const label = (t: string) => INFO[t]?.label ?? t.replaceAll("_", " ");
 const when = (d: string) =>
   new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(String(d).replace(" ", "T") + "+05:30"));
@@ -35,7 +40,18 @@ const TONE: Record<string, string> = {
   sending: "bg-warm-strong text-sale",
 };
 
-export function WhatsAppWorkspace({ templates, messages, connected }: { templates: Template[]; messages: Message[]; connected: boolean }) {
+export function WhatsAppWorkspace({
+  templates,
+  messages,
+  connected,
+  previews = {},
+}: {
+  templates: Template[];
+  messages: Message[];
+  connected: boolean;
+  /** Exact text each automation sends, with sample values. */
+  previews?: Record<string, string>;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [busyTpl, setBusyTpl] = useState<string | null>(null);
@@ -132,11 +148,24 @@ export function WhatsAppWorkspace({ templates, messages, connected }: { template
             <ul className="divide-y divide-line">
               {templates
                 .filter((t) => (INFO[t.template]?.group ?? "orders") === group)
+                .sort((a, b) => ORDER.indexOf(a.template) - ORDER.indexOf(b.template))
                 .map((t) => (
-                  <li key={t.template} className="flex items-center gap-3 py-2.5">
+                  <li key={t.template} className="flex items-start gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-ink">{label(t.template)}</p>
                       <p className="text-xs text-ink-muted">{INFO[t.template]?.hint ?? t.template}</p>
+                      {previews[t.template] && (
+                        <details className="group/msg mt-1.5">
+                          <summary className="cursor-pointer list-none text-xs font-semibold text-forest-fg hover:underline [&::-webkit-details-marker]:hidden">
+                            <span className="group-open/msg:hidden">See message</span>
+                            <span className="hidden group-open/msg:inline">Hide message</span>
+                          </summary>
+                          {/* WhatsApp-style bubble with the exact text (sample name / order / links). */}
+                          <p className="mt-2 max-w-md rounded-2xl rounded-tl-sm bg-[#dcf8c6] px-3 py-2 text-[13px] leading-relaxed whitespace-pre-line text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef]">
+                            {previews[t.template]}
+                          </p>
+                        </details>
+                      )}
                     </div>
                     {busyTpl === t.template && <Loader2 className="size-3.5 animate-spin text-ink-muted" />}
                     <Switch

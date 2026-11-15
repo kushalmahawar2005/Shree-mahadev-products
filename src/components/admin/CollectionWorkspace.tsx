@@ -183,7 +183,7 @@ export function CollectionWorkspace({ initialRows }: { initialRows: Row[] }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-full">Keep it</AlertDialogCancel>
-            <AlertDialogAction className="rounded-full bg-red-700 text-white hover:bg-red-800" onClick={() => confirmDelete && void remove(confirmDelete)}>
+            <AlertDialogAction className="rounded-full bg-[#b91c1c] text-white hover:bg-[#991b1b]" onClick={() => confirmDelete && void remove(confirmDelete)}>
               Delete collection
             </AlertDialogAction>
           </AlertDialogFooter>

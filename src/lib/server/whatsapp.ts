@@ -45,7 +45,18 @@ async function queue(
   return result.affectedRows > 0;
 }
 
-export async function queueOrderWhatsApp(orderId: number, template: "order_placed" | "cod_confirmation" | "shipped" | "delivered" | "cancelled") {
+export type OrderTemplate =
+  | "order_placed"
+  | "cod_confirmation"
+  | "shipped"
+  | "out_for_delivery"
+  | "delivery_failed"
+  | "delivered"
+  | "cancelled"
+  | "payment_pending";
+
+/** `dedupeSuffix`: lets a message repeat (e.g. one "delivery failed" per day), default once per order. */
+export async function queueOrderWhatsApp(orderId: number, template: OrderTemplate, dedupeSuffix = "") {
   const [[order]] = await db().query<Rows>(
     `SELECT o.id, o.order_no, o.token, o.customer_name, o.phone, o.total, o.payment_method, o.status,
             s.awb, s.tracking_url
@@ -67,10 +78,14 @@ export async function queueOrderWhatsApp(orderId: number, template: "order_place
     trackingUrl: order.tracking_url ?? null,
     orderUrl: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "")}/order?t=${order.token}`,
     reviewUrl: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "")}/review?t=${order.token}`,
-  }, { orderId, dedupe: `${template}:${orderId}` });
+    payUrl: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "")}/checkout/pay?t=${order.token}`,
+    trackUrl: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "")}/track-order?t=${order.token}`,
+    supportPhone: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "",
+  }, { orderId, dedupe: `${template}:${orderId}${dedupeSuffix ? `:${dedupeSuffix}` : ""}` });
 }
 
-export async function queueCartWhatsApp(cartId: number, template: "abandoned_cart_1h" | "abandoned_cart_24h") {
+/** `bump` false: the caller counts the reminder (cron sends WhatsApp + email as one reminder). */
+export async function queueCartWhatsApp(cartId: number, template: "abandoned_cart_1h" | "abandoned_cart_24h", bump = true) {
   const [[cart]] = await db().query<Rows>(
     "SELECT id, token, name, phone FROM carts WHERE id = ? AND status = 'active'",
     [cartId],
@@ -87,7 +102,7 @@ export async function queueCartWhatsApp(cartId: number, template: "abandoned_car
     recoveryUrl: `${base}/cart/recover/${cart.token}`,
     optOut: "Reply STOP to opt out.",
   }, { cartId, dedupe: `${template}:${cartId}` });
-  if (sent) await db().execute("UPDATE carts SET reminder_count = reminder_count + 1, reminder_sent_at = NOW() WHERE id = ?", [cartId]);
+  if (sent && bump) await db().execute("UPDATE carts SET reminder_count = reminder_count + 1, reminder_sent_at = NOW() WHERE id = ?", [cartId]);
   return sent;
 }
 
@@ -98,13 +113,16 @@ export async function queueBackInStock(phoneNumber: string, variantKey: string) 
   }, { dedupe: `back_in_stock:${variantKey}:${phone(phoneNumber)}` });
 }
 
-function message(template: string, payload: Record<string, unknown>) {
+export function message(template: string, payload: Record<string, unknown>) {
   const name = String(payload.name ?? "there");
   const order = payload.orderNo ? ` for order ${payload.orderNo}` : "";
   const common = `Namaste ${name}, this is Swadeshi Mahadev Products.`;
   switch (template) {
     case "cod_confirmation": return `${common} Please reply YES to confirm your COD order${order}, or NO to cancel.`;
     case "shipped": return `${common} Your order${order} has shipped. AWB: ${payload.awb ?? "available in your tracking page"}.`;
+    case "out_for_delivery": return `${common} Your order${order} is out for delivery today. ${payload.paymentMethod === "cod" ? `Please keep ₹${payload.total} ready. ` : ""}Track it: ${payload.trackUrl}`;
+    case "delivery_failed": return `${common} The courier could not deliver your order${order} today. Reply here with a good time or an updated address/phone and we will arrange the next attempt. Track it: ${payload.trackUrl}`;
+    case "payment_pending": return `${common} Your order${order} is saved, but the payment did not go through. Complete it here (₹${payload.total}): ${payload.payUrl}\nIf money was deducted, please don't pay again; it updates on its own.`;
     case "delivered": return `${common} Your order${order} was delivered. We would love your feedback: ${payload.reviewUrl}`;
     case "cancelled": return `${common} Your order${order} has been cancelled.`;
     case "abandoned_cart_1h":
@@ -113,6 +131,23 @@ function message(template: string, payload: Record<string, unknown>) {
     default: return `${common} We received your order${order}. Total: ₹${payload.total}. Track it here: ${payload.orderUrl}`;
   }
 }
+
+/** What each automation says, with sample values (admin Messages page shows it under each toggle). */
+const SAMPLE = {
+  name: "Priya",
+  orderNo: "SMP1001",
+  total: 1062,
+  paymentMethod: "cod",
+  awb: "1234567890",
+  orderUrl: "swadeshimahadevproducts.in/order?t=…",
+  reviewUrl: "swadeshimahadevproducts.in/review?t=…",
+  payUrl: "swadeshimahadevproducts.in/checkout/pay?t=…",
+  trackUrl: "swadeshimahadevproducts.in/track-order?t=…",
+  recoveryUrl: "swadeshimahadevproducts.in/cart/recover/…",
+  shopUrl: "swadeshimahadevproducts.in/shop",
+  optOut: "Reply STOP to opt out.",
+};
+export const previewMessage = (template: string) => message(template, SAMPLE);
 
 async function send(row: RowDataPacket) {
   const response = await fetch(process.env.WHATSAPP_API_URL!, {
@@ -134,6 +169,12 @@ async function send(row: RowDataPacket) {
 
 export async function processWhatsAppOutbox(limit = 20) {
   const result = { sent: 0, failed: 0, waiting: 0 };
+  // Updates are only useful while fresh: a cart nudge or "shipped" note a week late (e.g. queued before the
+  // provider was connected) would confuse customers. Anything older than 24 h is closed, never sent.
+  if (whatsappConfigured())
+    await db().execute(
+      "UPDATE whatsapp_outbox SET status='failed', error='Expired: older than 24 hours, not sent' WHERE status='pending' AND created_at < NOW() - INTERVAL 24 HOUR",
+    );
   const [rows] = await db().query<Rows>(
     "SELECT * FROM whatsapp_outbox WHERE status = 'pending' AND next_attempt_at <= NOW() ORDER BY id LIMIT ?",
     [limit],

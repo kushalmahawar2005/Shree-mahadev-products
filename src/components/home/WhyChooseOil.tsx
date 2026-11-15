@@ -19,7 +19,7 @@ const STEPS: Step[] = [
   { title: "Farm sourced", titleHi: "खेत से बीज", text: "Seeds sourced directly from farmers", img: "1-farm" },
   { title: "Hand cleaned", titleHi: "हाथ से सफ़ाई", text: "Every batch cleaned and sorted by hand", img: "2-hand-cleaned" },
   { title: "Wood pressed", titleHi: "लकड़ी की घानी", text: "Kolhu wood pressed in our kachi ghani, without high heat", img: "3-wood-pressed" },
-  { title: "Cloth filtered", titleHi: "कपड़े से छनाई", text: "Filtered through pure cotton cloth", img: "4-cloth-filtered" },
+  { title: "Cotton cloth filtered", titleHi: "सूती कपड़े से छनाई", text: "Filtered through pure cotton cloth", img: "4-cloth-filtered" },
   { title: "Gravity settled", titleHi: "10 दिन निथार", text: "Rested 10 days so fine particles settle on their own", img: "4b-gravity-settled" },
   { title: "Bottled", titleHi: "बोतल में भराई", text: "Food-grade PET bottles, every batch lab tested", img: "5-bottled" },
 ];

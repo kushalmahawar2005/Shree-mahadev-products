@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { Figtree, Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { StoreSettingsProvider } from "@/components/StoreSettingsProvider";
@@ -87,6 +88,7 @@ export default async function RootLayout({
         {/* Page open: hide until hydrated (see PageReady); must run before the first paint. */}
         <script dangerouslySetInnerHTML={{ __html: PAGE_OPEN_SCRIPT }} />
         <PageReady />
+        <PwaRegister />
         <LoadingBar />
         <script
           type="application/ld+json"

@@ -4,7 +4,8 @@
 // 2. sets the client's new groundnut oil short description;
 // 3. fills the business GSTIN (from the GST certificate) if it is still empty;
 // 4. adds the 4th at-home check ("Naturally thick") to the saved oil story;
-// 5. switches the store phone + WhatsApp to the client's support number 8440099585.
+// 5. sets opening stock 100 on sizes that are still untracked;
+// 6. switches the store phone + WhatsApp to the client's support number 8440099585.
 // Usage: node scripts/add-gravity-step.mjs   (reads DATABASE_* from .env.local / env)
 import mysql from "mysql2/promise";
 
@@ -38,6 +39,19 @@ try {
     "UPDATE settings SET value = JSON_SET(value, '$.phone', '+91-8440099585', '$.whatsapp', '918440099585') WHERE `key` = 'business'",
   );
   console.log("Store phone/WhatsApp:", ph.affectedRows ? "8440099585" : "no saved business settings (code default used)");
+  // Opening stock (once per database, flag in settings): every size starts at 100. Later deploys never touch stock again.
+  const [[flag]] = await db.query("SELECT 1 AS done FROM settings WHERE `key` = 'opening_stock_v1'");
+  if (!flag) {
+    const [all] = await db.query("SELECT variant_key, COALESCE(stock_qty, 0) AS before_qty FROM product_variants");
+    await db.query("UPDATE product_variants SET stock_qty = 100");
+    if (all.length)
+      await db.query(
+        "INSERT INTO inventory_log (variant_key, delta, stock_after, reason, note, actor) VALUES ?",
+        [all.map((r) => [r.variant_key, 100 - Number(r.before_qty), 100, "restock_manual", "Opening stock", "admin"])],
+      );
+    await db.query("INSERT INTO settings (`key`, value) VALUES ('opening_stock_v1', JSON_OBJECT('at', NOW()))");
+    console.log("Opening stock set to 100 on", all.length, "sizes");
+  } else console.log("Opening stock already set earlier (left alone).");
   const [[row]] = await db.query("SELECT value FROM settings WHERE `key` = 'pdp_story'");
   if (!row) { console.log("No saved story override: code defaults already include the step."); process.exit(0); }
   const map = typeof row.value === "string" ? JSON.parse(row.value) : row.value;
@@ -69,7 +83,7 @@ try {
   // Client wording (2026-11-15): "Kolhu wood pressed", "pure cotton cloth", "food-grade PET bottles".
   const WORDING = [
     [/^slow pressed$|^wood pressed$/i, "Wood pressed", "Kolhu wood pressed slowly in our kachi ghani, so the oil stays cool."],
-    [/cloth/i, "Cloth filtered", "Filtered through pure cotton cloth to catch the seed bits."],
+    [/cloth/i, "Cotton cloth filtered", "Filtered through pure cotton cloth to catch the seed bits."],
     [/bottled/i, "Bottled fresh", "Filled in food-grade PET bottles and sealed in small batches in Bijainagar."],
   ];
   for (const st of method?.steps ?? []) {

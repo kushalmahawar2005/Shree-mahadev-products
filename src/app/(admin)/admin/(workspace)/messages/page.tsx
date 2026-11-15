@@ -2,7 +2,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { WhatsAppWorkspace } from "@/components/admin/WhatsAppWorkspace";
 import { Skeleton } from "@/components/shadcn/skeleton";
-import { listWhatsAppMessages, listWhatsAppTemplates, whatsappConfigured } from "@/lib/server/whatsapp";
+import { listWhatsAppMessages, listWhatsAppTemplates, previewMessage, whatsappConfigured } from "@/lib/server/whatsapp";
 import { requireRole } from "@/lib/server/admin-auth";
 
 export const metadata = { title: "Messages" };
@@ -35,6 +35,7 @@ async function Data() {
   return (
     <WhatsAppWorkspace
       connected={whatsappConfigured()}
+      previews={Object.fromEntries(templates.map((t) => [String(t.template), previewMessage(String(t.template))]))}
       templates={templates.map((t) => ({ template: String(t.template), enabled: Number(t.enabled) }))}
       messages={messages.map((m) => ({
         id: Number(m.id),

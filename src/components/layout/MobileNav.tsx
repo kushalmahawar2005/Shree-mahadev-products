@@ -9,6 +9,7 @@ import { thumbUrl } from "@/lib/image-loader";
 import { formatMoney } from "@/lib/utils/money";
 import { site, shopByUse, whatsappLink, type NavItem } from "@/data/site";
 import { UserIcon, WhatsAppIcon } from "./icons";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import type { MenuData } from "./MegaMenu";
 
 const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
@@ -132,6 +133,7 @@ export function MobileNav({ open, onClose, menus, nav }: { open: boolean; onClos
           <p className="mt-2 text-center text-xs text-ink-muted">
             {site.phone} · {site.supportHours}
           </p>
+          <InstallApp onDone={onClose} className="mt-4 min-h-12 w-full justify-center rounded-full border border-forest/30 text-sm font-semibold text-forest-text" />
         </nav>
 
         {/* Account at the bottom */}

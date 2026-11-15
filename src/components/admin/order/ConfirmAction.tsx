@@ -59,7 +59,7 @@ export function ConfirmAction({
           <AlertDialogAction
             disabled={needsReason && !reason.trim()}
             onClick={() => onConfirm(reason.trim())}
-            className={cn("rounded-full", destructive ? "bg-red-700 text-white hover:bg-red-800" : "bg-forest text-white hover:bg-forest-mid")}
+            className={cn("rounded-full", destructive ? "bg-[#b91c1c] text-white hover:bg-[#991b1b]" : "bg-forest text-white hover:bg-forest-mid")}
           >
             {confirmLabel}
           </AlertDialogAction>
