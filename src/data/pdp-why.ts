@@ -20,7 +20,7 @@ export function oilWhyPoints(handle: string): string[] {
   return [
     "Only traditional kachi ghani extraction",
     AROMA[handle] ?? "Natural aroma of the seed",
-    "No filter press, gravity settled",
+    "No filter press, gravity sedimentation",
     "100% natural",
     "No chemicals",
     "No preservatives",

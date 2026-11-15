@@ -99,7 +99,7 @@ export function Gallery({
   return (
     // Desktop: the stage width follows the viewport height (4:5 photo fits above the fold) and the
     // page grid gives the buy box whatever is left, so there's no dead gap between the two.
-    <div className="lg:flex lg:items-start lg:gap-3 lg:[--stage-w:min(calc((100svh-210px)*0.8),44vw,600px)]">
+    <div className="lg:[--stage-w:min(calc((100svh-150px)*0.88),48vw,680px)]">
       <div
         ref={stageRef}
         data-img-reveal=""
@@ -134,7 +134,7 @@ export function Gallery({
           <motion.div
             key={isVideo ? "video" : img!.url}
             custom={dir}
-            className={cn("absolute inset-0 grid place-items-center", !full && "p-[8%]")}
+            className={cn("absolute inset-0 grid place-items-center", !full && "p-[3%]")}
             initial={reduce ? false : { opacity: 0, x: dir * 40 }}
             animate={{ opacity: 1, x: 0 }}
             exit={reduce ? undefined : { opacity: 0, x: dir * -40 }}
@@ -253,7 +253,7 @@ export function Gallery({
       </Dialog>
 
       {many && (
-        <div ref={thumbsRef} data-pdp-thumbs="" className="no-scrollbar mt-3 flex gap-2.5 overflow-x-auto lg:order-first lg:mt-0 lg:max-h-[calc(var(--stage-w)*1.25)] lg:flex-col lg:overflow-x-visible lg:overflow-y-auto">
+        <div ref={thumbsRef} data-pdp-thumbs="" className="no-scrollbar mt-3 flex gap-2.5 overflow-x-auto pb-1 lg:w-[var(--stage-w)]">
           {images.map((im, n) => (
             <button
               key={im.url}
@@ -262,7 +262,7 @@ export function Gallery({
               aria-label={`Show image ${n + 1}`}
               aria-current={n === i}
               className={cn(
-                "grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-[#fbf5e5] transition-colors",
+                "grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-[#fbf5e5] transition-colors",
                 n === i ? "border-forest" : "border-transparent hover:border-line",
               )}
             >
@@ -276,7 +276,7 @@ export function Gallery({
               aria-label={`Play video: ${video.label}`}
               aria-current={isVideo}
               className={cn(
-                "relative grid h-20 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-sunken transition-colors",
+                "relative grid size-20 shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-sunken transition-colors",
                 isVideo ? "border-forest" : "border-transparent hover:border-line",
               )}
             >

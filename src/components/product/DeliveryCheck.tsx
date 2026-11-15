@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { CheckCircle2, Loader2, MapPin, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, MapPin, Truck, XCircle } from "lucide-react";
 import { checkDeliveryAction, type DeliveryCheck as Result } from "@/lib/delivery-actions";
 import type { ProductVariant } from "@/lib/commerce/types";
 
@@ -54,16 +54,22 @@ export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: 
   }, []);
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 rounded-2xl border border-line bg-white p-3 sm:p-3.5">
+      <p className="mb-2 flex items-center gap-1.5 px-1 text-[13px] font-semibold text-ink">
+        <Truck className="size-4 text-forest" /> Delivery date
+        <span className="font-normal text-ink-muted">· check your pincode</span>
+      </p>
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (/^\d{6}$/.test(pin)) check(pin);
           else setRes({ ok: false, error: "Enter a valid 6-digit pincode." });
         }}
-        className="flex h-11 items-center rounded-full border border-line bg-white pl-4 focus-within:border-forest"
+        className="flex h-12 items-center gap-2 rounded-full border-[1.5px] border-line bg-page/60 p-1 pl-1 transition-colors focus-within:border-forest focus-within:bg-white"
       >
-        <MapPin className="size-4 shrink-0 text-ink-muted" />
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-co-brand-soft text-forest">
+          <MapPin className="size-4" />
+        </span>
         <label htmlFor="pdp-pin" className="sr-only">
           Pincode
         </label>
@@ -73,27 +79,32 @@ export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: 
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
           inputMode="numeric"
           autoComplete="postal-code"
-          placeholder="Enter pincode"
-          className="h-full min-w-0 flex-1 bg-transparent px-2 text-base text-ink outline-none"
+          placeholder="Enter 6-digit pincode"
+          className="h-full min-w-0 flex-1 bg-transparent text-base font-semibold tracking-[0.12em] text-ink outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-ink-muted"
         />
-        <button type="submit" disabled={pending} className="mr-1 inline-flex h-11 items-center gap-1 rounded-full px-4 text-sm font-semibold text-forest hover:bg-co-brand-soft">
-          {pending && <Loader2 className="size-3.5 animate-spin" />} Check delivery
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-forest px-4 text-sm font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-70"
+        >
+          {pending ? <Loader2 className="size-3.5 animate-spin" /> : null} Check
         </button>
       </form>
-      <div aria-live="polite" className="mt-2 text-sm empty:hidden">
-        {res && !res.ok && <p className="text-co-danger">{res.error}</p>}
+      <div aria-live="polite" className="text-sm empty:hidden">
+        {res && !res.ok && <p className="mt-2 px-1 text-co-danger">{res.error}</p>}
         {res?.ok && res.serviceable && (
-          <p className="flex items-start gap-1.5 text-ink">
-            <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-co-success" />
+          <p className="mt-2.5 flex items-center gap-2.5 rounded-xl bg-co-success-soft px-3 py-2.5 text-ink">
+            <CheckCircle2 className="size-5 shrink-0 text-co-success" />
             {/* Date + city only: free delivery and COD are stated once, in the trust strip. */}
-            <span>
-              Delivers by <b>{res.by}</b> to {res.place}
+            <span className="leading-snug">
+              Delivers by <b className="text-forest">{res.by}</b>
+              <span className="block text-xs text-ink-muted">to {res.place}</span>
             </span>
           </p>
         )}
         {res?.ok && !res.serviceable && (
-          <p className="flex items-center gap-1.5 text-co-danger">
-            <XCircle className="size-4" /> Not serviceable to {res.place} yet.
+          <p className="mt-2.5 flex items-center gap-2 rounded-xl bg-alert-soft px-3 py-2.5 text-co-danger">
+            <XCircle className="size-4 shrink-0" /> Not serviceable to {res.place} yet.
           </p>
         )}
       </div>

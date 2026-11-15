@@ -58,6 +58,14 @@ const nextConfig: NextConfig = {
         destination: "https://swadeshimahadevproducts.in/:path*",
         permanent: true,
       },
+      // The old WooCommerce domain (.com, parked on this site): same path on .in, where the legacy
+      // rules below send old /product/... URLs to the right new product.
+      {
+        source: "/:path*",
+        has: [{ type: "host" as const, value: "(www\\.)?swadeshimahadevproducts\\.com" }],
+        destination: "https://swadeshimahadevproducts.in/:path*",
+        permanent: true,
+      },
       ...legacyRedirects,
     ];
   },

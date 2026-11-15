@@ -9,8 +9,12 @@ const phone = (value: string) => {
   return digits.length === 10 ? `91${digits}` : digits.replace(/^00/, "");
 };
 
+/** "meta" = WhatsApp Cloud API direct (token + phone number ID); anything else = generic JSON relay at WHATSAPP_API_URL. */
+const isMeta = () => process.env.WHATSAPP_PROVIDER === "meta";
 export const whatsappConfigured = () =>
-  Boolean(process.env.WHATSAPP_PROVIDER && process.env.WHATSAPP_API_KEY && process.env.WHATSAPP_API_URL);
+  isMeta()
+    ? Boolean(process.env.WHATSAPP_API_KEY && process.env.WHATSAPP_PHONE_NUMBER_ID)
+    : Boolean(process.env.WHATSAPP_PROVIDER && process.env.WHATSAPP_API_KEY && process.env.WHATSAPP_API_URL);
 
 async function enabled(template: string) {
   const [[row]] = await db().query<Rows>(
@@ -107,9 +111,16 @@ export async function queueCartWhatsApp(cartId: number, template: "abandoned_car
 }
 
 export async function queueBackInStock(phoneNumber: string, variantKey: string) {
+  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  const [[item]] = await db().query<Rows>(
+    `SELECT p.handle, p.title, v.title AS variant FROM product_variants v JOIN products p ON p.id = v.product_id WHERE v.variant_key = ?`,
+    [variantKey],
+  );
   return queue("back_in_stock", phoneNumber, {
     variantKey,
-    shopUrl: `${(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "")}/shop`,
+    productName: item ? `${item.title}${item.variant ? ` (${item.variant})` : ""}` : "Your item",
+    productUrl: item ? `${base}/products/${item.handle}` : `${base}/shop`,
+    shopUrl: `${base}/shop`,
   }, { dedupe: `back_in_stock:${variantKey}:${phone(phoneNumber)}` });
 }
 
@@ -149,7 +160,60 @@ const SAMPLE = {
 };
 export const previewMessage = (template: string) => message(template, SAMPLE);
 
+/**
+ * Body variables for each approved Meta template, in {{1}}, {{2}}… order (see the template list in
+ * WhatsApp Manager). Amounts go without "₹" (the template has it). Meta rejects empty values and
+ * newlines/tabs inside a variable, so every value is cleaned.
+ */
+function metaParams(template: string, p: Record<string, unknown>): string[] {
+  const name = String(p.name ?? "").trim().split(/\s+/)[0] || "there";
+  const v = (x: unknown, fallback = "-") => {
+    const t = String(x ?? "").replace(/[\n\t]+/g, " ").replace(/ {4,}/g, " ").trim();
+    return t || fallback;
+  };
+  const order = v(p.orderNo);
+  switch (template) {
+    case "order_placed": return [name, order, v(p.total), v(p.trackUrl ?? p.orderUrl)];
+    case "cod_confirmation": return [name, order, v(p.total)];
+    case "shipped": return [name, order, v(p.awb, "will be shared soon"), v(p.trackUrl)];
+    case "out_for_delivery":
+    case "delivery_failed": return [name, order, v(p.trackUrl)];
+    case "delivered": return [name, order, v(p.reviewUrl)];
+    case "cancelled": return [name, order];
+    case "payment_pending": return [name, order, v(p.total), v(p.payUrl)];
+    case "abandoned_cart_1h":
+    case "abandoned_cart_24h": return [name, v(p.recoveryUrl)];
+    case "back_in_stock": return [v(p.productName, "Your item"), v(p.productUrl ?? p.shopUrl)];
+    default: throw new Error(`No Meta template mapping for "${template}"`);
+  }
+}
+
+const GRAPH = "https://graph.facebook.com/v23.0";
+
+async function sendMeta(row: RowDataPacket) {
+  const payload = JSON.parse(String(row.payload)) as Record<string, unknown>;
+  const response = await fetch(`${GRAPH}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.WHATSAPP_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: row.to_phone,
+      type: "template",
+      template: {
+        name: row.template,
+        language: { code: process.env.WHATSAPP_TEMPLATE_LANG || "en" },
+        components: [{ type: "body", parameters: metaParams(String(row.template), payload).map((text) => ({ type: "text", text })) }],
+      },
+    }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const body = (await response.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message?: string; code?: number } };
+  if (!response.ok) throw new Error(`Meta ${body.error?.code ?? response.status}: ${body.error?.message ?? "send failed"}`);
+  return body.messages?.[0]?.id ?? null;
+}
+
 async function send(row: RowDataPacket) {
+  if (isMeta()) return sendMeta(row);
   const response = await fetch(process.env.WHATSAPP_API_URL!, {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.WHATSAPP_API_KEY}`, "Content-Type": "application/json" },
@@ -205,6 +269,11 @@ export async function processWhatsAppOutbox(limit = 20) {
     }
   }
   return result;
+}
+
+/** Delivery receipts from the Meta webhook: a message Meta could not deliver is marked failed with its reason. */
+export async function markWhatsAppFailed(providerId: string, reason: string) {
+  await db().execute("UPDATE whatsapp_outbox SET status='failed', error=? WHERE provider_id=?", [reason.slice(0, 255), providerId]);
 }
 
 export async function listWhatsAppMessages(limit = 100) {

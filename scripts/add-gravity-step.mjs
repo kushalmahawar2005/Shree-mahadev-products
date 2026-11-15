@@ -1,18 +1,19 @@
 // One-off, idempotent content updates from 2026-11-14 (run once per database, local + Hostinger):
-// 1. adds the "Gravity settled" step to a saved oil "How it's made" story (settings.pdp_story),
+// 1. adds the "Gravity sedimentation" step to a saved oil "How it's made" story (settings.pdp_story),
 //    needed because a saved admin override replaces the code defaults;
 // 2. sets the client's new groundnut oil short description;
 // 3. fills the business GSTIN (from the GST certificate) if it is still empty;
 // 4. adds the 4th at-home check ("Naturally thick") to the saved oil story;
 // 5. sets opening stock 100 on sizes that are still untracked;
 // 6. switches the store phone + WhatsApp to the client's support number 8440099585.
+// 7. sets the client's groundnut "About" copy (replaces the old text and the separate process note).
 // Usage: node scripts/add-gravity-step.mjs   (reads DATABASE_* from .env.local / env)
 import mysql from "mysql2/promise";
 
 try { process.loadEnvFile(".env.local"); } catch {}
 
 const STEP = {
-  title: "Gravity settled",
+  title: "Gravity sedimentation",
   body: "Rested still for 10 days so the finest particles sink on their own.",
   image: "/illustrations/process/4b-gravity-settled.webp",
 };
@@ -25,12 +26,16 @@ const THICK = {
 };
 
 const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +(process.env.DATABASE_PORT ?? 3306), user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
+const GROUNDNUT_ABOUT =
+  "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p><p><strong>No additives. No preservatives. No Hexane. No chemicals.</strong></p><p><strong>Best Before:</strong> 12 months from packaging.</p>";
 const GROUNDNUT_SHORT =
   "Crafted using traditional wood-pressing methods to retain its natural goodness, authentic flavour, and naturally occurring Vitamin E.";
 
 try {
   const [desc] = await db.execute("UPDATE products SET short_description = ? WHERE handle = 'groundnut-oil'", [GROUNDNUT_SHORT]);
   console.log("Groundnut short description:", desc.affectedRows ? "set" : "product not found");
+  const [about] = await db.execute("UPDATE products SET description_html = ?, process_note = NULL WHERE handle = 'groundnut-oil'", [GROUNDNUT_ABOUT]);
+  console.log("Groundnut About (client copy):", about.affectedRows ? "set" : "product not found");
   const [gst] = await db.execute(
     "UPDATE settings SET value = JSON_SET(value, '$.gstin', '08AFPPT8337M3ZC') WHERE `key` = 'business' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(value, '$.gstin')), '') = ''",
   );
@@ -71,7 +76,7 @@ try {
     console.log("Added home check:", THICK.title);
   }
   const method = map.oil?.method;
-  if (method && !method.steps.some((s) => s.title === STEP.title)) {
+  if (method && !method.steps.some((s) => /gravity/i.test(s.title))) {
     const cloth = method.steps.findIndex((s) => /cloth/i.test(s.title));
     const at = cloth >= 0 ? cloth + 1 : Math.max(method.steps.length - 1, 0);
     if (cloth >= 0 && /settle/i.test(method.steps[cloth].body)) method.steps[cloth].body = "Strained through fine cotton cloth to catch the seed bits.";
@@ -84,6 +89,7 @@ try {
   const WORDING = [
     [/^slow pressed$|^wood pressed$/i, "Wood pressed", "Kolhu wood pressed slowly in our kachi ghani, so the oil stays cool."],
     [/cloth/i, "Cotton cloth filtered", "Filtered through pure cotton cloth to catch the seed bits."],
+    [/gravity/i, "Gravity sedimentation", STEP.body],
     [/bottled/i, "Bottled fresh", "Filled in food-grade PET bottles and sealed in small batches in Bijainagar."],
   ];
   for (const st of method?.steps ?? []) {

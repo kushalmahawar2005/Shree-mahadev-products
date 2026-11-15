@@ -3,12 +3,10 @@ import { VariantImageProvider } from "@/components/product/VariantImage";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BadgeCheck, Check, Star } from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleCheck, Heart, Home, Leaf, Star } from "lucide-react";
+import { KolhuIcon } from "@/components/icons/KolhuIcon";
 import {
   Award as LuAward,
-  Ban as LuBan,
-  Boxes as LuBoxes,
-  Cog as LuCog,
   Filter as LuFilter,
   FlaskConical as LuFlaskConical,
   Leaf as LuLeaf,
@@ -18,7 +16,6 @@ import {
 import { oilWhyPoints } from "@/data/pdp-why";
 import { Banknote, FlaskConical, Lock, Truck } from "@/components/icons/duo";
 import { DetailsTabs, type DetailTab } from "@/components/product/DetailsTabs";
-import { Marquee } from "@/components/shadcn/marquee";
 import { SectionHeader, sectionClass } from "@/components/ui/SectionHeader";
 import { GhaniVsRefined } from "@/components/product/GhaniVsRefined";
 import { Reveal } from "@/components/motion/Reveal";
@@ -151,16 +148,14 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   // Solid green badges with white line icons (lucide), like a certification row.
   const purity = isOil
     ? [
-        { I: LuCog, t: "Kolhu wood pressed", s: "Slow kachi ghani" },
-        { I: LuThermometerSnowflake, t: "No external heat", s: "Oil stays cool" },
-        { I: LuFilter, t: "Cotton cloth filtered", s: "Then gravity settled" },
-        { I: LuFlaskConical, t: "Lab tested", s: "Every batch" },
-        { I: LuBan, t: "No preservatives", s: "Nothing added" },
-        { I: LuBoxes, t: "Small batches", s: "Always fresh" },
+        { I: KolhuIcon, t: "Kolhu wood pressed", s: "Slow lakdi kachi ghani · Low RPM" },
+        { I: LuThermometerSnowflake, t: "No external heat", s: "Oil stays cool · room temperature" },
+        { I: LuFilter, t: "No filter", s: "Cloth filter with gravity sedimentation (10-day process)" },
+        { I: LuFlaskConical, t: "Lab tested", s: "NABL approved lab" },
       ]
     : [
         { I: LuLeaf, t: "Nothing added", s: isHoney ? "No sugar syrup" : "No bleaching" },
-        { I: LuFlaskConical, t: "Lab tested", s: "Every batch" },
+        { I: LuFlaskConical, t: "Lab tested", s: "NABL approved lab" },
         { I: LuAward, t: "FSSAI licensed", s: `Lic. ${site.fssai}` },
         { I: LuMapPin, t: "Packed in Bijainagar", s: "By our family" },
       ];
@@ -177,7 +172,9 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
       ]
     : [];
   const highlights = [...new Set([bestForLine, ...benefitHighlights, ...extra].filter((x): x is string => !!x))].slice(0, 6);
-  const tagPill = isOil ? "Kachi ghani" : product.tags.includes("bestseller") ? "Bestseller" : isHoney ? "Raw honey" : null;
+  // Desktop title: two lines for oils ("<Name>, Wood-Pressed," / "Gravity-Filtered"); the longer first line sets the size.
+  const titleLineLength = (shortTitle(product.title) + (isOil ? ", Wood-Pressed," : "")).length;
+  const tagPill = isOil ? "Traditional method · Lakdi kachi ghani" : product.tags.includes("bestseller") ? "Bestseller" : isHoney ? "Raw honey" : null;
 
   const description = noTodo(product.descriptionHtml) ?? noTodo(product.shortDescription);
   const processNote = noTodo(product.processNote);
@@ -185,7 +182,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   const shelfLife = hasTodo(product.shelfLife) ? undefined : product.shelfLife;
   const howToUse = noTodo(product.howToUse);
   const tabs: DetailTab[] = [
-    description || product.benefits.length
+    description || processNote
       ? {
           id: "about",
           title: "About",
@@ -193,12 +190,6 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
             <div className="space-y-4">
               {description && <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: description.startsWith("<") ? description : `<p>${description}</p>` }} />}
               {processNote && <p>{processNote}</p>}
-              {product.benefits.length > 0 && (
-                <div>
-                  <p className="font-semibold text-ink">Good for</p>
-                  <p className="mt-1">{listJoin(product.benefits)}.</p>
-                </div>
-              )}
             </div>
           ),
         }
@@ -247,7 +238,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
           )
             .filter((row): row is [string, string] => !!row[1])
             .map(([k, v]) => (
-              <div key={k} className="flex flex-col gap-1 border-b border-line py-2 last:border-0 sm:flex-row sm:gap-4">
+              <div key={k} className="flex flex-col gap-1 border-b border-forest/25 py-2 last:border-0 sm:flex-row sm:gap-4">
                 <dt className="w-40 shrink-0 text-sm text-ink-muted">{k}</dt>
                 <dd className="text-sm text-ink">{v}</dd>
               </div>
@@ -321,46 +312,89 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
 
             <div>
               {/* A. Buy box */}
-              <section aria-label="Buy">
-                {tagPill && <p className="mb-2 inline-flex rounded-full bg-co-accent-soft px-3 py-1 text-xs font-semibold text-co-accent-ink">{tagPill}</p>}
-                <h1 className="font-display text-[28px] leading-tight tracking-[-0.02em] sm:text-[32px]">
+              <section aria-label="Buy" className="@container">
+                <div className="@container">
+                {(
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    {tagPill && <p className="inline-flex rounded-full bg-co-accent-soft px-3 py-1 text-xs font-semibold text-co-accent-ink">{tagPill}</p>}
+                    {/* Two Brothers-style outlined pill: wood-pressed oil is never solvent (hexane) extracted. */}
+                    {isOil && <p className="inline-flex rounded-full border-[1.5px] border-forest px-3 py-[3px] text-[11px] font-bold tracking-[0.12em] text-forest uppercase">Hexane-free</p>}
+                    {/* Families pill: overlapping icon badges (no stock faces) + count, in one capsule. */}
+                    <p className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white py-0.5 pr-3 pl-0.5 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+                      <span aria-hidden className="flex -space-x-1.5">
+                        {([
+                          [Home, "bg-forest text-white"],
+                          [Heart, "bg-[#c9921f] text-white"],
+                          [Leaf, "bg-co-accent-soft text-forest"],
+                        ] as const).map(([Icon, cls], i) => (
+                          <span key={i} className={`grid size-[22px] place-items-center rounded-full ring-2 ring-white ${cls}`}>
+                            <Icon className="size-3" strokeWidth={2.4} />
+                          </span>
+                        ))}
+                      </span>
+                      <span className="text-shine-forest text-xs font-semibold">
+                        <b className="text-[13px] font-extrabold">500+</b> Happy Families
+                      </span>
+                    </p>
+                  </div>
+                )}
+                <h1
+                  className="font-display text-[min(26px,7cqi)] leading-[1.15] tracking-[-0.02em] text-forest sm:text-[34px] lg:text-[min(40px,var(--title-fit))]"
+                  // Desktop: the font grows to fill the buy column with the first line (≈0.46em per character
+                  // for this face, plus a small margin), up to 40px.
+                  style={{ "--title-fit": `${(100 / (0.52 * titleLineLength)).toFixed(2)}cqi` } as React.CSSProperties}
+                >
                   {shortTitle(product.title)}
                   {isOil && (
                     <>
-                      , <span className="whitespace-nowrap">Wood-Pressed</span>
+                      , <span className="whitespace-nowrap">Wood-Pressed,</span>
+                      <br className="max-lg:hidden" />
+                      <span className="whitespace-nowrap max-lg:ml-[0.25em]">Gravity-Filtered</span>
                     </>
                   )}
-                  {product.titleHi && (
-                    <span className="font-hindi mt-1 block text-lg font-normal tracking-normal whitespace-nowrap text-co-accent-ink" lang="hi">
-                      {product.titleHi}
-                    </span>
-                  )}
                 </h1>
-                <a href="#reviews" className="mt-1 inline-flex items-center gap-2 text-sm text-ink-muted hover:text-forest">
-                  {(product.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING ? (
-                    <>
+                {/* Hindi name + rating on one line, short description below; the families seal sits in the space on the right. */}
+                <div className="mt-1">
+                  <div className="min-w-0 max-w-xl">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      {product.titleHi && (
+                        <span className="font-hindi text-lg whitespace-nowrap text-co-accent-ink" lang="hi">
+                          {product.titleHi}
+                        </span>
+                      )}
+                      <a href="#reviews" className="flex items-center gap-2 text-sm text-ink-muted hover:text-forest">
+                      {(product.reviewCount ?? 0) >= MIN_REVIEWS_FOR_RATING ? (
+                      <>
                       <Stars n={Math.round(product.rating ?? 0)} />
                       <span className="font-semibold text-ink">{product.rating?.toFixed(1)}</span>
                       <span className="underline-offset-2 hover:underline">{product.reviewCount} reviews</span>
-                    </>
-                  ) : (
-                    <>
+                      </>
+                      ) : (
+                      <>
                       <Stars n={0} />
                       <span className="underline-offset-2 hover:underline">New · be the first to review</span>
-                    </>
-                  )}
-                </a>
-
-                <div className="mt-4">
+                      </>
+                      )}
+                      </a>
+                    </div>
+                    {noTodo(product.shortDescription) && (
+                      <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-muted">{product.shortDescription}</p>
+                    )}
+                  </div>
+                </div>
+                </div>
+                <div className="mt-2.5 border-t border-line pt-4">
                   <ProductPurchase
                     handle={product.handle}
                     title={product.title}
                     variants={product.variants}
                     defaultSize={product.defaultSize}
                     lowStock={settings.lowStockThreshold}
+                    isOil={isOil}
                     image={product.images[0] ? thumbUrl(product.images[0].url, 44) : undefined}
                     footer={
-                      // The only place free delivery, COD and secure payments are stated on this page.
+                      <>
+                      {/* The only place free delivery, COD and secure payments are stated on this page. */}
                       <ul className="mt-4 grid auto-cols-fr grid-flow-col divide-x divide-line rounded-2xl border border-line bg-surface">
                         {trust.map(({ I, t, s }) => (
                           <li key={t} className="flex min-w-0 flex-col items-center gap-1 px-2 py-3 text-center sm:flex-row sm:gap-2 sm:px-3 sm:text-left">
@@ -372,38 +406,36 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
                           </li>
                         ))}
                       </ul>
+                      </>
                     }
                   />
                 </div>
               </section>
 
-              {/* Purity proof: one slow marquee of process facts (pauses on hover, still for reduced motion). */}
-              <section aria-label="How you know it's pure" className="mt-6 [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-                <Marquee pauseOnHover repeat={3} className="p-0 [--duration:32s] [--gap:0.5rem] motion-reduce:[&>*]:animate-none">
+              {/* Purity proof: every process fact visible at once (a marquee hid the later ones). */}
+              <section aria-label="How you know it's pure" className="mt-6">
+                {/* Two Brothers style: one outlined box, facts side by side with thin dividers (2 × 2 on phones). */}
+                <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border-[1.5px] border-forest/70 bg-forest/70 sm:grid-cols-4">
                   {purity.map(({ I, t, s }) => (
-                    <span key={t} className="inline-flex items-center gap-2 rounded-full border border-line bg-surface py-1.5 pr-4 pl-1.5 whitespace-nowrap">
-                      <span className="grid size-8 place-items-center rounded-full bg-forest text-white">
-                        <I className="size-4" strokeWidth={2.2} />
-                      </span>
-                      <span className="text-[13px] leading-tight">
-                        <b className="block font-semibold text-ink">{t}</b>
-                        <span className="text-[11px] text-ink-muted">{s}</span>
-                      </span>
-                    </span>
+                    <li key={t} className="flex flex-col items-center justify-center gap-1.5 bg-page px-2 py-4 text-center">
+                      <I className="size-8 text-forest" strokeWidth={1.6} />
+                      <b className="text-[13.5px] leading-tight font-bold text-forest">{t}</b>
+                      <span className="text-[12px] leading-snug font-semibold text-ink/70">{s}</span>
+                    </li>
                   ))}
-                </Marquee>
+                </ul>
               </section>
 
               {/* B. Highlights */}
               {highlights.length > 0 && (
-                <section aria-labelledby="hl-h" className="mt-8">
+                <section aria-labelledby="hl-h" className="mt-6 rounded-2xl border border-line bg-surface px-5 pt-4 pb-2.5">
                   <h2 id="hl-h" className="text-base font-bold text-ink">
                     Highlights
                   </h2>
-                  <ul className="mt-2 space-y-2 text-[15px] text-ink">
+                  <ul className="mt-3 gap-x-6 text-[15px] text-ink sm:columns-2">
                     {highlights.map((h) => (
-                      <li key={h} className="flex items-start gap-2">
-                        <Check className="mt-1 size-4 shrink-0 text-forest" strokeWidth={3} aria-hidden />
+                      <li key={h} className="mb-2.5 flex break-inside-avoid items-start gap-2.5">
+                        <CircleCheck className="mt-0.5 size-5 shrink-0 text-[#2f9e5b]" strokeWidth={1.75} aria-hidden />
                         {h}
                       </li>
                     ))}
@@ -412,8 +444,13 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
               )}
 
               {/* C. Details */}
-              <div className="mt-8" id="details">
-                <DetailsTabs tabs={tabs} />
+              {/* The open panel turns light green, like the selected size card. */}
+              <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-surface" id="details">
+                <DetailsTabs
+                  tabs={tabs}
+                  className="[&>*:last-child]:border-b-0"
+                  itemClassName="border-line px-5 transition-colors duration-200 data-[state=open]:bg-[#e4f4dc]"
+                />
               </div>
             </div>
           </div>

@@ -27,12 +27,14 @@ type Props = Pick<Product, "handle" | "title" | "variants" | "defaultSize"> & {
   offers?: React.ReactNode;
   /** Shown under the pincode check (PDP: the one trust strip). */
   footer?: React.ReactNode;
+  /** Oils: show the pack under each size (15 L comes in a tin, the rest in food-grade PET bottles). */
+  isOil?: boolean;
   /** "Only N left" below this many units (admin low-stock threshold). */
   lowStock?: number;
 };
 
 /** Price + size cards + qty / Add to cart + Buy now + pincode check, with a sticky bar once the CTA scrolls away. */
-export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10 }: Props) {
+export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10, isOil = false }: Props) {
   const { add, open } = useCart();
   // Admin's "Shown first" size, else 1 L / 1 kg, else the first size on sale.
   const preferred = defaultVariant({ variants, defaultSize }, (list) => list.find((v) => v.sizeValue === 1000)) ?? variants[0];
@@ -107,11 +109,8 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
         <legend className="mb-1.5 text-sm font-semibold text-ink">
           Choose size <span className="font-normal text-ink-muted">· {variant.title}</span>
         </legend>
-        <div role="radiogroup" aria-label="Size" className={cn(
-            // Phones: wrapping rows whose last row stretches to fill (5 → 3 + 2, 4 → 2 × 2); sm+: one grid row.
-            "flex flex-wrap gap-x-2 gap-y-4 pt-2.5 pb-1 sm:grid sm:grid-cols-[repeat(auto-fit,minmax(82px,1fr))]",
-            variants.length === 4 ? "[&>button]:basis-[40%]" : "[&>button]:basis-[28%]",
-          )}>
+        {/* Two Brothers style: big cards, three per row (5 sizes → 3 + 2), 2 per row when there are 4. */}
+        <div role="radiogroup" aria-label="Size" className={cn("grid gap-x-3 gap-y-4 pt-2.5 pb-1", variants.length === 4 || variants.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
           {variants.map((v) => {
             const on = v.id === variant.id;
             const off = !v.availableForSale;
@@ -134,19 +133,22 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
                 aria-checked={on}
                 aria-label={`${v.title}${v.availableForSale ? "" : v.outOfStock ? ", out of stock" : ", price coming soon"}`}
                 className={cn(
-                  "relative flex min-w-[74px] flex-1 shrink-0 flex-col items-center rounded-2xl border-[1.5px] px-1.5 pt-2.5 pb-2 text-center transition-all disabled:cursor-not-allowed disabled:opacity-40",
-                  on ? "border-forest bg-co-brand-soft" : "border-line bg-white hover:border-forest/30",
+                  "relative flex min-w-0 flex-col items-center justify-center rounded-2xl border-[1.5px] px-2 py-4 text-center transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40 sm:py-5",
+                  on ? "border-forest bg-[#e4f4dc]" : "border-line bg-white hover:border-forest/40",
                 )}
               >
                 {on && <motion.span layoutId={`size-check-${handle}`} className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-forest text-white"><Check className="size-3" strokeWidth={3} /></motion.span>}
-                <span className={cn("text-[13px] font-bold", v.outOfStock && "line-through", on ? "text-forest" : "text-ink")}>{v.title}</span>
+                <span className={cn("font-display text-[19px] leading-tight font-bold text-forest sm:text-[22px]", v.outOfStock && "line-through")}>{v.title}</span>
+                {isOil && (
+                  <span className="mt-0.5 text-[11px] leading-tight text-ink-muted">{v.sizeUnit === "ml" && v.sizeValue >= 15000 ? "Tin Can" : "PET Bottle (Food Grade)"}</span>
+                )}
+                <span className="mt-1 text-[18px] font-bold text-[#3d7d58] tabular-nums sm:text-[21px]">{v.outOfStock ? "Sold out" : v.price.amount ? formatMoney(v.price) : "Soon"}</span>
                 {badge && (
                   <span className={cn("absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap", badge === "Best value" ? "bg-co-accent-soft text-co-accent-ink ring-1 ring-co-accent/30" : "bg-forest text-white")}>
                     {badge}
                   </span>
                 )}
-                <span className="mt-0.5 text-[13px] font-semibold text-ink tabular-nums">{v.outOfStock ? "Sold out" : v.price.amount ? formatMoney(v.price) : "Soon"}</span>
-                {v.price.amount > 0 && !v.outOfStock && unitPrice(v) && <span className="text-[10px] whitespace-nowrap text-ink-muted tabular-nums">{unitPrice(v)?.replace(" / 100 ", "/100 ")}</span>}
+                {v.price.amount > 0 && !v.outOfStock && unitPrice(v) && <span className="mt-0.5 text-[12px] font-semibold whitespace-nowrap text-ink tabular-nums sm:text-[13px]">{unitPrice(v)?.replace(" / 100 ", "/100 ")}</span>}
               </button>
             );
           })}
@@ -167,7 +169,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
               type="button"
               disabled={!canBuy || !!busy}
               onClick={addToCart}
-              className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
+              className="btn-shine inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
             >
               {busy === "add" ? <LoadingDots /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
               {!canBuy ? "Price coming soon" : added ? "Added" : "Add to cart"}
@@ -177,7 +179,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
                 type="button"
                 disabled={!!busy}
                 onClick={buyNow}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-co-accent px-4 text-[15px] font-semibold whitespace-nowrap text-ink transition-colors hover:brightness-95 disabled:opacity-60 sm:w-auto sm:flex-1"
+                className="btn-shine inline-flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-co-accent px-4 text-[15px] font-semibold whitespace-nowrap text-ink transition-colors hover:brightness-95 disabled:opacity-60 sm:w-auto sm:flex-1"
               >
                 {busy === "buy" ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Buy now
               </button>
