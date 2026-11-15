@@ -12,6 +12,7 @@ import {
 import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
 import { categoryTiles, promoStrip, proof, topPicks } from "@/data/home";
 import { RefinedVsGhani } from "@/components/home/RefinedVsGhani";
+import { AppBanner } from "@/components/pwa/AppBanner";
 import { ProofSection } from "@/components/home/ProofSection";
 import { ShopByUse } from "@/components/home/ShopByUse";
 import { ReviewsWall } from "@/components/home/ReviewsWall";
@@ -180,6 +181,7 @@ export default async function HomePage() {
       <ReelStories reels={reelItems} />
       <Hero />
       <TopPicks tabs={pickTabs} />
+      <AppBanner placement="home" />
       <RefinedVsGhani cta={promoStrip.cta} />
       <FeaturedCollections tiles={tiles} />
       <BrandFilmSection youtube={videos.youtube} reels={filmReels} />

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
+import { AppBanner } from "@/components/pwa/AppBanner";
 import { Figtree, Mukta, Tiro_Devanagari_Hindi } from "next/font/google";
 import { CartProvider } from "@/components/cart/CartProvider";
 import { StoreSettingsProvider } from "@/components/StoreSettingsProvider";
@@ -107,6 +108,7 @@ export default async function RootLayout({
                 {children}
               </main>
               <HideOnCheckout>
+                <AppBanner />
                 <Footer />
                 <MobileBottomBar />
               </HideOnCheckout>

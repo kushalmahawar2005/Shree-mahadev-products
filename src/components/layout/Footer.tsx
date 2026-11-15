@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
-import { InstallApp } from "@/components/pwa/InstallApp";
 import { FlaskConical, Mail, MapPin, MessageCircle, Phone, ShieldCheck } from "@/components/icons/duo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
 import { FooterHarvestArt } from "./FooterHarvestArt";
@@ -61,7 +60,6 @@ export async function Footer() {
                 <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-2.5 py-1"><ShieldCheck className="size-3.5 text-forest" /> FSSAI licensed</span>
                 <Link href="/lab-reports" className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-2.5 py-1 hover:border-forest/40"><FlaskConical className="size-3.5 text-forest" /> Lab tested</Link>
               </div>
-              <InstallApp className="mt-3 text-[13px] font-semibold text-forest-text underline-offset-2 hover:underline" />
               {socials.length > 0 && (
                 <ul className="mt-5 flex gap-2">
                   {socials.map((s) => (

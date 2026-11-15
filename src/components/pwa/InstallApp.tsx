@@ -10,7 +10,16 @@ import { cn } from "@/lib/utils/cn";
  * "Install the app" entry. Android/Chrome: the browser's install dialog. iPhone Safari: a two-step guide
  * (Share → Add to Home Screen). Hidden when already installed or the browser can't install.
  */
-export function InstallApp({ className, onDone }: { className?: string; onDone?: () => void }) {
+export function InstallApp({
+  className,
+  onDone,
+  children,
+}: {
+  className?: string;
+  onDone?: () => void;
+  /** Custom button content (default: download icon + "Install the Mahadev app"). */
+  children?: React.ReactNode;
+}) {
   const { state, install } = usePwaInstall();
   const [guide, setGuide] = useState(false);
   if (state === "hidden") return null;
@@ -25,7 +34,11 @@ export function InstallApp({ className, onDone }: { className?: string; onDone?:
         }}
         className={cn("inline-flex items-center gap-2", className)}
       >
-        <Download className="size-4" /> Install the Mahadev app
+        {children ?? (
+          <>
+            <Download className="size-4" /> Install the Mahadev app
+          </>
+        )}
       </button>
       <Dialog open={guide} onOpenChange={setGuide}>
         <DialogContent className="max-w-sm rounded-3xl">
