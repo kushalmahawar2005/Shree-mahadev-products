@@ -20,7 +20,8 @@ export const scenes = {
 
 /** Refined vs kachi ghani slider: same framing and horizon, so the divider reads as one place. */
 export const compare = {
-  refined: art("v1794397474/swadeshi-mahadev/static/brand/compare/refined.webp", 1672, 941),
+  // v2: the painted sun (a white disc top-left on narrow crops) painted out.
+  refined: art("swadeshi-mahadev/static/brand/compare/refined-v2.webp", 1672, 941),
   ghani: art("v1794397473/swadeshi-mahadev/static/brand/compare/ghani.webp", 1672, 941),
 } as const;
 

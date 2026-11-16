@@ -321,7 +321,7 @@ export function ProductForm({
                   />
                 </div>
               </Field>
-              <Field label="Short description" hint="One line on the product card." count={p.shortDescription.length} max={90} className="sm:col-span-2">
+              <Field label="Short description" hint="One line on the product card. **text** = bold on the product page." count={p.shortDescription.length} max={90} className="sm:col-span-2">
                 <input className={input} value={p.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="Nutty, everyday cooking oil from slow-pressed groundnuts." />
               </Field>
             </div>
@@ -348,6 +348,12 @@ export function ProductForm({
               </Field>
               <Field label="How it&apos;s made" hint="**text** = bold">
                 <textarea className={area} rows={3} value={p.processNote ?? ""} onChange={(e) => set("processNote", e.target.value)} />
+              </Field>
+              <Field label="Benefits (details)" hint="Shown under &quot;Benefits&quot; on the product page, one point per line. Empty = row hidden. **text** = bold">
+                <textarea className={area} rows={4} value={p.benefitsText ?? ""} onChange={(e) => set("benefitsText", e.target.value)} placeholder={"Rich in natural Vitamin E\nGood for everyday cooking"} />
+              </Field>
+              <Field label="Ingredients" hint="Shown under &quot;Ingredients&quot; on the product page. Empty = row hidden. **text** = bold">
+                <textarea className={area} rows={4} value={p.ingredients ?? ""} onChange={(e) => set("ingredients", e.target.value)} placeholder="100% wood-pressed groundnut oil. Nothing added." />
               </Field>
             </div>
           </Section>

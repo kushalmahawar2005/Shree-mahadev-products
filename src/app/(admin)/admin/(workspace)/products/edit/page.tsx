@@ -59,6 +59,8 @@ async function Editor({ searchParams }: { searchParams: PageProps<"/admin/produc
         bestFor: p.bestFor,
         howToUse: p.howToUse,
         processNote: p.processNote,
+        benefitsText: p.benefitsText,
+        ingredients: p.ingredients,
         labReportUrl: p.labReportUrl,
         shelfLife: p.shelfLife,
         tags: p.tags,

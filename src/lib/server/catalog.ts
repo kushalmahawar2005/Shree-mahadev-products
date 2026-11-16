@@ -112,6 +112,8 @@ export async function loadProducts(opts: { status?: ProductStatus | "any"; handl
       bestFor: json<string[]>(p.best_for, []),
       howToUse: p.how_to_use ?? undefined,
       processNote: p.process_note ?? undefined,
+      benefitsText: p.benefits_text ?? undefined,
+      ingredients: p.ingredients ?? undefined,
       labReportUrl: p.lab_report_url ?? undefined,
       shelfLife: p.shelf_life ?? undefined,
       images: images.length
@@ -177,6 +179,8 @@ export type ProductInput = {
   bestFor: string[];
   howToUse?: string;
   processNote?: string;
+  benefitsText?: string;
+  ingredients?: string;
   labReportUrl?: string;
   shelfLife?: string;
   tags: string[];
@@ -235,14 +239,14 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
       input.descriptionHtml || null, JSON.stringify(input.benefits), JSON.stringify(input.bestFor), input.howToUse || null,
       input.processNote || null, input.labReportUrl || null, input.shelfLife || null, JSON.stringify(input.tags),
       JSON.stringify(input.faqs), input.seoTitle || null, input.seoDescription || null, input.hsn || null, input.gstRate ?? null, input.status,
-      input.defaultSize || null,
+      input.defaultSize || null, input.benefitsText || null, input.ingredients || null,
     ];
     let id: number;
     if (existing[0]) {
       id = existing[0].id;
       await c.execute(
         `UPDATE products SET handle=?, title=?, title_hi=?, category=?, swatch=?, short_description=?, description_html=?, benefits=?,
-           best_for=?, how_to_use=?, process_note=?, lab_report_url=?, shelf_life=?, tags=?, faqs=?, seo_title=?, seo_description=?, hsn=?, gst_rate=?, status=?, default_size=?
+           best_for=?, how_to_use=?, process_note=?, lab_report_url=?, shelf_life=?, tags=?, faqs=?, seo_title=?, seo_description=?, hsn=?, gst_rate=?, status=?, default_size=?, benefits_text=?, ingredients=?
          WHERE id = ?`,
         [...cols, id],
       );
@@ -253,8 +257,8 @@ export async function saveProduct(input: ProductInput, originalHandle?: string):
       const [[{ next }]] = await c.query<Rows>("SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM products");
       const [res] = await c.execute<ResultSetHeader>(
         `INSERT INTO products (handle, title, title_hi, category, swatch, short_description, description_html, benefits, best_for,
-           how_to_use, process_note, lab_report_url, shelf_life, tags, faqs, seo_title, seo_description, hsn, gst_rate, status, default_size, sort_order)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           how_to_use, process_note, lab_report_url, shelf_life, tags, faqs, seo_title, seo_description, hsn, gst_rate, status, default_size, benefits_text, ingredients, sort_order)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [...cols, Number(next)],
       );
       id = res.insertId;
@@ -390,6 +394,8 @@ export async function importStarterCatalog(
       bestFor: p.bestFor,
       howToUse: p.howToUse,
       processNote: p.processNote,
+      benefitsText: p.benefitsText,
+      ingredients: p.ingredients,
       labReportUrl: p.labReportUrl,
       shelfLife: p.shelfLife,
       tags: p.tags,

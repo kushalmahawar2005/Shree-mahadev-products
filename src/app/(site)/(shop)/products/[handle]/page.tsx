@@ -183,6 +183,23 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
           body: <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: richTextToHtml(description) }} />,
         }
       : null,
+    // Benefits and Ingredients come only from the admin form (same text there and here); empty = row hidden.
+    noTodo(product.benefitsText)
+      ? {
+          id: "benefits",
+          title: "Benefits",
+          body: (
+            <ul className="list-disc space-y-1.5 pl-5 [&_strong]:text-ink">
+              {product.benefitsText!.split("\n").map((l) => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean).map((l) => (
+                <li key={l} dangerouslySetInnerHTML={{ __html: inlineRichText(l) }} />
+              ))}
+            </ul>
+          ),
+        }
+      : null,
+    noTodo(product.ingredients)
+      ? { id: "ingredients", title: "Ingredients", body: <div className="space-y-3 [&_strong]:text-ink" dangerouslySetInnerHTML={{ __html: richTextToHtml(product.ingredients!) }} /> }
+      : null,
     howToUse
       ? {
           id: "use",
@@ -398,7 +415,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
                       </a>
                     </div>
                     {noTodo(product.shortDescription) && (
-                      <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-muted">{product.shortDescription}</p>
+                      <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-ink-muted [&_strong]:font-semibold [&_strong]:text-ink" dangerouslySetInnerHTML={{ __html: inlineRichText(product.shortDescription) }} />
                     )}
                   </div>
                 </div>

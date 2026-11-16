@@ -27,7 +27,7 @@ export function QuickView({ product: p }: { product: Product }) {
             {p.titleHi}
           </p>
           <p className="mt-1 text-2xl leading-tight text-ink md:text-3xl">{p.title}</p>
-          <p className="mt-2 text-ink-muted">{p.shortDescription}</p>
+          <p className="mt-2 text-ink-muted">{p.shortDescription.replace(/\*\*/g, "")}</p>
           <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-ink-muted">
             <li>Wood-pressed</li>
             <li>· No chemicals</li>

@@ -37,6 +37,9 @@ export type Product = {
   bestFor: string[]; // ["Deep frying", "Tadka", "Pickles"]
   howToUse?: string;
   processNote?: string; // seed source + ghani detail
+  /** PDP accordions (admin text, **bold** allowed). */
+  benefitsText?: string;
+  ingredients?: string;
   labReportUrl?: string; // PDF
   shelfLife?: string;
   images: ProductImage[];

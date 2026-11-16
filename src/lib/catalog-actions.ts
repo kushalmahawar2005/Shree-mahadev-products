@@ -87,6 +87,8 @@ function validate(raw: ProductInput): ProductInput {
     bestFor: lines(raw.bestFor),
     howToUse: clean(raw.howToUse, 2000) || undefined,
     processNote: clean(raw.processNote, 2000) || undefined,
+    benefitsText: clean(raw.benefitsText, 4000) || undefined,
+    ingredients: clean(raw.ingredients, 2000) || undefined,
     labReportUrl: clean(raw.labReportUrl, 500) || undefined,
     shelfLife: clean(raw.shelfLife, 255) || undefined,
     tags: lines(raw.tags, 30).map((t) => t.toLowerCase()),

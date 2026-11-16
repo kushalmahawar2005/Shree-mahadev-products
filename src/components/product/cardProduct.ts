@@ -9,5 +9,6 @@ export type CardProduct = Pick<
 
 export function toCardProduct(p: Product): CardProduct {
   const { handle, title, titleHi, shortDescription, images, variants, rating, reviewCount, tags, swatch, defaultSize, category, benefits, bestFor } = p;
-  return { handle, title, titleHi, shortDescription, images, variants, rating, reviewCount, tags, swatch, defaultSize, category, benefits, bestFor };
+  // Cards show plain text: drop the **bold** marks admins may use (bold only renders on the product page).
+  return { handle, title, titleHi, shortDescription: shortDescription.replace(/\*\*/g, ""), images, variants, rating, reviewCount, tags, swatch, defaultSize, category, benefits, bestFor };
 }

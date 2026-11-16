@@ -9,7 +9,8 @@
 // 7. sets the client's groundnut "About" copy (replaces the old text and the separate process note);
 // 8. best before = "10 months from packaging" on every product (shown in Product info).
 // 9. links the Black Sesame photos (uploaded to Cloudinary from the client zip) if the product has none;
-// 10. removes the Black Sesame 30 ml and 50 ml sizes (not sold).
+// 10. removes the Black Sesame 30 ml and 50 ml sizes (not sold);
+// 11. fills the Benefits / Ingredients fields (admin) from the benefit list and the product name, once.
 // Usage: node scripts/add-gravity-step.mjs   (reads DATABASE_* from .env.local / env)
 import mysql from "mysql2/promise";
 
@@ -30,7 +31,7 @@ const THICK = {
 
 const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +(process.env.DATABASE_PORT ?? 3306), user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
 const GROUNDNUT_ABOUT =
-  "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p><p><strong>No additives. No preservatives. No Hexane. No chemicals.</strong></p>";
+  "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p>";
 const GROUNDNUT_SHORT =
   "Crafted using traditional wood-pressing methods to retain its natural goodness, authentic flavour, and naturally occurring Vitamin E.";
 
@@ -58,6 +59,16 @@ try {
     if (del.affectedRows) console.log("Removed size:", key);
   }
   await db.execute("DELETE FROM product_images WHERE product_handle = 'black-sesame-oil' AND public_id REGEXP '/(30ml|50ml)-front$'");
+  // Fill the new Benefits / Ingredients fields once, so the admin shows exactly what the product page shows.
+  const [bi] = await db.execute(
+    `UPDATE products SET
+       benefits_text = COALESCE(benefits_text, NULLIF(TRIM(BOTH '\n' FROM REPLACE(REPLACE(REPLACE(JSON_UNQUOTE(benefits), '["', ''), '"]', ''), '", "', '\n')), '[]')),
+       ingredients = COALESCE(ingredients, CASE WHEN category = 'oil'
+         THEN CONCAT('100% wood-pressed ', LOWER(TRIM(REPLACE(REPLACE(title, 'Wood-Pressed ', ''), ' Oil', ''))), ' oil. Nothing added.')
+         ELSE CONCAT('100% ', LOWER(title), '. Nothing added.') END)
+     WHERE benefits_text IS NULL OR ingredients IS NULL`,
+  );
+  console.log("Benefits / ingredients filled:", bi.affectedRows, "product(s)");
   const [bb] = await db.execute("UPDATE products SET shelf_life = '10 months from packaging' WHERE COALESCE(shelf_life, '') <> '10 months from packaging'");
   console.log("Best before = 10 months from packaging:", bb.affectedRows, "product(s)");
   const [gst] = await db.execute(

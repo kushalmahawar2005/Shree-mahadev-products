@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { useInView, useReducedMotion } from "motion/react";
+import { useCallback, useState } from "react";
 import { ArrowRight, ChevronsLeftRight, Factory, FlaskConical, Flame, Hand, Hourglass, Leaf, Sparkles, Wheat, Wind } from "lucide-react";
-import { ReactCompareSlider, useReactCompareSliderContext } from "react-compare-slider";
+import { ReactCompareSlider } from "react-compare-slider";
 import { Reveal } from "@/components/motion/Reveal";
 import { TornEdge } from "@/components/ui/TornEdge";
 import { compare, deco } from "@/data/brand-art";
@@ -33,46 +32,78 @@ const GHANI = [
  * (react-compare-slider). Replaces the old "Still cooking in refined oil?" banner.
  */
 export function RefinedVsGhani({ cta }: { cta: { label: string; href: string } }) {
+  // Which label the divider is over (only re-renders when it crosses a label, so dragging stays smooth).
+  const [zone, setZone] = useState<"left" | "mid" | "right">("mid"); // starts at 60%: wood-pressed side shows more
+  const onPos = useCallback((p: number) => setZone(p < 22 ? "left" : p > 78 ? "right" : "mid"), []);
   return (
-    <section aria-labelledby="refined-vs-ghani" className="paper-grain relative overflow-hidden bg-ivory pt-8 pb-8 md:pt-14 md:pb-14">
+    <section aria-labelledby="refined-vs-ghani" className="paper-grain relative overflow-hidden bg-ivory pt-6 pb-12 md:pt-11 md:pb-14">
       <TornEdge />
-      <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
+      <div className="relative mx-auto max-w-[1360px] px-6 md:px-8">
         {/* Hand-painted vine: closes the product carousel above and opens this story */}
-        <Image src={deco.vineDivider.src} alt="" aria-hidden width={deco.vineDivider.width} height={deco.vineDivider.height} sizes="(min-width: 768px) 760px, 90vw" className="mx-auto mb-3 h-auto w-[70%] max-w-[680px] md:mb-7 md:w-[88%]" />
-        <Reveal className="mb-5 flex flex-col items-center gap-1.5 text-center md:mb-10 md:gap-2">
-          <p lang="hi" className="font-hindi text-base leading-none text-[#b07a10] md:text-xl">
+        <Image src={deco.vineDivider.src} alt="" aria-hidden width={deco.vineDivider.width} height={deco.vineDivider.height} sizes="(min-width: 768px) 760px, 90vw" className="mx-auto mb-4 h-auto w-[70%] max-w-[680px] md:mb-7 md:w-[88%]" />
+
+        {/* Header, two rows. Row 1: centered heading, kept on one line.
+            Row 2: subtitle left, Dadi right, bottom-aligned; she sits behind the card (lower z-index,
+            small negative margin), so the card's top edge crops her and its corner/label stay clear. */}
+        {/* md+: centred heading on one line, Dadi on the right leaning on the card's top edge.
+            Phones: heading on two lines, subtitle left, Dadi right, her arms resting on the card. */}
+        <div className="relative sm:pb-10">
+        <Reveal className="flex w-full flex-col items-center gap-0.5 text-center md:-translate-y-3 md:gap-2">
+          {/* "vs" sits on the centre line: each side takes an equal column. */}
+          <h2 id="refined-vs-ghani" className="grid w-full grid-cols-[1fr_auto_1fr] items-baseline gap-x-[0.3em] whitespace-nowrap text-[clamp(12px,5.3vw,28px)] leading-[1.1] sm:text-[clamp(16px,2.5vw,26px)] md:text-[clamp(24px,3vw,42px)] min-[1400px]:text-[44px]">
+            <span className="text-right">Wood-Pressed</span>
+            <span>vs</span>
+            <span className="text-left">Refined Oil</span>
+          </h2>
+          {/* Under the heading (same shift as the heading, centred under "vs"). */}
+          <p className="w-full text-center text-xs text-ink-muted md:text-base">Same seed, two very different oils.</p>
+          <p lang="hi" className="font-hindi hidden text-xl leading-none text-[#b07a10] sm:block">
             पहले फ़र्क देखिए
           </p>
-          <h2 id="refined-vs-ghani" className="text-[24px] md:text-[44px]">
-            Refined vs Kachi Ghani
-          </h2>
-          <p className="max-w-xl text-sm text-ink-muted md:text-base">Same seed, two very different oils. Drag the line and see.</p>
         </Reveal>
+        <div className="mt-3 flex items-end justify-between gap-1 sm:mt-0 sm:block">
+          {/* Hindi line in front of Dadi's open hand, as if she is saying it. */}
+          <p lang="hi" className="font-hindi mb-14 flex-1 self-end text-right text-lg leading-none text-[#b07a10] sm:hidden">
+            पहले फ़र्क देखिए
+          </p>
+          <Image
+            src="/images/dadi-leaning.webp"
+            alt="Dadi leaning on the comparison, smiling and pointing to it"
+            width={960}
+            height={598}
+            sizes="(min-width: 1024px) 400px, (min-width: 768px) 320px, 180px"
+            className="pointer-events-none relative z-0 -mb-1 h-[clamp(100px,30vw,128px)] w-auto shrink-0 sm:absolute sm:-right-4 sm:-bottom-1 sm:m-0 sm:h-[clamp(120px,16vw,230px)] md:-right-8 lg:-right-6 min-[1400px]:h-[250px] xl:-right-8"
+          />
+        </div>
+        </div>
 
-        <div className="relative overflow-hidden rounded-3xl border border-line shadow-[0_24px_60px_-40px_rgba(7,47,27,0.55)]">
+        <div className="relative z-10 overflow-hidden rounded-3xl border border-line shadow-[0_24px_60px_-40px_rgba(7,47,27,0.55)]">
           <ReactCompareSlider
-            className="aspect-[4/3] w-full sm:aspect-[16/10] lg:aspect-[5/2]"
+            defaultPosition={50}
+            onPositionChange={onPos}
+            style={{ touchAction: "pan-y" }}
+            className="aspect-[4/3] w-full select-none sm:aspect-[16/10] lg:aspect-[5/2]"
             transition=".7s cubic-bezier(.22,1,.36,1)"
             keyboardIncrement="5%"
             onlyHandleDraggable={false}
             handle={<Handle />}
-            itemOne={<Side side="refined" />}
-            itemTwo={<Side side="ghani" />}
+            itemOne={<Side side="ghani" />}
+            itemTwo={<Side side="refined" />}
           />
           {/* Side names, outside the clipped items so they never get cut by the divider */}
-          <span className="pointer-events-none absolute z-10 top-3 left-3 rounded-full bg-[#46505c]/85 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-white uppercase backdrop-blur-sm sm:top-5 sm:left-5 sm:text-xs">
-            Refined
+          <span className={cn("pointer-events-none absolute top-3 left-3 z-10 rounded-full bg-forest/90 px-3 py-1 text-[10px] leading-4 font-bold tracking-[0.16em] text-[#F3C64A] uppercase backdrop-blur-sm transition-opacity duration-200 sm:text-xs", zone === "left" && "opacity-0")}>
+            Wood-pressed
           </span>
-          <span className="pointer-events-none absolute z-10 top-3 right-3 rounded-full bg-forest/90 px-2.5 py-1 text-[10px] font-bold tracking-[0.16em] text-[#F3C64A] uppercase backdrop-blur-sm sm:top-5 sm:right-5 sm:text-xs">
-            Kachi ghani
+          <span className={cn("pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-[#46505c]/85 px-3 py-1 text-[10px] leading-4 font-bold tracking-[0.16em] text-white uppercase backdrop-blur-sm transition-opacity duration-200 sm:text-xs", zone === "right" && "opacity-0")}>
+            Refined
           </span>
         </div>
 
         {/* Phones: the points sit under the painting (on desktop they float on each side). */}
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:hidden">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:hidden">
           {[
+            { title: "Wood-pressed", items: GHANI, warm: true },
             { title: "Refined", items: REFINED, warm: false },
-            { title: "Kachi ghani", items: GHANI, warm: true },
           ].map(({ title, items, warm }) => (
             <div key={title} className={cn("rounded-2xl border p-3", warm ? "border-forest/15 bg-[#fff6e2]" : "border-line bg-white")}>
               <p className={cn("mb-1.5 text-[11px] font-bold", warm ? "text-forest-text" : "text-[#3f4953]")}>{title}</p>
@@ -116,39 +147,23 @@ function Side({ side }: { side: "refined" | "ghani" }) {
       }
       fill
       sizes="(min-width: 1360px) 1300px, 100vw"
-      className="object-cover object-[50%_68%]"
+      className={cn("object-cover object-[50%_68%]", side === "refined" ? "[filter:saturate(.7)_hue-rotate(-6deg)_brightness(1.02)]" : "[filter:saturate(1.12)_sepia(.08)]")}
       />
       {side === "refined" ? (
-        <Facts title="Most refined oils" tone="cold" items={REFINED} className="bottom-3 left-3 sm:bottom-6 sm:left-6" />
+        <Facts title="Most refined oils" tone="cold" items={REFINED} className="right-3 bottom-3 sm:right-6 sm:bottom-6" />
       ) : (
-        <Facts title="Our kachi ghani oils" tone="warm" items={GHANI} className="right-3 bottom-3 sm:right-6 sm:bottom-6" />
+        <Facts title="Our wood-pressed oils" tone="warm" items={GHANI} className="bottom-3 left-3 sm:bottom-6 sm:left-6" />
       )}
     </div>
   );
 }
 
-/** Round grip on a thin white line. Nudges itself once when it first scrolls into view, so people know it moves. */
+/** Round grip on a thin white line centered beneath the heading's "vs". */
 function Handle() {
-  const { setPosition } = useReactCompareSliderContext();
-  const ref = useRef<HTMLDivElement>(null);
-  const seen = useInView(ref, { once: true, amount: 0.6 });
-  const reduce = useReducedMotion();
-
-  useEffect(() => {
-    if (!seen || reduce) return;
-    const steps: [number, number][] = [
-      [250, 34],
-      [1000, 64],
-      [1750, 50],
-    ];
-    const timers = steps.map(([ms, pos]) => setTimeout(() => setPosition(pos), ms));
-    return () => timers.forEach(clearTimeout);
-  }, [seen, reduce, setPosition]);
-
   return (
-    <div ref={ref} className="relative flex h-full w-full cursor-ew-resize items-center justify-center">
+    <div className="relative flex h-full w-full cursor-ew-resize items-center justify-center">
       <span aria-hidden className="absolute inset-y-0 left-1/2 w-[3px] -translate-x-1/2 bg-white shadow-[0_0_12px_rgba(0,0,0,0.25)]" />
-      <span className="relative grid size-11 place-items-center rounded-full border-[3px] border-white bg-forest text-white shadow-lg sm:size-14">
+      <span className="relative grid size-12 place-items-center rounded-full border-[3px] border-white bg-forest text-white shadow-[0_8px_24px_rgba(0,0,0,0.35)] sm:size-14">
         <ChevronsLeftRight className="size-5 sm:size-6" aria-hidden />
       </span>
     </div>
@@ -170,7 +185,7 @@ function Facts({
   return (
     <div
       className={cn(
-        "absolute w-[42%] rounded-xl border p-2 max-sm:hidden shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[330px] sm:rounded-2xl sm:p-4 lg:w-[420px] lg:p-5",
+        "absolute w-[42%] rounded-xl border p-2 max-sm:hidden shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[min(330px,calc(50vw-2.5rem))] sm:rounded-2xl sm:p-[clamp(10px,1.5vw,16px)] lg:w-[420px] lg:p-5",
         warm ? "border-white/50 bg-[#fff6e2]/55" : "border-white/60 bg-white/50",
         className,
       )}
@@ -178,11 +193,11 @@ function Facts({
       <p className={cn("text-[10px] font-bold tracking-[0.12em] uppercase max-sm:hidden sm:text-xs sm:tracking-[0.14em]", warm ? "text-forest-text" : "text-[#3f4953]")}>
         {title}
       </p>
-      <ul className="space-y-1 sm:mt-2.5 sm:space-y-2">
+      <ul className="space-y-1 sm:mt-2.5 sm:space-y-[clamp(4px,0.8vw,8px)]">
         {/* Phones: the side labels already name each card, so only the first three points show. */}
         {items.map(({ icon: Icon, text }, i) => (
-          <li key={text} className={cn("flex items-start gap-1.5 text-[11px] leading-snug font-medium sm:gap-2.5 sm:text-[15px]", i >= 3 && "max-sm:hidden")}>
-            <Icon className={cn("mt-px size-3.5 shrink-0 sm:mt-0.5 sm:size-[18px]", warm ? "text-[#b07a10]" : "text-[#5d6873]")} aria-hidden />
+          <li key={text} className={cn("flex items-start gap-1.5 text-[11px] leading-snug font-medium sm:gap-[clamp(6px,1vw,10px)] sm:text-[clamp(12px,1.6vw,15px)] lg:text-[15px]", i >= 3 && "max-sm:hidden")}>
+            <Icon className={cn("mt-px size-3.5 shrink-0 sm:mt-0.5 sm:size-[clamp(14px,1.8vw,18px)] lg:size-[18px]", warm ? "text-[#b07a10]" : "text-[#5d6873]")} aria-hidden />
             <span className={warm ? "text-ink" : "text-[#2f3740]"}>{text}</span>
           </li>
         ))}
