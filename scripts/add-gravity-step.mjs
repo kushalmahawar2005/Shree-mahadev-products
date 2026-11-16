@@ -6,7 +6,10 @@
 // 4. adds the 4th at-home check ("Naturally thick") to the saved oil story;
 // 5. sets opening stock 100 on sizes that are still untracked;
 // 6. switches the store phone + WhatsApp to the client's support number 8440099585.
-// 7. sets the client's groundnut "About" copy (replaces the old text and the separate process note).
+// 7. sets the client's groundnut "About" copy (replaces the old text and the separate process note);
+// 8. best before = "10 months from packaging" on every product (shown in Product info).
+// 9. links the Black Sesame photos (uploaded to Cloudinary from the client zip) if the product has none;
+// 10. removes the Black Sesame 30 ml and 50 ml sizes (not sold).
 // Usage: node scripts/add-gravity-step.mjs   (reads DATABASE_* from .env.local / env)
 import mysql from "mysql2/promise";
 
@@ -27,7 +30,7 @@ const THICK = {
 
 const db = await mysql.createConnection({ host: process.env.DATABASE_HOST, port: +(process.env.DATABASE_PORT ?? 3306), user: process.env.DATABASE_USER, password: process.env.DATABASE_PASSWORD, database: process.env.DATABASE_NAME });
 const GROUNDNUT_ABOUT =
-  "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p><p><strong>No additives. No preservatives. No Hexane. No chemicals.</strong></p><p><strong>Best Before:</strong> 12 months from packaging.</p>";
+  "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p><p><strong>No additives. No preservatives. No Hexane. No chemicals.</strong></p>";
 const GROUNDNUT_SHORT =
   "Crafted using traditional wood-pressing methods to retain its natural goodness, authentic flavour, and naturally occurring Vitamin E.";
 
@@ -36,6 +39,27 @@ try {
   console.log("Groundnut short description:", desc.affectedRows ? "set" : "product not found");
   const [about] = await db.execute("UPDATE products SET description_html = ?, process_note = NULL WHERE handle = 'groundnut-oil'", [GROUNDNUT_ABOUT]);
   console.log("Groundnut About (client copy):", about.affectedRows ? "set" : "product not found");
+  const BLACK_SESAME_PHOTOS = [["swadeshi-mahadev/products/black-sesame-oil/1l-front", "https://res.cloudinary.com/bmqxsylj/image/upload/v1794811935/swadeshi-mahadev/products/black-sesame-oil/1l-front.jpg", "Wood-Pressed Black Sesame Oil 1 L bottle, front label", 1600, 2000, 0], ["swadeshi-mahadev/products/black-sesame-oil/1l-back", "https://res.cloudinary.com/bmqxsylj/image/upload/v1794811935/swadeshi-mahadev/products/black-sesame-oil/1l-back.jpg", "Wood-Pressed Black Sesame Oil 1 L bottle, back label", 1600, 2000, 1], ["swadeshi-mahadev/products/black-sesame-oil/500ml-front", "https://res.cloudinary.com/bmqxsylj/image/upload/v1794811936/swadeshi-mahadev/products/black-sesame-oil/500ml-front.jpg", "Wood-Pressed Black Sesame Oil 500 ml bottle, front label", 1600, 2000, 2], ["swadeshi-mahadev/products/black-sesame-oil/250ml-front", "https://res.cloudinary.com/bmqxsylj/image/upload/v1794811935/swadeshi-mahadev/products/black-sesame-oil/250ml-front.jpg", "Wood-Pressed Black Sesame Oil 250 ml bottle, front label", 1600, 2000, 3], ["swadeshi-mahadev/products/black-sesame-oil/100ml-front", "https://res.cloudinary.com/bmqxsylj/image/upload/v1794811937/swadeshi-mahadev/products/black-sesame-oil/100ml-front.jpg", "Wood-Pressed Black Sesame Oil 100 ml bottle, front label", 1600, 2000, 4]];
+  const [[bsHas]] = await db.query("SELECT COUNT(*) AS n FROM product_images WHERE product_handle = 'black-sesame-oil'");
+  if (!Number(bsHas.n)) {
+    await db.query("INSERT INTO product_images (product_handle, public_id, url, alt, width, height, sort_order) VALUES ?", [BLACK_SESAME_PHOTOS.map((r) => ["black-sesame-oil", ...r])]);
+    console.log("Black Sesame photos linked:", BLACK_SESAME_PHOTOS.length);
+  } else console.log("Black Sesame photos already there.");
+  // Client doesn't sell Black Sesame in 30 ml / 50 ml: remove those sizes (and their photos). A size with
+  // past orders is only switched off, never deleted.
+  for (const key of ["black-sesame-oil--30ml", "black-sesame-oil--50ml"]) {
+    const [[used]] = await db.query("SELECT COUNT(*) AS n FROM order_items WHERE variant_key = ?", [key]);
+    if (Number(used.n)) {
+      await db.execute("UPDATE product_variants SET available = 0 WHERE variant_key = ?", [key]);
+      continue;
+    }
+    for (const t of ["cart_items", "back_in_stock", "stock_reservations", "inventory_log"]) await db.execute(`DELETE FROM ${t} WHERE variant_key = ?`, [key]).catch(() => {});
+    const [del] = await db.execute("DELETE FROM product_variants WHERE variant_key = ?", [key]);
+    if (del.affectedRows) console.log("Removed size:", key);
+  }
+  await db.execute("DELETE FROM product_images WHERE product_handle = 'black-sesame-oil' AND public_id REGEXP '/(30ml|50ml)-front$'");
+  const [bb] = await db.execute("UPDATE products SET shelf_life = '10 months from packaging' WHERE COALESCE(shelf_life, '') <> '10 months from packaging'");
+  console.log("Best before = 10 months from packaging:", bb.affectedRows, "product(s)");
   const [gst] = await db.execute(
     "UPDATE settings SET value = JSON_SET(value, '$.gstin', '08AFPPT8337M3ZC') WHERE `key` = 'business' AND COALESCE(JSON_UNQUOTE(JSON_EXTRACT(value, '$.gstin')), '') = ''",
   );

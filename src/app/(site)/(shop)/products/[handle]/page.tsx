@@ -1,9 +1,12 @@
 import { thumbUrl } from "@/lib/image-loader";
+import { fallbackFaqs } from "@/data/pdp-faqs";
+import { Marquee } from "@/components/shadcn/marquee";
+import { inlineRichText, richTextToHtml } from "@/lib/utils/rich-text";
 import { VariantImageProvider } from "@/components/product/VariantImage";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowRight, BadgeCheck, CircleCheck, Heart, Home, Leaf, Star } from "lucide-react";
+import { ArrowRight, Ban, BadgeCheck, CircleCheckBig, FlaskConicalOff, Heart, Home, Leaf, ShieldCheck, Sprout, Star } from "lucide-react";
 import { KolhuIcon } from "@/components/icons/KolhuIcon";
 import {
   Award as LuAward,
@@ -13,7 +16,6 @@ import {
   MapPin as LuMapPin,
   ThermometerSnowflake as LuThermometerSnowflake,
 } from "lucide-react";
-import { oilWhyPoints } from "@/data/pdp-why";
 import { Banknote, FlaskConical, Lock, Truck } from "@/components/icons/duo";
 import { DetailsTabs, type DetailTab } from "@/components/product/DetailsTabs";
 import { SectionHeader, sectionClass } from "@/components/ui/SectionHeader";
@@ -22,7 +24,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { BAND, Band, HomeChecks, StoryBand } from "@/components/product/PdpStory";
 import { MethodSteps } from "@/components/product/MethodSteps";
 import type { Art } from "@/data/brand-art";
-import { pdpArt, pdpMustardScene } from "@/data/pdp-art";
+import { pdpArt } from "@/data/pdp-art";
 import { BoughtTogether, type BundleItem } from "@/components/product/BoughtTogether";
 import { fullAddress, site } from "@/data/site";
 import { PickCard } from "@/components/home/PickCard";
@@ -31,7 +33,7 @@ import { Gallery } from "@/components/product/Gallery";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { RecordView } from "@/components/product/RecentlyViewed";
 import { Reels, type ReelItem } from "@/components/home/Reels";
-import { DEFAULT_STORIES, sceneFor } from "@/data/pdp-story";
+import { DEFAULT_STORIES } from "@/data/pdp-story";
 import { getHomeVideos } from "@/lib/home-videos";
 import { getPdpStories } from "@/lib/server/pdp-story";
 import { parseReelLink, reelEmbedSrc, reelLinkPoster } from "@/lib/reel-link";
@@ -159,51 +161,44 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         { I: LuAward, t: "FSSAI licensed", s: `Lic. ${site.fssai}` },
         { I: LuMapPin, t: "Packed in Bijainagar", s: "By our family" },
       ];
-  // Highlights: one list merging the old usage chips, icon badges and "Why" checklist, minus
-  // anything the pill, the purity band or the trust strip already says.
+  // Highlights come only from the admin product form: "Best for" as the first line, then every "Benefit".
   const bestForLine = product.bestFor.length ? `Best for ${listJoin(product.bestFor.map((b) => b.toLowerCase()))}` : null;
-  // Benefits that only restate a purity fact (heat, preservatives, lab, batches) stay in the marquee.
-  const benefitHighlights = product.benefits.filter((b) => !(bestForLine && /^for\s/i.test(b)) && !/external heat|preservative|lab[- ]tested|small batch/i.test(b));
-  const extra = isOil
-    ? [
-        benefitHighlights.some((b) => /aroma/i.test(b)) ? null : oilWhyPoints(product.handle)[1],
-        "Never filter-pressed, rested 10 days to settle",
-        "100% natural, no chemicals, no refining",
-      ]
-    : [];
-  const highlights = [...new Set([bestForLine, ...benefitHighlights, ...extra].filter((x): x is string => !!x))].slice(0, 6);
+  const highlights = [...new Set([bestForLine, ...product.benefits].filter((x): x is string => !!x?.trim()))];
   // Desktop title: two lines for oils ("<Name>, Wood-Pressed," / "Gravity-Filtered"); the longer first line sets the size.
   const titleLineLength = (shortTitle(product.title) + (isOil ? ", Wood-Pressed," : "")).length;
-  const tagPill = isOil ? "Traditional method · Lakdi kachi ghani" : product.tags.includes("bestseller") ? "Bestseller" : isHoney ? "Raw honey" : null;
+  const tagPill = isOil ? "Traditional method · Lakdi kachi ghani" : isHoney ? (product.tags.includes("bestseller") ? "Bestseller" : "Raw honey") : "Naturally Sweet, Traditionally Made";
 
   const description = noTodo(product.descriptionHtml) ?? noTodo(product.shortDescription);
-  const processNote = noTodo(product.processNote);
+  // Admin text may carry "TODO(client): …" notes for us; drop those sentences, keep the rest.
+  const processNote = stripTodo(product.processNote);
   // A shelf life with an open TODO is not confirmed yet: don't state it.
   const shelfLife = hasTodo(product.shelfLife) ? undefined : product.shelfLife;
   const howToUse = noTodo(product.howToUse);
   const tabs: DetailTab[] = [
-    description || processNote
+    // Same order as the admin form: Description → How to use → How it's made.
+    description
       ? {
           id: "about",
           title: "About",
-          body: (
-            <div className="space-y-4">
-              {description && <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: description.startsWith("<") ? description : `<p>${description}</p>` }} />}
-              {processNote && <p>{processNote}</p>}
-            </div>
-          ),
+          body: <div className="prose-sm-custom max-w-none text-ink" dangerouslySetInnerHTML={{ __html: richTextToHtml(description) }} />,
         }
       : null,
-    howToUse || shelfLife
+    howToUse
       ? {
           id: "use",
           title: "How to use",
           body: (
             <div className="space-y-3">
-              {howToUse && <p>{howToUse}</p>}
-              {shelfLife && <p>{shelfLife}</p>}
+              {howToUse && <div dangerouslySetInnerHTML={{ __html: richTextToHtml(howToUse) }} />}
             </div>
           ),
+        }
+      : null,
+    processNote
+      ? {
+          id: "made",
+          title: "How it's made",
+          body: <div className="space-y-3 [&_strong]:text-ink" dangerouslySetInnerHTML={{ __html: richTextToHtml(processNote) }} />,
         }
       : null,
     product.labReportUrl
@@ -228,8 +223,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
               ["Product name", product.title],
               ["Net quantity", sizes.map((v) => v.title).join(" · ")],
               ["MRP (incl. of all taxes)", sizes.map((v) => `${v.title} ${formatMoney((v.compareAtPrice ?? v.price).amount)}`).join(" · ")],
-              ["Best before", shelfLife],
               ["Storage", isOil ? "Store in a cool, dry place away from direct sunlight." : "Store in a cool, dry place. Keep the lid tightly closed."],
+              ["Best before", shelfLife],
               ["Country of origin", "India"],
               ["Manufactured & packed by", `${site.name}, ${fullAddress}`],
               ["FSSAI Lic. No.", site.fssai],
@@ -247,7 +242,9 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
       ),
     },
   ].filter(Boolean) as DetailTab[];
-  const faqs = (product.faqs ?? []).filter((f) => !hasTodo(f.q) && !hasTodo(f.a));
+  // The product's own FAQs (admin) first, then category FAQs to fill up to five (no repeated questions).
+  const ownFaqs = (product.faqs ?? []).filter((f) => !hasTodo(f.q) && !hasTodo(f.a));
+  const faqs = [...ownFaqs, ...fallbackFaqs(product.category).filter((f) => !ownFaqs.some((o) => o.q.trim().toLowerCase() === f.q.toLowerCase()))].slice(0, Math.max(5, ownFaqs.length));
   const trust = [
     { I: Truck, t: "Free delivery", s: `above ${formatMoney(settings.shipping.freeShippingThreshold)}` },
     ...(settings.shipping.codEnabled ? [{ I: Banknote, t: "Cash on delivery", s: "pay at your door" }] : []),
@@ -301,7 +298,27 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         <VariantImageProvider>
           {/* Zone 1: sticky gallery (stage + thumbnail rail) | buy column. One column below lg. */}
           <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-12 xl:gap-16 [&>*]:min-w-0">
-            <div className="lg:sticky lg:top-[calc(var(--sticky-top,120px)+16px)] lg:self-start">
+            <div className="relative lg:sticky lg:top-[calc(var(--sticky-top,120px)+16px)] lg:self-start">
+                  {/* Promise strip on top of the photo: a slow marquee of what is NOT in the bottle. */}
+                  <div className="pointer-events-none absolute inset-x-px top-px z-10 overflow-hidden rounded-t-[27px] border-b border-line bg-white py-2">
+                    <Marquee repeat={4} className="p-0 [--duration:26s] [--gap:0rem]">
+                      {(
+                      [
+                        [Sprout, "No additives"],
+                        [Ban, "No preservatives"],
+                        ...(isOil ? ([[FlaskConicalOff, "No hexane"]] as const) : []),
+                        [ShieldCheck, "No chemicals"],
+                        [CircleCheckBig, "100% Natural"],
+                      ] as const
+                    ).map(([Icon, t]) => (
+                      <span key={t} className="flex items-center gap-2 pr-5 text-[11px] font-bold tracking-[0.12em] whitespace-nowrap text-forest uppercase sm:text-xs">
+                        <Icon className="size-4 text-forest" strokeWidth={2} />
+                        <span className="text-shine-forest">{t}</span>
+                        <span aria-hidden className="ml-4 size-1.5 rounded-full bg-co-accent" />
+                      </span>
+                    ))}
+                    </Marquee>
+                  </div>
               <Gallery
                 images={product.images}
                 title={product.title}
@@ -312,13 +329,16 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
 
             <div>
               {/* A. Buy box */}
-              <section aria-label="Buy" className="@container">
+              <section aria-label="Buy" className="@container lg:-mt-2">
                 <div className="@container">
                 {(
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     {tagPill && <p className="inline-flex rounded-full bg-co-accent-soft px-3 py-1 text-xs font-semibold text-co-accent-ink">{tagPill}</p>}
                     {/* Two Brothers-style outlined pill: wood-pressed oil is never solvent (hexane) extracted. */}
-                    {isOil && <p className="inline-flex rounded-full border-[1.5px] border-forest px-3 py-[3px] text-[11px] font-bold tracking-[0.12em] text-forest uppercase">Hexane-free</p>}
+                    {/* Outlined promise pill per category: oils hexane-free, honey bee farming, sweeteners sulphur-free. */}
+                    <p className={cn("inline-flex rounded-full border-[1.5px] border-forest px-3 py-[3px] text-[11px] font-bold text-forest", isHoney ? "text-xs tracking-wide" : "tracking-[0.12em] uppercase")}>
+                      {isOil ? "Hexane-free" : isHoney ? "Bee farming" : "Sulphur-free"}
+                    </p>
                     {/* Families pill: overlapping icon badges (no stock faces) + count, in one capsule. */}
                     <p className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white py-0.5 pr-3 pl-0.5 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
                       <span aria-hidden className="flex -space-x-1.5">
@@ -435,8 +455,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
                   <ul className="mt-3 gap-x-6 text-[15px] text-ink sm:columns-2">
                     {highlights.map((h) => (
                       <li key={h} className="mb-2.5 flex break-inside-avoid items-start gap-2.5">
-                        <CircleCheck className="mt-0.5 size-5 shrink-0 text-[#2f9e5b]" strokeWidth={1.75} aria-hidden />
-                        {h}
+                        <CircleCheckBig className="mt-0.5 size-5 shrink-0 text-[#2f9e5b]" strokeWidth={2} aria-hidden />
+                        <span dangerouslySetInnerHTML={{ __html: inlineRichText(h) }} />
                       </li>
                     ))}
                   </ul>
@@ -511,7 +531,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
             </ul>
           </section>,
         ) : null,
-        band("mustard", pdpArt.story, "top-0 right-0 hidden w-[280px] md:block", <StoryBand key="story" isOil={isOil} scene={isOil ? pdpMustardScene : sceneFor(product.handle)} />),
+        band("mustard", pdpArt.story, "top-0 right-0 hidden w-[280px] md:block", <StoryBand key="story" isOil={isOil} />),
       ]
         .filter((b) => b !== null)
         .map((b, i) => (
@@ -648,4 +668,10 @@ async function pairsWellWith(p: Product) {
   const other = priced.filter((x) => x.category !== p.category);
   const same = priced.filter((x) => x.category === p.category && x.tags.some((t) => p.tags.includes(t)));
   return [...same.slice(0, 2), ...other.slice(0, 2)].slice(0, 4);
+}
+
+/** Removes "TODO(client): …" notes (to the end of their sentence/line) from admin text. */
+function stripTodo(text?: string | null) {
+  const out = (text ?? "").replace(/\s*TODO\([^)]*\):[^\n]*?(?:[.!?](?=\s|$)|$)/g, "").trim();
+  return out || undefined;
 }

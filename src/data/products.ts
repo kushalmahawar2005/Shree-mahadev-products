@@ -97,8 +97,7 @@ const oilFaqs = (name: string) => [
 const oilBase = (category: ProductCategory = "oil") => ({
   category,
   processNote: oilProcess,
-  shelfLife:
-    "Best within 9 months of manufacture. Store in a cool, dry place away from sunlight. TODO(client): confirm shelf life.",
+  shelfLife: "10 months from packaging",
 });
 
 export const products: Product[] = [
@@ -111,7 +110,7 @@ export const products: Product[] = [
     shortDescription: "Nutty, everyday cooking oil from slow-pressed groundnuts.",
     processNote: undefined, // the client's About copy below already covers the process
     description:
-      "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p><p><strong>No additives. No preservatives. No Hexane. No chemicals.</strong></p><p><strong>Best Before:</strong> 12 months from packaging.</p>",
+      "<p>Our Wood Pressed Groundnut Oil is made from desi groundnuts sourced directly from farmers. After shelling, kernels are hand-cleaned and slowly extracted using a traditional Kolhu wood-pressed machine. The oil is cloth-filtered and left for natural gravity sedimentation for 10 days, allowing heavier particles to settle without aggressive filtration or chemical processing, helping retain its natural goodness.</p><p>With its rich aroma and nutty flavour, it's perfect for frying, roasting and everyday cooking.</p><p><strong>No additives. No preservatives. No Hexane. No chemicals.</strong></p>",
     benefits: [
       "Natural nutty aroma and taste",
       "High smoke point, good for frying",
@@ -266,7 +265,7 @@ export const products: Product[] = [
     ],
     bestFor: ["Salads", "Drizzling", "Wellness"],
     howToUse: "Take 1 teaspoon a day, or drizzle over food after cooking. Refrigerate after opening.",
-    shelfLife: "Best within 3 months of opening. Refrigerate after opening. TODO(client): confirm.",
+    shelfLife: "10 months from packaging",
     sizes: [
       ["100ml", 218, 288],
       ["250ml", 356, 423],
@@ -388,7 +387,7 @@ export const products: Product[] = [
     bestFor: ["Warm water in the morning", "Tea", "Desserts"],
     howToUse: "Take with warm (not hot) water, or use on toast and desserts. Do not cook at high heat.",
     processNote: "TODO(client): honey sourcing story (region, beekeepers, how it is filtered).",
-    shelfLife: "Honey keeps for a long time. Store tightly closed, away from moisture. TODO(client): confirm.",
+    shelfLife: "10 months from packaging",
     sizes: [
       ["150g", 247, 282],
       ["250g", 312, 367],

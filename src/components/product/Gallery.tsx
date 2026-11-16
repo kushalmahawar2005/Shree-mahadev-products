@@ -6,7 +6,7 @@ import { revealImage } from "@/components/motion/Reveal";
 import { DUR, EASE, STAGGER, prefersReducedMotion } from "@/lib/motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { ChevronLeft, ChevronRight, Maximize2, Play, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Play, X } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/shadcn/dialog";
 import { SmartImage, isPackshot } from "@/components/ui/SmartImage";
 import type { ProductImage } from "@/lib/commerce/types";
@@ -182,16 +182,6 @@ export function Gallery({
         </AnimatePresence>
         {!full && !isVideo && <span aria-hidden className="absolute bottom-[7%] left-1/2 h-3 w-2/5 -translate-x-1/2 rounded-[50%] bg-black/10 blur-md" />}
         {badge && <div className="absolute top-4 left-4">{badge}</div>}
-        {!isVideo && (
-        <button
-          type="button"
-          onClick={() => setBox(true)}
-          aria-label="View full screen"
-          className="absolute top-4 right-4 grid size-11 place-items-center rounded-full bg-white/90 text-forest shadow-sm"
-        >
-          <Maximize2 className="size-4" />
-        </button>
-        )}
 
         {many && (
           <>

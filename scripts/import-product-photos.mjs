@@ -1,5 +1,5 @@
 // One-off: upload the client's product photos to Cloudinary and link them in `product_images`.
-//   node scripts/import-product-photos.mjs <dir-with-unzipped-folders> [--dry | --list | --cutouts]
+//   [ONLY=handle,…] node scripts/import-product-photos.mjs <dir-with-unzipped-folders> [--dry | --list | --cutouts]
 //     --list     print "<source path>\t<public id>" for every front shot (input for the cut-out tool)
 //     --cutouts  upload <dir>/_cutouts/<handle>/<size>-cutout.png (transparent product, no backdrop).
 //                Cut-outs are not gallery rows: the site derives their URL from the front shot's URL
@@ -52,6 +52,11 @@ const PRODUCTS = {
     ["1L.png", "1 L", "front"], ["1L BACK.png", "1 L", "back"],
     ["5L.png", "5 L", "front"], ["3.png", "2 L", "front"], ["250ml.png", "250 ml", "front"], ["100ml.png", "100 ml", "front"],
     // "500ml.png" in the zip is a turned (side/back) view, not a front shot: left out.
+  ] },
+  "black-sesame-oil": { dir: "Black Sesame 500ml", pack: "bottle", shots: [
+    ["black sesame 1L.png", "1 L", "front"], ["1L Back.png", "1 L", "back"],
+    ["3.png", "500 ml", "front"], ["250ml.png", "250 ml", "front"], ["100ml.png", "100 ml", "front"],
+    // zip also has 30/50 ml shots (sizes not sold) and more backs; one back shot is enough.
   ] },
   "brown-sesame-oil": { dir: "Brown Sesame", pack: "bottle", nutrition: [NUT, "10.png"], shots: [
     ["1L.png", "1 L", "front"], ["1L Back.png", "1 L", "back"],
@@ -129,6 +134,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true,
 });
+
+// ONLY=<handle,handle> limits the run to those products (others keep their rows untouched).
+if (process.env.ONLY) {
+  const keep = new Set(process.env.ONLY.split(","));
+  for (const h of Object.keys(PRODUCTS)) if (!keep.has(h)) delete PRODUCTS[h];
+}
 
 // Build the job list and fail early on anything missing.
 const [titles] = await db.query("SELECT handle, title FROM products");

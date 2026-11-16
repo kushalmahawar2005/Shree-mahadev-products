@@ -1,6 +1,7 @@
 "use client";
 
 import { unwrap } from "@/lib/action-result";
+import { editableTextToHtml, htmlToEditableText } from "@/lib/utils/rich-text";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -328,34 +329,24 @@ export function ProductForm({
 
           <Section icon={Layers} title="Product story" hint="Shown in the PDP accordions. Keep it honest and simple.">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Description" hint="Leave an empty line between paragraphs." className="sm:col-span-2">
+              <Field label="About" hint="Shown under &quot;About&quot; on the product page. Leave an empty line between paragraphs. Put **two stars** around words to make them bold." className="sm:col-span-2">
                 <textarea
                   className={area}
                   rows={5}
-                  value={p.descriptionHtml.replace(/<\/p><p>/g, "\n\n").replace(/<\/?p>/g, "")}
-                  onChange={(e) =>
-                    set(
-                      "descriptionHtml",
-                      e.target.value
-                        .split(/\n{2,}/)
-                        .map((x) => x.trim())
-                        .filter(Boolean)
-                        .map((x) => `<p>${x.replace(/</g, "&lt;")}</p>`)
-                        .join(""),
-                    )
-                  }
+                  value={htmlToEditableText(p.descriptionHtml)}
+                  onChange={(e) => set("descriptionHtml", editableTextToHtml(e.target.value))}
                 />
               </Field>
-              <Field label="Benefits" hint={`One per line · ${p.benefits.length} added (3–5 works best)`}>
+              <Field label="Benefits" hint={`One per line · ${p.benefits.length} added (3–5 works best) · **text** = bold`}>
                 <textarea className={area} rows={4} value={listText(p.benefits)} onChange={(e) => set("benefits", textList(e.target.value))} placeholder={"Natural nutty aroma\nHigh smoke point"} />
               </Field>
               <Field label="Best for" hint={`One per line · ${p.bestFor.length} added`}>
                 <textarea className={area} rows={4} value={listText(p.bestFor)} onChange={(e) => set("bestFor", textList(e.target.value))} placeholder={"Daily cooking\nDeep frying"} />
               </Field>
-              <Field label="How to use">
+              <Field label="How to use" hint="**text** = bold">
                 <textarea className={area} rows={3} value={p.howToUse ?? ""} onChange={(e) => set("howToUse", e.target.value)} />
               </Field>
-              <Field label="How it's made">
+              <Field label="How it&apos;s made" hint="**text** = bold">
                 <textarea className={area} rows={3} value={p.processNote ?? ""} onChange={(e) => set("processNote", e.target.value)} />
               </Field>
             </div>

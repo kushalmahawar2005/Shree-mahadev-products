@@ -49,7 +49,7 @@ export function HomeChecks({ eyebrow, title, intro, items }: { eyebrow: string; 
 }
 
 /** Closing brand band: our story on deep forest, with the product standing in its painted scene. */
-export function StoryBand({ scene, isOil = true }: { scene: Art; isOil?: boolean }) {
+export function StoryBand({ isOil = true }: { isOil?: boolean }) {
   return (
     <section className={sectionClass} aria-label="Our story">
       <Reveal>
@@ -71,9 +71,8 @@ export function StoryBand({ scene, isOil = true }: { scene: Art; isOil?: boolean
             </Link><Link href="/lab-reports" className="inline-flex items-center gap-1 text-sm font-semibold text-forest underline decoration-mustard underline-offset-4 hover:decoration-forest">View lab reports <ArrowRight className="size-4" aria-hidden="true" /></Link></div>
           </div>
           <div className="relative order-1 m-3 min-h-[230px] overflow-hidden rounded-2xl sm:min-h-[320px] lg:m-4 lg:min-h-[360px]">
-            {isOil ? (
-              <Image src="/images/product-story/dadi-working.png" alt="Illustration of Dadi sorting mustard seeds beside the kachi ghani" fill sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />
-            ) : <Image src={scene.src} alt="" fill sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />}
+            {/* Same family photo on every product page (Dadi beside the kachi ghani). */}
+            <Image src="/images/product-story/dadi-working.png" alt="Illustration of Dadi sorting mustard seeds beside the kachi ghani" fill sizes="(min-width: 1024px) 600px, 100vw" className="object-cover" />
           </div>
         </div>
       </Reveal>

@@ -251,6 +251,23 @@ function HeaderBar({
                     className="relative inline-flex min-h-12 shrink-0 items-center gap-1.5 whitespace-nowrap px-2.5 text-[14px] 2xl:px-4 2xl:text-[16px] font-bold tracking-[-0.005em] text-black transition-colors duration-200 hover:text-forest"
                   >
                     {item.icon === "bestseller" && <Flame className="size-4 text-mustard" strokeWidth={2} aria-hidden />}
+                    {item.menu && (
+                      // Category icon (client's line art, public/icons/nav-*.png) as a mask so it takes the brand green.
+                      <span
+                        aria-hidden
+                        className={cn("inline-block shrink-0 bg-forest", item.menu === "oils" ? "size-[30px] 2xl:size-[32px]" : "size-[24px] 2xl:size-[26px]")}
+                        style={{
+                          maskImage: `url(/icons/nav-${item.menu === "oils" ? "oil" : item.menu === "honey" ? "honey" : "sweetener"}.png)`,
+                          WebkitMaskImage: `url(/icons/nav-${item.menu === "oils" ? "oil" : item.menu === "honey" ? "honey" : "sweetener"}.png)`,
+                          maskSize: "contain",
+                          WebkitMaskSize: "contain",
+                          maskRepeat: "no-repeat",
+                          WebkitMaskRepeat: "no-repeat",
+                          maskPosition: "center",
+                          WebkitMaskPosition: "center",
+                        }}
+                      />
+                    )}
                     {item.label}
                     {item.menu && <ChevronDown className={cn("size-3.5 transition-transform duration-200", open && "rotate-180")} />}
                     {marked === item.href && (
