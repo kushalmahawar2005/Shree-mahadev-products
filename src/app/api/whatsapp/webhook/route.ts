@@ -27,7 +27,12 @@ type MetaBody = { object?: string; entry?: { changes?: { value?: { messages?: Me
 
 function signatureOk(raw: string, header: string | null) {
   const secret = process.env.WHATSAPP_APP_SECRET;
-  if (!secret) return true;
+  // Unsigned requests are accepted only in local development. In production a missing secret means
+  // every POST is rejected (otherwise anyone could confirm/cancel COD orders with a fake reply).
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") console.error("WHATSAPP_APP_SECRET is not set: rejecting webhook");
+    return process.env.NODE_ENV !== "production";
+  }
   if (!header?.startsWith("sha256=")) return false;
   const expected = Buffer.from(createHmac("sha256", secret).update(raw).digest("hex"));
   const got = Buffer.from(header.slice(7));

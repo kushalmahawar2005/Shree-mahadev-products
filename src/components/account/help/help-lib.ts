@@ -61,15 +61,26 @@ export function issuesFor(status: string | null): IssueKey[] {
  * created (courier booked): COD orders, or unpaid online orders. Paid online orders go to the team
  * (refund needed). `booked` = an active shipment exists for the order.
  */
-export function cancelRule(status: string, method: string, booked = false): { ok: true } | { ok: false; reason: string } {
+export function cancelRule(
+  status: string,
+  method: string,
+  booked = false,
+): { ok: true } | { ok: false; reason: string; canRequest?: boolean } {
   if (!["pending_payment", "cod_pending", "confirmed", "packed", "paid"].includes(status))
     return { ok: false, reason: "This order has already shipped, so it can't be cancelled here. Tell us below and we'll help." };
   if (booked)
     return { ok: false, reason: "This order is already booked with the courier, so it can't be cancelled here. Tell us below and we'll help." };
-  if (status === "paid" && method === "payu")
-    return { ok: false, reason: "This order is paid, so our team cancels it and refunds you in full. Send the request below." };
+  if (isPaidOnline(status, method))
+    return { ok: false, canRequest: true, reason: PAID_CANCEL_MESSAGE };
   return { ok: true };
 }
+
+/** Paid online (PayU) and not shipped yet: cancelling needs a refund, so the team does it on request. */
+export const isPaidOnline = (status: string, method: string) =>
+  method === "payu" && ["paid", "confirmed", "packed"].includes(status);
+
+export const PAID_CANCEL_MESSAGE =
+  "Ye order online paid hai, isliye hamari team ise cancel karke poora refund karegi. Neeche \"Cancel request bhejein\" dabaiye.";
 
 /** "12 Nov" from an IST DB string. */
 export function shortDate(raw: string) {

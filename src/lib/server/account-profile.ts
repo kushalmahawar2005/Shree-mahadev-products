@@ -236,12 +236,19 @@ export async function checkAccountOtp(
       ORDER BY id DESC LIMIT 1`,
     [customerId, purpose, phone],
   );
-  if (!otp || Number(otp.attempts) >= 5 || sha(code) !== otp.code_hash) {
-    if (otp) await db().execute("UPDATE account_otps SET attempts = attempts + 1 WHERE id = ?", [otp.id]);
-    return false;
-  }
-  await db().execute("UPDATE account_otps SET used_at = NOW() WHERE id = ?", [otp.id]);
-  return true;
+  if (!otp) return false;
+  // Count the try atomically before comparing, so parallel guesses can't exceed 5 per code.
+  const [take] = await db().execute<ResultSetHeader>(
+    "UPDATE account_otps SET attempts = attempts + 1 WHERE id = ? AND attempts < 5 AND used_at IS NULL",
+    [otp.id],
+  );
+  if (!take.affectedRows || sha(code) !== otp.code_hash) return false;
+  // Consume once: a second concurrent correct submit gets false.
+  const [used] = await db().execute<ResultSetHeader>(
+    "UPDATE account_otps SET used_at = NOW() WHERE id = ? AND used_at IS NULL",
+    [otp.id],
+  );
+  return used.affectedRows === 1;
 }
 
 export async function phoneTaken(phone: string, exceptCustomerId: number) {

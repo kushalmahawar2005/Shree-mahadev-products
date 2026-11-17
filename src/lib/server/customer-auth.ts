@@ -8,7 +8,13 @@ const COOKIE = "smp_customer";
 /** Non-secret "signed in" flag the browser can read (UI only; every real check uses COOKIE). */
 const SIGNED_IN_HINT = "smp_in";
 const DAYS = 30;
-const secret = () => process.env.ADMIN_SESSION_SECRET || "development-only-change-me";
+const secret = () => {
+  const s = process.env.ADMIN_SESSION_SECRET;
+  if (s) return s;
+  // A known fallback would let anyone forge sessions: only allowed in local development.
+  if (process.env.NODE_ENV === "production") throw new Error("ADMIN_SESSION_SECRET is not set");
+  return "development-only-change-me";
+};
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const sign = (value: string) => createHmac("sha256", secret()).update(value).digest("base64url");
 const cleanPhone = (value: string) => value.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");

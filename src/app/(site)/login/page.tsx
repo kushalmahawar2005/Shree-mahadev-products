@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { safeInternalPath } from "@/lib/utils/safe-path";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -11,10 +12,7 @@ export const metadata: Metadata = {
 };
 
 /** Only same-site paths: never bounce a shopper to another domain after login. */
-const safeNext = (v: unknown) =>
-  typeof v === "string" && v.startsWith("/") && !v.startsWith("//")
-    ? v
-    : "/account";
+const safeNext = (v: unknown) => safeInternalPath(v, "/account");
 
 export default function LoginPage({ searchParams }: PageProps<"/login">) {
   return (

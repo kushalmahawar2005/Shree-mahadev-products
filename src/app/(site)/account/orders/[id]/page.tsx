@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { RequestCallback } from "@/components/account/help/RequestCallback";
+import { isPaidOnline } from "@/components/account/help/help-lib";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -126,7 +127,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const invoiceHref = inv.applicable || inv.invoice ? `/api/account/orders/${o.id}/invoice` : null;
   const refundedTotal = o.refunds.filter((r) => r.status === "success").reduce((s, r) => s + r.amount, 0);
 
-  const canCancel = BEFORE_SHIPPING.has(o.status) && !(o.status === "paid" && o.method !== "cod") &&
+  // Paid online + not shipped: the cancel button sends a request to the team (refund needed).
+  const paidOnline = isPaidOnline(o.status, o.method);
+  const canCancel = BEFORE_SHIPPING.has(o.status) &&
     !(o.status === "pending_payment" && o.expiresInHours !== null && o.expiresInHours <= 0);
   const timeline = buildTimeline(o);
   const timelineTimes = Object.fromEntries(
@@ -175,7 +178,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
       {/* Status banner */}
       <Reveal className="mb-5 lg:mb-6">
-        <StatusBanner ui={ui} o={o} canCancel={canCancel} tracking={shipping} />
+        <StatusBanner ui={ui} o={o} canCancel={canCancel} paidOnline={paidOnline} tracking={shipping} />
       </Reveal>
 
       {/* Body: two columns on desktop; on phones `contents` lets cards reorder (items → price → timeline …). */}
@@ -435,11 +438,13 @@ function StatusBanner({
   ui,
   o,
   canCancel,
+  paidOnline,
   tracking,
 }: {
   ui: StatusUi;
   o: AccountOrderDetail;
   canCancel: boolean;
+  paidOnline: boolean;
   tracking: boolean;
 }) {
   const tone = TONE_CLASSES[ui.tone];
@@ -554,7 +559,7 @@ function StatusBanner({
                 }))}
               />
             )}
-            {canCancel && <CancelOrderButton orderId={o.id} orderNo={o.orderNo} />}
+            {canCancel && <CancelOrderButton orderId={o.id} orderNo={o.orderNo} paidOnline={paidOnline} />}
           </div>
         )}
       </div>

@@ -79,6 +79,9 @@ export type Order = {
   trackingUrl: string | null;
   createdAt: string;
   items: (OrderItemInput & { lineTotal: number })[];
+  /** Set when something unexpected needs an admin (extra payment, unclear refund/shipment…). */
+  attention: string | null;
+  attentionAt: string | null;
 };
 
 type Row = RowDataPacket & Record<string, never>;
@@ -89,6 +92,8 @@ function toOrder(r: RowDataPacket, items: RowDataPacket[]): Order {
     orderNo: r.order_no,
     token: r.token,
     status: r.status,
+    attention: (r.attention as string | null) ?? null,
+    attentionAt: (r.attention_at as string | null) ?? null,
     paymentMethod: r.payment_method,
     address: {
       name: r.customer_name,
@@ -144,7 +149,46 @@ async function logEvent(
   );
 }
 
-async function inTx<T>(fn: (c: PoolConnection) => Promise<T>): Promise<T> {
+/**
+ * Flag an order for admin attention and record why in its timeline. Appends to an existing flag
+ * (never overwrites one an admin hasn't seen). Use for anything money-related that must not fail silently.
+ */
+export async function flagOrder(
+  conn: PoolConnection | ReturnType<typeof db>,
+  orderId: number,
+  reason: string,
+  actor: Actor = "system",
+) {
+  const [[o]] = await conn.query<Row[]>("SELECT status FROM orders WHERE id = ?", [orderId]);
+  const status = (o?.status as string | undefined) ?? "unknown";
+  await conn.execute(
+    `UPDATE orders SET attention = LEFT(IF(attention IS NULL OR attention = '', ?, CONCAT(attention, ' | ', ?)), 500),
+       attention_at = COALESCE(attention_at, NOW()) WHERE id = ?`,
+    [reason, reason, orderId],
+  );
+  await logEvent(conn, orderId, status, status, actor, `⚠ Needs attention: ${reason}`);
+}
+
+/** Admin cleared the flag after handling it. */
+export async function clearOrderAttention(orderId: number, note?: string) {
+  const [r] = await db().execute<ResultSetHeader>(
+    "UPDATE orders SET attention = NULL, attention_at = NULL WHERE id = ? AND attention IS NOT NULL",
+    [orderId],
+  );
+  if (r.affectedRows) {
+    const [[o]] = await db().query<Row[]>("SELECT status FROM orders WHERE id = ?", [orderId]);
+    await logEvent(db(), orderId, o?.status ?? null, String(o?.status ?? ""), "admin", `Attention resolved${note ? `: ${note}` : ""}`);
+  }
+}
+
+/** Timeline note without a status change (e.g. "shipment cancelled" on an already-cancelled order). */
+export async function addOrderNote(orderId: number, actor: Actor, note: string) {
+  const [[o]] = await db().query<Row[]>("SELECT status FROM orders WHERE id = ?", [orderId]);
+  if (!o) return;
+  await logEvent(db(), orderId, o.status, o.status, actor, note);
+}
+
+export async function inTx<T>(fn: (c: PoolConnection) => Promise<T>): Promise<T> {
   const conn = await db().getConnection();
   try {
     await conn.beginTransaction();
@@ -513,25 +557,50 @@ export async function logWebhook(
   );
 }
 
+/**
+ * Outcome of applying a PayU success.
+ * - `paid`: this call moved the order to paid. Only then may callers send emails / WhatsApp.
+ * - `duplicate`: this payment was already recorded as success (callback + webhook race, retries).
+ * - `extra`: money arrived but the order was not waiting for it (cancelled, or already paid by another
+ *   attempt). The order is flagged for a manual refund; nothing is sent to the customer.
+ */
+export type MarkPaidResult = "paid" | "duplicate" | "extra";
+
 export async function markPaid(
   paymentId: number,
   orderId: number,
   p: { mihpayid?: string; mode?: string },
-) {
-  await inTx(async (conn) => {
-    await conn.execute(
-      "UPDATE payments SET status = 'success', mihpayid = ?, mode = ?, error = NULL WHERE id = ?",
+): Promise<MarkPaidResult> {
+  const result = await inTx(async (conn): Promise<MarkPaidResult> => {
+    // Lock the order first so a concurrent cancel / failure / second attempt serialises with us.
+    const [[o]] = await conn.execute<Row[]>(
+      "SELECT status FROM orders WHERE id = ? FOR UPDATE",
+      [orderId],
+    );
+    const [pr] = await conn.execute<ResultSetHeader>(
+      "UPDATE payments SET status = 'success', mihpayid = ?, mode = ?, error = NULL WHERE id = ? AND status <> 'success'",
       [p.mihpayid ?? null, p.mode ?? null, paymentId],
     );
+    if (!pr.affectedRows) return "duplicate";
     const [r] = await conn.execute<ResultSetHeader>(
       "UPDATE orders SET status = 'paid', paid_at = NOW() WHERE id = ? AND status IN ('pending_payment','payment_failed')",
       [orderId],
     );
-    if (r.affectedRows) {
+    if (!r.affectedRows) {
+      const [[pay]] = await conn.execute<Row[]>("SELECT amount, txnid FROM payments WHERE id = ?", [paymentId]);
+      await flagOrder(
+        conn,
+        orderId,
+        `Extra payment ₹${pay?.amount ?? "?"} received (PayU ${pay?.txnid ?? paymentId}${p.mihpayid ? ` / ${p.mihpayid}` : ""}) while the order was "${o?.status ?? "unknown"}". Refund it from the PayU dashboard.`,
+        "payu",
+      );
+      return "extra";
+    }
+    {
       await logEvent(
         conn,
         orderId,
-        "pending_payment",
+        String(o?.status ?? "pending_payment"),
         "paid",
         "payu",
         `PayU ${p.mode ?? ""} ${p.mihpayid ?? ""}`.trim(),
@@ -571,12 +640,22 @@ export async function markPaid(
         }
       }
     }
+    return "paid";
   });
-  const paidOrder = await getOrderById(orderId);
-  if (paidOrder) void queueMarketingEvent("Purchase", paidOrder.orderNo, orderId);
-  await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
+  // Pixel + invoice only when this call really moved the order to paid.
+  if (result === "paid") {
+    const paidOrder = await getOrderById(orderId);
+    if (paidOrder) void queueMarketingEvent("Purchase", paidOrder.orderNo, orderId);
+    await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
+  }
+  return result;
 }
 
+/**
+ * Record a failed (or still pending) PayU attempt. Never downgrades a payment that already succeeded,
+ * and only fails the order / releases its stock hold when no other attempt on the order is still open
+ * or paid (a late failure for an old attempt must not free the stock of a live retry).
+ */
 export async function markPaymentFailed(
   paymentId: number,
   orderId: number,
@@ -584,26 +663,31 @@ export async function markPaymentFailed(
   status: "failed" | "pending" = "failed",
 ) {
   await inTx(async (conn) => {
-    await conn.execute(
-      "UPDATE payments SET status = ?, error = ? WHERE id = ?",
+    await conn.execute("SELECT id FROM orders WHERE id = ? FOR UPDATE", [orderId]);
+    const [pr] = await conn.execute<ResultSetHeader>(
+      "UPDATE payments SET status = ?, error = ? WHERE id = ? AND status <> 'success'",
       [status, error.slice(0, 255), paymentId],
     );
-    if (status === "failed") {
-      const [r] = await conn.execute<ResultSetHeader>(
-        "UPDATE orders SET status = 'payment_failed' WHERE id = ? AND status = 'pending_payment'",
-        [orderId],
+    if (!pr.affectedRows || status !== "failed") return;
+    const [others] = await conn.execute<Row[]>(
+      "SELECT 1 FROM payments WHERE order_id = ? AND id <> ? AND status IN ('initiated','pending','success') LIMIT 1",
+      [orderId, paymentId],
+    );
+    if (others.length) return;
+    const [r] = await conn.execute<ResultSetHeader>(
+      "UPDATE orders SET status = 'payment_failed' WHERE id = ? AND status = 'pending_payment'",
+      [orderId],
+    );
+    if (r.affectedRows) {
+      await logEvent(
+        conn,
+        orderId,
+        "pending_payment",
+        "payment_failed",
+        "payu",
+        error,
       );
-      if (r.affectedRows) {
-        await logEvent(
-          conn,
-          orderId,
-          "pending_payment",
-          "payment_failed",
-          "payu",
-          error,
-        );
-        await returnStock(conn, orderId, "held", "release", "payu");
-      }
+      await returnStock(conn, orderId, "held", "release", "payu");
     }
   });
 }
@@ -739,12 +823,19 @@ export async function getOrderEvents(orderId: number) {
   }));
 }
 
+/**
+ * Move an order to `to` (locked, logged once). Returns true only when the status actually changed,
+ * so callers can gate customer messages on it.
+ * - `onlyFrom`: change only if the current status is one of these (checked under the row lock).
+ * - `restock`: also return held/taken stock (used by a full refund of an order that never shipped).
+ */
 export async function setOrderStatus(
   orderId: number,
   to: OrderStatus,
   actor: Actor,
   note?: string,
-) {
+  opts: { onlyFrom?: readonly OrderStatus[]; restock?: boolean } = {},
+): Promise<boolean> {
   let changed = false;
   await inTx(async (conn) => {
     const [r] = await conn.execute<Row[]>(
@@ -753,6 +844,7 @@ export async function setOrderStatus(
     );
     const from = r[0]?.status as string | undefined;
     if (!from || from === to) return;
+    if (opts.onlyFrom && !opts.onlyFrom.includes(from as OrderStatus)) return;
     await conn.execute(
       `UPDATE orders SET status = ?, cancelled_at = IF(? = 'cancelled', NOW(), cancelled_at) WHERE id = ?`,
       [to, to, orderId],
@@ -760,7 +852,7 @@ export async function setOrderStatus(
     await logEvent(conn, orderId, from, to, actor, note);
     changed = true;
     // Cancelled before delivery: whatever this order holds or took goes back (once).
-    if (to === "cancelled")
+    if (to === "cancelled" || opts.restock)
       await returnStock(conn, orderId, "any", "restock", actor);
   });
   // Customer emails go out after the change is committed.
@@ -772,6 +864,7 @@ export async function setOrderStatus(
     await notifyOrder(orderId, to);
   if (changed && (to === "delivered" || to === "cancelled"))
     await queueOrderWhatsApp(orderId, to).catch((error) => console.error("WhatsApp status notification", error));
+  return changed;
 }
 
 /** Courier returned an RTO parcel and it reached us: put the stock back (once). */

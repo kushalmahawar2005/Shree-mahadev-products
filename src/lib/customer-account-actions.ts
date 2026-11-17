@@ -4,7 +4,7 @@ import { createHash, randomInt } from "node:crypto";
 import type { RowDataPacket } from "mysql2/promise";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { clientIp, rateLimit } from "@/lib/server/rate-limit";
+import { clientIp, rateLimit, resetLimit } from "@/lib/server/rate-limit";
 import { db } from "@/lib/server/db";
 import { findDuplicateAddress } from "@/lib/server/account-addresses";
 import { addToCartAction } from "@/lib/commerce/actions";
@@ -15,7 +15,7 @@ import {
   requireCustomer,
 } from "@/lib/server/customer-auth";
 import { otpConfigured, sendOtpCode } from "@/lib/server/otp-sender";
-import { hasActiveShipment, setOrderStatus } from "@/lib/server/orders";
+import { customerCancelOrder, requestOrderCancel } from "@/lib/server/order-cancel";
 
 const Phone = z.string().regex(/^(?:\+?91|0)?[6-9]\d{9}$/);
 const normalized = (value: string) => cleanPhone(Phone.parse(value));
@@ -30,11 +30,14 @@ const otpMock = () => !otpConfigured() && process.env.NODE_ENV !== "production";
 
 /**
  * Test numbers for the live site while no OTP gateway is set up: CUSTOMER_OTP_TEST_PHONES is a
- * comma-separated list of 10-digit numbers (the owner's / staff phones). Only those numbers can sign
- * in with the fixed code; every other number still gets "Mobile login is coming soon".
- * Remove the variable once the real gateway works.
+ * comma-separated list of 10-digit numbers (the owner's / staff phones). They sign in with the secret
+ * 6-digit CUSTOMER_OTP_TEST_CODE, which is never sent to the browser. Without that code set, test
+ * numbers are off. Every other number still gets "Mobile login is coming soon".
+ * Remove both variables once the real gateway works.
  */
+const testCode = () => (/^\d{6}$/.test(process.env.CUSTOMER_OTP_TEST_CODE ?? "") ? process.env.CUSTOMER_OTP_TEST_CODE! : null);
 function isTestPhone(phone: string) {
+  if (!testCode()) return false;
   const list = (process.env.CUSTOMER_OTP_TEST_PHONES ?? "")
     .split(",")
     .map((p) => p.replace(/\D/g, "").slice(-10))
@@ -47,7 +50,9 @@ export async function requestCustomerOtpAction(raw: unknown) {
   if (!parsed.success)
     return { ok: false, error: "Enter a valid Indian mobile number." };
   // No gateway yet (and not local dev / a test number): say so plainly, guest checkout still works, and skip writing a code nobody receives.
-  const mock = otpMock() || (!otpConfigured() && isTestPhone(cleanPhone(parsed.data.phone)));
+  const devMock = otpMock();
+  const testNumber = !devMock && !otpConfigured() && isTestPhone(cleanPhone(parsed.data.phone));
+  const mock = devMock || testNumber;
   if (!otpConfigured() && !mock)
     return {
       ok: false,
@@ -61,12 +66,14 @@ export async function requestCustomerOtpAction(raw: unknown) {
     3,
     15,
   );
-  if (!limit.ok)
+  // Per number, whatever the IP: caps SMS / WhatsApp cost and the guesses one number can get.
+  const perPhone = await rateLimit("customer_otp_phone", phone, 5, 60);
+  if (!limit.ok || !perPhone.ok)
     return {
       ok: false,
-      error: `Too many attempts. Try again in ${limit.retryInMin} min.`,
+      error: `Too many attempts. Try again in ${Math.max(limit.retryInMin, perPhone.retryInMin)} min.`,
     };
-  const code = mock ? MOCK_OTP : String(randomInt(100000, 1000000));
+  const code = devMock ? MOCK_OTP : testNumber ? testCode()! : String(randomInt(100000, 1000000));
   await db().execute(
     "UPDATE otp_codes SET used_at=NOW() WHERE phone=? AND used_at IS NULL",
     [phone],
@@ -75,7 +82,9 @@ export async function requestCustomerOtpAction(raw: unknown) {
     "INSERT INTO otp_codes (phone, code_hash, expires_at) VALUES (?,?,DATE_ADD(NOW(), INTERVAL 5 MINUTE))",
     [phone, createHash("sha256").update(code).digest("hex")],
   );
-  if (mock) return { ok: true, phone, devCode: MOCK_OTP };
+  // The fixed code is shown only in local development, never on a production build.
+  if (devMock) return { ok: true, phone, devCode: MOCK_OTP };
+  if (testNumber) return { ok: true, phone };
   if (!(await sendOtpCode(phone, code)))
     return {
       ok: false,
@@ -91,6 +100,7 @@ export async function verifyCustomerOtpAction(raw: unknown) {
       code: z.string().regex(/^\d{6}$/),
       // Optional and may be "" (the name is asked after sign-in, only for new accounts).
       name: z.string().trim().max(120).optional(),
+      // Accepted for older clients but ignored: an email is only saved through the verify-email flow.
       email: z.string().email().max(160).optional(),
     })
     .strict()
@@ -98,33 +108,36 @@ export async function verifyCustomerOtpAction(raw: unknown) {
   if (!parsed.success) return { ok: false, error: "Enter the 6-digit OTP." };
   const givenName = parsed.data.name && parsed.data.name.length >= 2 ? parsed.data.name : null;
   const phone = normalized(parsed.data.phone);
+  // Wrong guesses per number per hour, across all codes and IPs (a fresh OTP doesn't reset this).
+  const guesses = await rateLimit("customer_otp_verify", phone, 10, 60);
+  if (!guesses.ok) return { ok: false, error: `Too many wrong attempts. Try again in ${guesses.retryInMin} min.` };
   const [[otp]] = await db().query<RowDataPacket[]>(
-    "SELECT id, code_hash, attempts FROM otp_codes WHERE phone=? AND used_at IS NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1",
+    "SELECT id, code_hash FROM otp_codes WHERE phone=? AND used_at IS NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1",
     [phone],
   );
-  if (
-    !otp ||
-    Number(otp.attempts) >= 5 ||
-    createHash("sha256").update(parsed.data.code).digest("hex") !==
-      otp.code_hash
-  ) {
-    if (otp)
-      await db().execute(
-        "UPDATE otp_codes SET attempts=attempts+1 WHERE id=?",
-        [otp.id],
-      );
+  if (!otp) return { ok: false, error: "Invalid or expired OTP." };
+  // Count the attempt atomically first: parallel guesses can't get past 5 per code.
+  const [take] = await db().execute<import("mysql2").ResultSetHeader>(
+    "UPDATE otp_codes SET attempts=attempts+1 WHERE id=? AND attempts<5 AND used_at IS NULL",
+    [otp.id],
+  );
+  if (!take.affectedRows || createHash("sha256").update(parsed.data.code).digest("hex") !== otp.code_hash)
     return { ok: false, error: "Invalid or expired OTP." };
-  }
-  await db().execute("UPDATE otp_codes SET used_at=NOW() WHERE id=?", [otp.id]);
+  // Consume once: two concurrent correct submits create one session.
+  const [used] = await db().execute<import("mysql2").ResultSetHeader>(
+    "UPDATE otp_codes SET used_at=NOW() WHERE id=? AND used_at IS NULL",
+    [otp.id],
+  );
+  if (!used.affectedRows) return { ok: false, error: "Invalid or expired OTP." };
+  await resetLimit("customer_otp_verify", phone);
   await db().execute(
     // Existing account: keep its real name. Only a name typed on this sign-in replaces it, or fills a blank /
     // "Customer" placeholder. (Previously the "Customer" default overwrote real names on every login.)
     `INSERT INTO customers (phone, name, email) VALUES (?,?,?)
      ON DUPLICATE KEY UPDATE
        name = IF(VALUES(name) <> 'Customer' AND VALUES(name) <> '', VALUES(name), name),
-       email = COALESCE(VALUES(email), email),
        id = LAST_INSERT_ID(id)`,
-    [phone, givenName ?? "Customer", parsed.data.email ?? null],
+    [phone, givenName ?? "Customer", null],
   );
   const [[customer]] = await db().query<RowDataPacket[]>(
     // By phone, not LAST_INSERT_ID(): db() is a pool, so a second query may run on another connection.
@@ -243,43 +256,21 @@ export async function cancelMyOrderAction(raw: unknown) {
     .safeParse(raw);
   if (!parsed.success)
     return { ok: false as const, error: "Please choose a reason." };
-  const [[o]] = await db().query<RowDataPacket[]>(
-    "SELECT status, payment_method FROM orders WHERE id=? AND customer_id=?",
-    [parsed.data.orderId, customer.id],
-  );
-  if (!o) return { ok: false as const, error: "Order not found." };
-  const status = String(o.status);
-  if (
-    !["pending_payment", "cod_pending", "confirmed", "packed", "paid"].includes(
-      status,
-    )
-  )
-    return {
-      ok: false as const,
-      error:
-        "This order has already shipped, so it can't be cancelled here. Message us on WhatsApp.",
-    };
-  // Once the courier shipment is created the parcel is with logistics: no self-cancel after that.
-  if (await hasActiveShipment(parsed.data.orderId))
-    return {
-      ok: false as const,
-      error:
-        "This order is already booked with the courier, so it can't be cancelled here. Message us on WhatsApp.",
-    };
-  // Paid online orders need a refund: the team handles those, so flag instead of cancelling silently.
-  if (status === "paid" && String(o.payment_method) === "payu")
-    return {
-      ok: false as const,
-      error:
-        "This order is paid. Message us on WhatsApp and we'll cancel it and refund you.",
-    };
-  await setOrderStatus(
-    parsed.data.orderId,
-    "cancelled",
-    "customer",
-    `Cancelled by customer: ${parsed.data.reason}`,
-  );
-  return { ok: true as const };
+  return customerCancelOrder(customer.id, parsed.data.orderId, parsed.data.reason);
+}
+
+/** Paid online order: ask the team to cancel + refund (help ticket + admin flag). */
+export async function requestCancelOrderAction(raw: unknown) {
+  const customer = await requireCustomer();
+  const limit = await rateLimit("cancel_request", String(customer.id), 5, 60);
+  if (!limit.ok)
+    return { ok: false as const, error: `Too many attempts. Try again in ${limit.retryInMin} min.` };
+  const parsed = z
+    .object({ orderId: z.number().int().positive(), reason: z.enum(CANCEL_REASONS) })
+    .strict()
+    .safeParse(raw);
+  if (!parsed.success) return { ok: false as const, error: "Please choose a reason." };
+  return requestOrderCancel(customer.id, parsed.data.orderId, parsed.data.reason);
 }
 
 /** Header account menu: first name, masked phone and live active-order count for the signed-in shopper. */

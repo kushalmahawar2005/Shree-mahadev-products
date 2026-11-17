@@ -13,7 +13,13 @@ const COOKIE = "smp_chat_order_access";
 const Phone = z.string().regex(/^(?:\+?91|0)?[6-9]\d{9}$/);
 const normalizePhone = (phone: string) => cleanPhone(Phone.parse(phone));
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
-const secret = () => process.env.ADMIN_SESSION_SECRET || "development-only-change-me";
+const secret = () => {
+  const s = process.env.ADMIN_SESSION_SECRET;
+  if (s) return s;
+  // A known fallback would let anyone forge sessions: only allowed in local development.
+  if (process.env.NODE_ENV === "production") throw new Error("ADMIN_SESSION_SECRET is not set");
+  return "development-only-change-me";
+};
 const sign = (value: string) => createHmac("sha256", secret()).update(value).digest("base64url");
 const mockOtp = () => !otpConfigured() && process.env.NODE_ENV !== "production";
 

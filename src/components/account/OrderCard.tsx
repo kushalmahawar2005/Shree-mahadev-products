@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
 import { whatsappLink } from "@/data/site";
-import { cancelMyOrderAction } from "@/lib/customer-account-actions";
+import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
 import { cutoutUrl } from "@/lib/image-loader";
 import type { AccountOrder } from "@/lib/server/account";
 import { formatDateTime } from "@/lib/utils/format";
@@ -191,6 +191,23 @@ function OrderActions({
   const cancel = async () => {
     const r = await cancelMyOrderAction({ orderId: o.id, reason });
     if (!r.ok) {
+      // Paid online order: the team cancels + refunds, so offer to send the request right here.
+      if ("canRequest" in r && r.canRequest) {
+        toast.error(r.error, {
+          duration: 10000,
+          action: {
+            label: "Cancel request bhejein",
+            onClick: async () => {
+              const q = await requestCancelOrderAction({ orderId: o.id, reason });
+              if (!q.ok) return void toast.error(q.error);
+              toast.success(`Request bhej di (${q.ticketNo}). Team jaldi cancel + refund karegi.`);
+              onChange?.();
+              router.refresh();
+            },
+          },
+        });
+        return;
+      }
       toast.error(r.error);
       return;
     }

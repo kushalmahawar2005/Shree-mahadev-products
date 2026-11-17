@@ -7,6 +7,7 @@ import { HelpFlow } from "@/components/account/help/HelpFlow";
 import { HelpSearchBox, HelpSearchProvider } from "@/components/account/help/HelpSearch";
 import { toHelpOption } from "@/components/account/help/help-lib";
 import { buildFaqs, faqJsonLd } from "@/content/faqs";
+import { jsonLdString } from "@/lib/utils/seo";
 import { whatsappLink } from "@/data/site";
 import { primaryBtn } from "@/lib/account/ui-classes";
 import { getProducts } from "@/lib/commerce";
@@ -42,7 +43,7 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
 
   return (
     <div className="pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-0">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(faqs)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(faqJsonLd(faqs)) }} />
       <PageHeader eyebrow="मदद" title="Help & support" subtitle="Quick answers, help with an order, and how to reach us." />
       <HelpSearchProvider faqs={faqs}>
         <div className="mb-5 lg:mb-6">

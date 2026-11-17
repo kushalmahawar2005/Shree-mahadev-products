@@ -19,6 +19,23 @@ const CLOSE_DELAY = 200;
 
 type Summary = { name: string; phone: string; activeOrders: number };
 
+const SUMMARY_TTL = 60_000;
+const summaryCache: { data: Summary | null; at: number; inflight: Promise<Summary | null> | null } = { data: null, at: 0, inflight: null };
+function loadSummary(): Promise<Summary | null> {
+  if (summaryCache.data && Date.now() - summaryCache.at < SUMMARY_TTL) return Promise.resolve(summaryCache.data);
+  summaryCache.inflight ??= getAccountMenuAction()
+    .then((s) => {
+      summaryCache.data = s;
+      summaryCache.at = Date.now();
+      return s;
+    })
+    .catch(() => summaryCache.data)
+    .finally(() => {
+      summaryCache.inflight = null;
+    });
+  return summaryCache.inflight;
+}
+
 const LINKS = [
   { href: "/account/orders", label: "My orders", icon: Package, badge: true },
   { href: "/account/addresses", label: "Addresses", icon: MapPin },
@@ -37,7 +54,7 @@ export function AccountMenu({ compact = false, tabIndex }: { compact?: boolean; 
   const guest = signedIn === false;
   const reduce = useReducedMotion();
   const [open, setOpen] = useState(false);
-  const [summary, setSummary] = useState<Summary | null>(null);
+  const [summary, setSummary] = useState<Summary | null>(() => summaryCache.data);
   const [login, setLogin] = useState<LoginState>(LOGIN_INITIAL);
   // Once the guest starts typing, hover-out no longer closes the panel (outside click / Esc still do).
   const [pinned, setPinned] = useState(false);
@@ -58,11 +75,12 @@ export function AccountMenu({ compact = false, tabIndex }: { compact?: boolean; 
     if (refocus) trigger.current?.focus();
   }, []);
 
-  // Fetch name / phone / active orders each time the menu opens (cheap; picks up a just-saved name).
+  // Name / phone / active orders: one server call per page load, shared by both header menus (full +
+  // compact), refreshed at most once a minute when the menu is opened again. Hovering never spams requests.
   useEffect(() => {
     if (!open || signedIn !== true) return;
     let alive = true;
-    getAccountMenuAction().then((s) => alive && s && setSummary(s)).catch(() => {});
+    loadSummary().then((s) => alive && s && setSummary(s));
     return () => {
       alive = false;
     };

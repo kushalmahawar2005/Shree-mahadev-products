@@ -2,6 +2,7 @@
 
 import { cutoutUrl } from "@/lib/image-loader";
 import Link from "next/link";
+import { safeInternalPath } from "@/lib/utils/safe-path";
 import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ChevronRight, Loader2, LogOut, Plus, RotateCcw } from "lucide-react";
@@ -78,7 +79,8 @@ export function SignIn({ next }: { next?: string } = {}) {
       done();
     });
   // Full load so the header (account + cart) reflects the new session.
-  const done = () => (next ? window.location.assign(next) : window.location.reload());
+  // Re-check on the client too: `next` must stay on this site.
+  const done = () => (next ? window.location.assign(safeInternalPath(next, "/account")) : window.location.reload());
   const saveName = () =>
     start(async () => {
       setError("");

@@ -102,7 +102,7 @@ export async function verifyPaymentWithPayu(txnid: string): Promise<{ status: st
  * Refund (full or partial) via PayU postservice `cancel_refund_transaction`.
  * var1 = mihpayid, var2 = our unique token, var3 = amount. hash = sha512(key|command|var1|salt).
  */
-export async function requestPayuRefund(mihpayid: string, token: string, amount: number): Promise<{ ok: boolean; ref?: string; message: string }> {
+export async function requestPayuRefund(mihpayid: string, token: string, amount: number): Promise<{ ok: boolean; ref?: string; message: string; uncertain?: boolean }> {
   const { key, salt } = creds();
   const command = "cancel_refund_transaction";
   const body = new URLSearchParams({
@@ -124,6 +124,7 @@ export async function requestPayuRefund(mihpayid: string, token: string, amount:
     const ok = Number(json.status) === 1;
     return { ok, ref: json.request_id, message: json.msg || (ok ? "Refund requested" : `PayU refund failed (HTTP ${res.status})`) };
   } catch (e) {
-    return { ok: false, message: (e as Error).message };
+    // Timeout / network error: PayU may or may not have taken the request. Callers must not treat this as a failure.
+    return { ok: false, uncertain: true, message: (e as Error).message };
   }
 }

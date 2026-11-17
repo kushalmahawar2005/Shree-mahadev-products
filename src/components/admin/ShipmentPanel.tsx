@@ -37,6 +37,7 @@ const btn = "inline-flex h-10 items-center justify-center gap-1.5 rounded-full p
 const ghost = cn(btn, "border border-line bg-surface text-forest-text hover:border-forest/50");
 
 const SHIP_LABEL: Record<string, string> = {
+  booking: "Booking… (check NimbusPost)",
   booked: "Booked",
   picked: "Picked up",
   in_transit: "In transit",

@@ -30,6 +30,7 @@ import { CopyButton } from "@/components/admin/order/CopyButton";
 import { Skeleton } from "@/components/shadcn/skeleton";
 import { getProduct } from "@/lib/commerce";
 import { nimbusConfigured } from "@/lib/server/nimbuspost";
+import { AttentionBanner } from "@/components/admin/order/AttentionBanner";
 import { getOrderById, getOrderEvents, listRefunds, refundableFor, type Order, type OrderStatus } from "@/lib/server/orders";
 import { getOrderExtras } from "@/lib/server/order-detail";
 import { returnForOrder } from "@/lib/server/helpdesk";
@@ -168,6 +169,8 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
           )}
         </div>
       </div>
+
+      {order.attention && <AttentionBanner orderId={order.id} text={order.attention} since={order.attentionAt} />}
 
       <OrderProgress order={order} events={events} />
 

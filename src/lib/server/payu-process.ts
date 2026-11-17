@@ -6,6 +6,11 @@ import { queueOrderWhatsApp } from "./whatsapp";
 import { getPayment, logWebhook, markPaid, markPaymentFailed } from "./orders";
 import { verifyPaymentWithPayu, verifyPayuResponse } from "./payu";
 
+async function notifyPaid(orderId: number) {
+  await notifyOrder(orderId, "payment_received");
+  await queueOrderWhatsApp(orderId, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
+}
+
 export type PayuOutcome = "paid" | "failed" | "pending" | "duplicate" | "invalid" | "unknown";
 
 /**
@@ -20,22 +25,25 @@ export async function handlePayuResult(p: Record<string, string>, source: "callb
 
   const pay = p.txnid ? await getPayment(p.txnid) : null;
   if (!pay) return { outcome: "unknown" };
-  if (pay.status === "success") return { outcome: "duplicate", orderToken: pay.orderToken };
 
+  // Verify before revealing anything: the order token opens the order page (name, address, items),
+  // so a guessed txnid with a forged body must get nothing back.
   if (!verifyPayuResponse(p) || p.udf1 !== pay.orderToken) {
     console.error("PayU hash mismatch", { txnid: p.txnid, source });
     // A forged or malformed callback must not fail the attempt or release its stock hold.
     // The reconciler will ask PayU directly for the transaction's actual status.
-    return { outcome: "invalid", orderToken: pay.orderToken };
+    return { outcome: "invalid" };
   }
+  if (pay.status === "success") return { outcome: "duplicate", orderToken: pay.orderToken };
 
   if (p.status === "success" && Number(p.amount) === pay.amount) {
     const check = await verifyPaymentWithPayu(p.txnid);
     if (check?.status === "success" && check.amount === pay.amount) {
-      await markPaid(pay.id, pay.orderId, { mihpayid: p.mihpayid ?? check.mihpayid, mode: p.mode });
-      await notifyOrder(pay.orderId, "payment_received");
-      await queueOrderWhatsApp(pay.orderId, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
-      return { outcome: "paid", orderToken: pay.orderToken };
+      const res = await markPaid(pay.id, pay.orderId, { mihpayid: p.mihpayid ?? check.mihpayid, mode: p.mode });
+      // Messages only when this call moved the order to paid (callback + webhook race → one message;
+      // money for a cancelled / already-paid order → flagged for refund, customer not told "paid").
+      if (res === "paid") await notifyPaid(pay.orderId);
+      return { outcome: res === "duplicate" ? "duplicate" : "paid", orderToken: pay.orderToken };
     }
     await markPaymentFailed(pay.id, pay.orderId, "Awaiting PayU confirmation", "pending");
     return { outcome: "pending", orderToken: pay.orderToken };
@@ -68,9 +76,7 @@ export async function reconcilePayments(olderThanMin = 15, limit = 50) {
 async function reconcileOne(r: { id: number; orderId: number; txnid: string; amount: number }): Promise<"paid" | "failed" | "pending"> {
   const v = await verifyPaymentWithPayu(r.txnid);
   if (v?.status === "success" && v.amount === r.amount) {
-    await markPaid(r.id, r.orderId, { mihpayid: v.mihpayid, mode: "reconciled" });
-    await notifyOrder(r.orderId, "payment_received");
-    await queueOrderWhatsApp(r.orderId, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
+    if ((await markPaid(r.id, r.orderId, { mihpayid: v.mihpayid, mode: "reconciled" })) === "paid") await notifyPaid(r.orderId);
     return "paid";
   }
   if (v && ["failure", "failed", "userCancelled", "dropped", "bounced"].includes(v.status)) {
@@ -115,9 +121,7 @@ export async function confirmOrderFromPayu(orderToken: string): Promise<"paid" |
   for (const r of rows) {
     const v = await verifyPaymentWithPayu(r.txnid);
     if (v?.status === "success" && v.amount === r.amount) {
-      await markPaid(r.id, r.order_id, { mihpayid: v.mihpayid, mode: "return-verify" });
-      await notifyOrder(r.order_id, "payment_received");
-      await queueOrderWhatsApp(r.order_id, "order_placed").catch((error) => console.error("WhatsApp payment notification", error));
+      if ((await markPaid(r.id, r.order_id, { mihpayid: v.mihpayid, mode: "return-verify" })) === "paid") await notifyPaid(r.order_id);
       return "paid";
     }
   }

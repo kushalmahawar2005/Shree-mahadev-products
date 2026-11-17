@@ -38,7 +38,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { useIsMobile } from "@/hooks/use-mobile";
 import { requestReturnAction } from "@/lib/account/order-actions";
 import { RETURN_REASONS } from "@/lib/account/returns";
-import { cancelMyOrderAction } from "@/lib/customer-account-actions";
+import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
+import { PAID_CANCEL_MESSAGE } from "@/components/account/help/help-lib";
 import { cn } from "@/lib/utils/cn";
 import { ConfirmDialog } from "./shared";
 
@@ -104,26 +105,46 @@ export function BuyAgainAll({
   );
 }
 
-export function CancelOrderButton({ orderId, orderNo }: { orderId: number; orderNo: string }) {
+/**
+ * Cancel button on the order page. `paidOnline` orders (PayU, not shipped) can't be cancelled by the
+ * shopper because they need a refund: the same button sends a cancel request to the team instead.
+ */
+export function CancelOrderButton({ orderId, orderNo, paidOnline = false }: { orderId: number; orderNo: string; paidOnline?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [requestMode, setRequestMode] = useState(paidOnline);
   const [reason, setReason] = useState<(typeof CANCEL_REASONS)[number]>(CANCEL_REASONS[0]);
+  const sendRequest = async () => {
+    const r = await requestCancelOrderAction({ orderId, reason });
+    if (!r.ok) {
+      toast.error(r.error);
+      return;
+    }
+    toast.success(`Request bhej di (${r.ticketNo}). Team jaldi cancel + refund karke aapko batayegi.`);
+    router.refresh();
+  };
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={cn(secondaryBtn, "text-co-danger")}>
-        <PackageX className="size-4" /> Cancel order
+        <PackageX className="size-4" /> {requestMode ? "Cancel request bhejein" : "Cancel order"}
       </button>
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
-        title={`Cancel order ${orderNo}?`}
-        description="Items go back to stock. This can't be undone."
-        confirmLabel="Cancel order"
+        title={requestMode ? `Cancel request for ${orderNo}` : `Cancel order ${orderNo}?`}
+        description={requestMode ? PAID_CANCEL_MESSAGE : "Items go back to stock. This can't be undone."}
+        confirmLabel={requestMode ? "Cancel request bhejein" : "Cancel order"}
         cancelLabel="Keep order"
         danger
         onConfirm={async () => {
+          if (requestMode) return sendRequest();
           const r = await cancelMyOrderAction({ orderId, reason });
           if (!r.ok) {
+            if ("canRequest" in r && r.canRequest) {
+              setRequestMode(true);
+              toast.error(r.error);
+              return;
+            }
             toast.error(r.error);
             return;
           }

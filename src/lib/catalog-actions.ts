@@ -5,7 +5,7 @@ import { updateTag } from "next/cache";
 import { collectionDefs } from "@/data/collections";
 import { products as starterProducts } from "@/data/products";
 import { TAGS } from "@/lib/commerce";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import {
   bulkUpdate,
   catalogIsEmpty,
@@ -132,6 +132,8 @@ export async function bulkProductsAction(handles: string[], action: BulkAction):
       action?.type === "delete" ||
       ((action?.type === "addToCollection" || action?.type === "removeFromCollection") && HANDLE.test(action.collection));
     if (!ok) throw new Error("Invalid action");
+    // Deleting products is owner / manager only (staff can still change status and collections).
+    if (action.type === "delete") await requireRole("owner", "manager");
     const n = await bulkUpdate(handles, action);
     bust(handles);
     return n;
@@ -140,7 +142,7 @@ export async function bulkProductsAction(handles: string[], action: BulkAction):
 
 export async function importStarterCatalogAction(): Promise<ActionResult<number>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!(await catalogIsEmpty())) throw new Error("The catalog already has products");
     await importStarterCatalog(starterProducts, collectionDefs);
     bust(starterProducts.map((p) => p.handle));

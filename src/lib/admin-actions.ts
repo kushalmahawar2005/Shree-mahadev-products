@@ -2,7 +2,7 @@
 
 import { safe, type ActionResult } from "@/lib/action-result";
 import { revalidatePath, updateTag } from "next/cache";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import { markReminderSent } from "@/lib/server/carts";
 import { listOrderEmails, processOutbox, queueOrderEmail, type OutboxRow } from "@/lib/server/mail";
 import { z as zz } from "zod";
@@ -19,7 +19,7 @@ import {
   type CourierQuote,
   type Shipment,
 } from "@/lib/server/shipments";
-import { getOrderById, setOrderStatus, type OrderStatus } from "@/lib/server/orders";
+import { clearOrderAttention, getOrderById, refundableFor, setOrderStatus, type OrderStatus } from "@/lib/server/orders";
 import { BULK_STATUS, bulkBookShipments, bulkCancelShipments, bulkSetStatus, type BulkResult, type BulkStatus } from "@/lib/server/bulk-orders";
 
 export async function markReminderSentAction(cartId: number) {
@@ -115,7 +115,15 @@ export async function setOrderStatusAction(orderId: number, status: OrderStatus,
   return safe(async () => {
     await requireAdmin();
     if (!Number.isInteger(orderId) || !MANUAL.includes(status)) throw new Error("Invalid status");
-    await setOrderStatus(orderId, status, "admin", String(note ?? "").slice(0, 300) || undefined);
+    const text = String(note ?? "").trim().slice(0, 300);
+    // "Refunded" set by hand moves no money: PayU money must go through the Refund panel, and an
+    // offline refund (COD / bank transfer) must say how it was paid back.
+    if (status === "refunded") {
+      const left = (await refundableFor(orderId))?.left ?? 0;
+      if (left > 0) throw new Error(`₹${left} is still refundable on PayU. Use the Refund panel so the money actually goes back.`);
+      if (text.length < 5) throw new Error("Add a note: how was the money refunded (UPI / bank ref)?");
+    }
+    await setOrderStatus(orderId, status, "admin", text || undefined);
     revalidatePath("/admin/orders");
   });
 }
@@ -136,7 +144,7 @@ export async function requestPickupAction(orderId: number): Promise<ActionResult
 
 export async function createDailyManifestAction(date?: string) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const parsed = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T00:00:00+05:30`) : new Date();
     return createDailyManifest(parsed);
   });
@@ -151,7 +159,7 @@ export async function listNdrAction() {
 
 export async function ndrAction(awb: string, action: "reattempt" | "change_address_phone" | "rto", details?: { address?: string; phone?: string }) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (action === "change_address_phone" && (!details?.address || !/^[6-9]\d{9}$/.test(details.phone ?? ""))) {
       throw new Error("Address and valid phone are required");
     }
@@ -204,7 +212,7 @@ export async function refundOrderAction(orderId: number, amount: number, reason:
 // ───────────── Store settings ─────────────
 export async function saveStoreSettingsAction(input: unknown) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const { StoreSettingsSchema } = await import("@/lib/store-settings");
     const parsed = StoreSettingsSchema.safeParse(input);
     if (!parsed.success) {
@@ -214,5 +222,15 @@ export async function saveStoreSettingsAction(input: unknown) {
     const { saveStoreSettings, SETTINGS_TAG } = await import("@/lib/server/store-settings");
     await saveStoreSettings(parsed.data);
     updateTag(SETTINGS_TAG);
+  });
+}
+
+/** Admin handled the "needs attention" flag on an order (extra payment, stuck refund/shipment, cancel request). */
+export async function clearOrderAttentionAction(orderId: number, note: string) {
+  return safe(async () => {
+    await requireAdmin();
+    if (!Number.isInteger(orderId)) throw new Error("Invalid order");
+    await clearOrderAttention(orderId, String(note ?? "").trim().slice(0, 200) || undefined);
+    revalidatePath("/admin/orders");
   });
 }
