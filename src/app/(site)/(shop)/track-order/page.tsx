@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { TrackOrderLookup } from "@/components/track-order/TrackOrderLookup";
 import { site } from "@/data/site";
 import { pageMetadata } from "@/lib/utils/seo";
-import { lookupTrackingByToken } from "@/lib/server/tracking";
+import { listMyTrackableOrders, lookupTrackingByToken } from "@/lib/server/tracking";
+import { getCustomerSession } from "@/lib/server/customer-auth";
 
 export const metadata: Metadata = pageMetadata({
   title: "Track your order",
@@ -47,14 +48,21 @@ async function TrackingSection({
 }) {
   const params = await searchParams;
   const token = typeof params.t === "string" ? params.t : "";
-  const initial = token
-    ? await lookupTrackingByToken(token)
-    : { tracking: null, error: null };
+  const [initial, session] = await Promise.all([
+    token ? lookupTrackingByToken(token) : Promise.resolve({ tracking: null, error: null }),
+    getCustomerSession().catch(() => null),
+  ]);
+  // Signed in: their recent orders as one-tap cards (no order number / phone to type).
+  const myOrders = session ? await listMyTrackableOrders(session.id).catch(() => []) : [];
   return (
     <>
       <TrackOrderLookup
+        // Remount per order so picking another card shows its tracking (state is seeded from props).
+        key={token || "form"}
         initialTracking={initial.tracking}
         initialError={initial.error}
+        myOrders={myOrders}
+        selectedToken={token || null}
       />
       {/* The result card has its own help buttons; this line is for the empty form. */}
       {!initial.tracking && (

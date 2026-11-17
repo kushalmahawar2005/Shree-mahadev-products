@@ -1,5 +1,13 @@
 import type { MDXComponents } from "mdx/types";
 import Link from "next/link";
+import { getStoreSettings } from "@/lib/server/store-settings";
+import { formatMoney } from "@/lib/utils/money";
+
+/** "₹999" from Admin → Settings → Free shipping above, so policy pages never go stale. */
+async function FreeShippingAbove() {
+  const { shipping } = await getStoreSettings();
+  return <strong className="font-semibold text-forest-text">{formatMoney(shipping.freeShippingThreshold)}</strong>;
+}
 
 /** Styling for every MDX page (policies, recipes, journal). Readable 70ch column, brand colours. */
 const components: MDXComponents = {
@@ -11,6 +19,7 @@ const components: MDXComponents = {
   li: (p) => <li className="leading-relaxed" {...p} />,
   strong: (p) => <strong className="font-semibold text-forest-text" {...p} />,
   hr: () => <hr className="my-10 border-line" />,
+  FreeShippingAbove,
   blockquote: (p) => <blockquote className="my-6 rounded-2xl bg-khaki-soft px-5 py-4 text-forest-text" {...p} />,
   table: (p) => (
     <div className="my-6 overflow-x-auto rounded-2xl border border-line">

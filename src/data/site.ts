@@ -54,7 +54,8 @@ export function whatsappLink(message?: string) {
 export const announcements = [
   "Get flat 10% off on your first order",
   "Order now and get it delivered to your doorstep",
-  `Free shipping on orders above ₹${site.freeShippingThreshold}`,
+  // {threshold} is filled from Admin → Settings → Free shipping above (see liveAnnouncements).
+  "Free shipping on orders above {threshold}",
 ];
 
 export type MenuGroup = "oils" | "honey" | "sweeteners";

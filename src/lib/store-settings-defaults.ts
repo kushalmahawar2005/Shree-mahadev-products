@@ -39,5 +39,11 @@ export const DEFAULT_SETTINGS: StoreSettings = {
 export function liveAnnouncements(s: StoreSettings, today = new Date(Date.now() + 5.5 * 3_600_000).toISOString().slice(0, 10)) {
   return s.announcement.messages
     .filter((m) => (!m.startsAt || m.startsAt <= today) && (!m.endsAt || m.endsAt >= today))
-    .map((m) => ({ ...m, text: m.text.replace(/\{threshold\}/g, `₹${s.shipping.freeShippingThreshold}`) }));
+    .map((m) => ({
+      ...m,
+      text: m.text
+        .replace(/\{threshold\}/g, `₹${s.shipping.freeShippingThreshold}`)
+        // Messages saved with a fixed amount ("Free shipping on orders above ₹999") follow the setting too.
+        .replace(/(free (?:shipping|delivery)[^₹]{0,30}?(?:above|over|on orders above|from)\s*)₹\s?[\d,]+/gi, `$1₹${s.shipping.freeShippingThreshold}`),
+    }));
 }

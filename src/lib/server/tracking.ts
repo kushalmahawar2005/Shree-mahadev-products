@@ -14,6 +14,30 @@ export type TrackingSummary = {
   trackingUrl: string | null;
   expectedDelivery: string | null;
   events: { status: string; label: string; at: string; location: string | null }[];
+  /** Where the parcel is, Amazon-style: 0 ordered · 1 shipped · 2 out for delivery · 3 delivered; null for cancelled / unpaid / RTO. */
+  stage: 0 | 1 | 2 | 3 | null;
+  /** When each stage was reached (first time). */
+  milestones: { ordered: string; shipped: string | null; outForDelivery: string | null; delivered: string | null };
+  /** Courier scans only, oldest first, as readable lines ("Left Jaipur hub"). */
+  scans: { line: string; at: string }[];
+  /** Order history for the shopper: forward-only, each step once (no internal back-and-forth). */
+  history: { label: string; at: string }[];
+};
+
+/** Customer-facing order steps in their natural order; anything going "backwards" is internal and hidden. */
+const HISTORY_ORDER = ["pending_payment", "paid", "cod_pending", "confirmed", "packed", "shipped", "delivered"];
+const HISTORY_LABEL: Record<string, string> = {
+  pending_payment: "Order placed",
+  paid: "Payment received",
+  cod_pending: "Order placed · cash on delivery",
+  confirmed: "Order confirmed",
+  packed: "Packed and ready to ship",
+  shipped: "Handed to the courier",
+  delivered: "Delivered",
+  cancelled: "Order cancelled",
+  refunded: "Refund issued",
+  partially_refunded: "Part refund issued",
+  rto: "Returning to us",
 };
 
 const labels: Record<string, string> = {
@@ -74,6 +98,44 @@ async function loadTracking(orderId: number): Promise<TrackingSummary | null> {
     })),
   ].sort((a, b) => a.at.localeCompare(b.at)));
   const pincode = String(order.pincode ?? "");
+
+  // Courier scans (newest wording first-class) and the customer-facing milestones.
+  const scans = dedupeScans(
+    shipmentRows.map((e) => ({
+      status: String(e.status).toLowerCase(),
+      at: String(e.at),
+      line: scanLine(String(e.status), e.message ? String(e.message) : null, e.location ? String(e.location) : null),
+    })),
+  );
+  const firstScan = (re: RegExp) => scans.find((e) => re.test(`${e.status} ${e.line}`.toLowerCase()))?.at ?? null;
+  const firstOrder = (st: string) => orderRows.find((e) => String(e.status) === st)?.at;
+  const status = String(order.status);
+  const delivered = firstOrder("delivered") ? String(firstOrder("delivered")) : firstScan(/^delivered|\bdelivered$/);
+  const outForDelivery = firstScan(/out for delivery|out_for_delivery/);
+  const shipped = firstScan(/picked|left|reached|transit|out for delivery/) ?? (firstOrder("shipped") ? String(firstOrder("shipped")) : null);
+  const stage: TrackingSummary["stage"] =
+    ["cancelled", "rto", "pending_payment", "payment_failed", "refunded"].includes(status) ? null
+      : status === "delivered" || delivered ? 3
+        : outForDelivery && status !== "delivered" ? 2
+          : status === "shipped" || shipped ? 1
+            : 0;
+
+  // Forward-only history: keep each step once, and drop a step that appears after a later one
+  // (e.g. "paid" again when a shipment was cancelled and re-booked).
+  const history: { label: string; at: string }[] = [];
+  let furthest = -1;
+  const seen = new Set<string>();
+  for (const e of orderRows) {
+    const st = String(e.status);
+    if (seen.has(st)) continue;
+    const rank = HISTORY_ORDER.indexOf(st);
+    if (rank !== -1 && rank <= furthest) continue;
+    if (st === "payment_failed") continue;
+    seen.add(st);
+    if (rank !== -1) furthest = rank;
+    history.push({ label: HISTORY_LABEL[st] ?? labelStatus(st), at: String(e.at) });
+  }
+
   return {
     orderNo: String(order.order_no),
     status: String(order.status),
@@ -84,6 +146,10 @@ async function loadTracking(orderId: number): Promise<TrackingSummary | null> {
     trackingUrl: shipment?.tracking_url ? String(shipment.tracking_url) : null,
     expectedDelivery: shipment?.estimated_delivery ? String(shipment.estimated_delivery).slice(0, 10) : null,
     events: events.map(({ line, ...event }) => ({ ...event, label: line })),
+    stage,
+    milestones: { ordered: String(order.created_at), shipped, outForDelivery, delivered },
+    scans: scans.map(({ line, at }) => ({ line, at })),
+    history,
   };
 }
 
@@ -111,3 +177,27 @@ export async function lookupTrackingByToken(token: string) {
   return { tracking: await loadTracking(Number(order.id)), error: null };
 }
 
+
+export type MyTrackableOrder = { orderNo: string; token: string; status: string; label: string; createdAt: string; total: number; items: number; firstItem: string | null };
+
+/** Signed-in shopper's recent orders for the one-tap picker on /track-order (newest first). */
+export async function listMyTrackableOrders(customerId: number, limit = 8): Promise<MyTrackableOrder[]> {
+  const [rows] = await db().query<RowDataPacket[]>(
+    `SELECT o.order_no, o.token, o.status, o.created_at, o.total,
+            (SELECT COALESCE(SUM(quantity), 0) FROM order_items WHERE order_id = o.id) AS items,
+            (SELECT product_title FROM order_items WHERE order_id = o.id ORDER BY id LIMIT 1) AS first_item
+       FROM orders o WHERE o.customer_id = ? AND o.status <> 'payment_failed'
+      ORDER BY o.id DESC LIMIT ?`,
+    [customerId, limit],
+  );
+  return rows.map((r) => ({
+    orderNo: String(r.order_no),
+    token: String(r.token),
+    status: String(r.status),
+    label: labelStatus(String(r.status)),
+    createdAt: String(r.created_at),
+    total: Number(r.total),
+    items: Number(r.items),
+    firstItem: r.first_item ? String(r.first_item) : null,
+  }));
+}

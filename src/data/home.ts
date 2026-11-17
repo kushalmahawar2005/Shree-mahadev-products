@@ -98,6 +98,14 @@ export const spotlight = [
     title: "Groundnut Oil",
     text: "Light, nutty and steady at high heat. Our everyday oil for puri, pakode and sabzi.",
     note: "Best for daily cooking",
+    // Lifestyle photo on the right; the card takes the photo's own wall colour (sampled top → bottom) so
+    // the picture's edge disappears into the card.
+    photo: {
+      url: "/images/spotlight/groundnut-dadi.jpg",
+      alt: "Dadi holding a bottle of Mahadev wood-pressed groundnut oil, with fresh puris and peanuts",
+      bg: "linear-gradient(180deg, #4b230c 0%, #4f2711 45%, #552b16 100%)",
+      position: "68% center",
+    },
     color: "#5B3A1E",
   },
   {

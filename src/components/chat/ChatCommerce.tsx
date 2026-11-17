@@ -210,7 +210,7 @@ function FreeShippingBar({ subtotal }: { subtotal: number }) {
     <div className="space-y-1">
       <p className="text-[11px] text-ink-muted">{left ? <>Sirf <strong className="text-forest">{rupee(left)}</strong> aur, phir shipping free 🚚</> : <strong className="text-forest">Free shipping unlocked 🎉</strong>}</p>
       <div className="h-1.5 overflow-hidden rounded-full bg-co-panel">
-        <motion.div className="h-full rounded-full bg-forest" initial={{ width: 0 }} animate={{ width: `${Math.min(100, (subtotal / threshold) * 100)}%` }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} />
+        <motion.div className="h-full rounded-full bg-forest" initial={{ width: 0 }} animate={{ width: `${threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 100}%` }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} />
       </div>
     </div>
   );

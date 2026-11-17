@@ -2,7 +2,7 @@
 
 import { showRating } from "@/lib/utils/reviews";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { ArrowRight, Check, Loader2, ShoppingBag, Star } from "lucide-react";
@@ -44,6 +44,16 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState(false);
   const s = items[i];
+  // Card height follows the content smoothly (phones: the photo slide is taller) instead of jumping.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | "auto">("auto");
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (hold || reduce || items.length < 2) return;
@@ -62,7 +72,12 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
 
   return (
     <div onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocusCapture={() => setHold(true)} onBlurCapture={() => setHold(false)}>
-      <div className="relative overflow-hidden rounded-3xl text-white md:rounded-[32px] shadow-[0_40px_80px_-50px_rgba(7,47,27,0.8)]">
+      <motion.div
+        className="relative overflow-hidden rounded-3xl text-white md:rounded-[32px] shadow-[0_40px_80px_-50px_rgba(7,47,27,0.8)]"
+        animate={{ height }}
+        initial={false}
+        transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
         {/* colour mood crossfades per product */}
         <AnimatePresence initial={false}>
           <motion.div
@@ -100,11 +115,11 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
         <span aria-hidden className="absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
 
         <div
+          ref={contentRef}
           className={cn(
-            "relative grid items-center gap-2 p-4 md:gap-10 md:p-12",
+            // Same height for every slide on desktop, so switching never resizes the card there.
+            "relative grid items-center gap-2 p-4 md:min-h-[460px] md:gap-10 md:p-12",
             s.image && !s.photo && "md:grid-cols-[1.05fr_1fr]",
-            // Photo slides: room for the picture on top (phones) / keep the text on the left half (desktop).
-            s.photo && "pt-[58vw] sm:pt-[52vw] md:min-h-[460px] md:pt-12 md:pr-[50%]",
           )}
         >
           {/* Stage (only when the item has a photo) */}
@@ -155,7 +170,9 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               animate={{ opacity: 1, x: 0 }}
               exit={reduce ? undefined : { opacity: 0, x: -16 }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="flex flex-col items-start"
+              // Photo slides: room for the picture on top (phones) / text on the left half (desktop). Set on
+              // this slide's own block so the outgoing text keeps its width while it fades out.
+              className={cn("flex flex-col items-start", s.photo && "pt-[60vw] sm:pt-[58vw] md:max-w-[56%] md:pt-0")}
             >
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-co-gold uppercase backdrop-blur max-md:hidden">
                 <Sparkles className="size-3.5" /> In the spotlight
@@ -209,7 +226,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
             </motion.div>
           </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
 
       {/* Thumbnail rail with autoplay progress */}
       <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 md:mt-5 [scrollbar-width:none] md:mx-0 md:px-0">

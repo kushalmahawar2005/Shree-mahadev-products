@@ -102,7 +102,7 @@ export function SettingsForm({ initial }: { initial: StoreSettings }) {
       </Card>
 
       <Card icon={Truck} title="Shipping & COD" hint="Courier rates come from NimbusPost. The flat fees are used only if rates can't be fetched.">
-        <F label="Free shipping above (₹)" hint="Used in the announcement bar, cart progress bar and checkout."><input className={input} inputMode="numeric" value={s.shipping.freeShippingThreshold} onChange={(e) => sh("freeShippingThreshold", num(e.target.value))} /></F>
+        <F label="Free shipping above (₹)" hint="Orders at or above this amount ship free. Updates everywhere at once: checkout charges, cart & drawer progress bar, announcement bar, product pages, FAQ, shipping policy and the chat assistant. 0 = always free."><input className={input} inputMode="numeric" value={s.shipping.freeShippingThreshold} onChange={(e) => sh("freeShippingThreshold", num(e.target.value))} /></F>
         <F label="Cash on delivery">
           <span className="flex min-h-11 items-center gap-2">
             <Switch checked={s.shipping.codEnabled} onCheckedChange={(v) => sh("codEnabled", v)} className="data-[state=checked]:bg-forest" /> Offer COD
