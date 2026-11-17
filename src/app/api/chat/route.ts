@@ -99,7 +99,10 @@ export async function POST(request: Request) {
   const history = trustedHistory(sessionId, parsed.data.history ?? []);
   // Reply language, decided once: the shopper's menu choice, else their latest message (voice aware).
   const lastUserText = history.findLast((turn) => turn.role === "user")?.text;
-  const lang: ChatLanguage = parsed.data.language ?? (parsed.data.voice ? voiceLanguage(message) : replyLanguage(message, lastUserText));
+  // Voice: the reply is read aloud, so Hindi speakers get Devanagari straight away (a Hindi voice reads it
+  // well and no extra conversion call is needed before speaking). English stays English.
+  const voiceLang = parsed.data.voice ? voiceLanguage(message) : null;
+  const lang: ChatLanguage = parsed.data.language ?? (voiceLang ? (voiceLang === "English" ? "English" : "Hindi") : replyLanguage(message, lastUserText));
   const log = (answer: string, engine: Parameters<typeof logChat>[0]["engine"], answered = true) => logChat({ sessionId, msgKey, question: message, answer, engine, answered });
   /** JSON reply + the signature the widget sends back with this answer in the next history. */
   const reply = (body: { answer: string } & Record<string, unknown>, init?: ResponseInit) =>
@@ -173,12 +176,14 @@ export async function POST(request: Request) {
       // Follow-ups ("aur 5 litre?") need the previous question's context too.
       const lastUser = history.findLast((turn) => turn.role === "user")?.text ?? "";
       // The new message's own matches come first; the previous question only adds context for follow-ups.
-      const grounding = [...searchChatKnowledge(message, knowledge, 6, 900), ...(lastUser ? searchChatKnowledge(`${message} ${lastUser}`, knowledge, 4, 900) : [])]
+      // Voice replies are 1-2 spoken sentences: a smaller context answers noticeably faster.
+      const [n1, n2, len, cap] = parsed.data.voice ? [4, 2, 500, 5] : [6, 4, 900, 9];
+      const grounding = [...searchChatKnowledge(message, knowledge, n1, len), ...(lastUser ? searchChatKnowledge(`${message} ${lastUser}`, knowledge, n2, len) : [])]
         .filter((entry, index, all) => all.findIndex((other) => other.href === entry.href && other.title === entry.title) === index)
-        .slice(0, 9);
+        .slice(0, cap);
       const catalog = knowledge.flatMap((entry) => entry.product ? [`${entry.product.title} [handle: ${entry.product.handle}] (${entry.excerpt.match(/^Sizes and prices: ([^.]*)/)?.[1] ?? `from ₹${entry.product.price}`})`] : []).join("; ");
       // Cache only history-free questions; key keeps word order ("A better than B" ≠ "B better than A").
-      const cacheKey = history.length ? null : `${lang}:${normalizeChatText(message).join(" ")}`;
+      const cacheKey = history.length ? null : `${lang}:${parsed.data.voice ? "voice:" : ""}${normalizeChatText(message).join(" ")}`;
       // Only strong matches become "read more" links; weak keyword hits looked random under AI answers.
       const strong = results.filter((result) => (result.score ?? 0) >= 5).slice(0, 2);
 
@@ -186,7 +191,7 @@ export async function POST(request: Request) {
       try {
         const answer = cached
           ? new ReadableStream<string>({ start(controller) { controller.enqueue(cached); controller.close(); } })
-          : await streamGeminiAnswer({ message: redactPII(message), history, sources: grounding, catalog, cacheKey, language: lang });
+          : await streamGeminiAnswer({ message: redactPII(message), history, sources: grounding, catalog, cacheKey, language: lang, voice: parsed.data.voice });
         let full = "";
         const body = answer.pipeThrough(new TransformStream<string, string>({
           transform(delta, controller) { full += delta; controller.enqueue(ndjson({ type: "text", delta })); },

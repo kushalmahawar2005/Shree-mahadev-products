@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
-import { ArrowUp, Check, Copy, Mic, ShieldCheck, Square, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { ArrowUp, Check, Copy, Mic, ShieldCheck, Square, ThumbsDown, ThumbsUp, Volume2, VolumeX, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { RichText, SourceLinks, TypingWave, textClass, type Source, type Suggestion } from "@/components/chat/ChatParts";
@@ -16,6 +16,7 @@ import { ease, rise, small, spring, staggerParent, tabSwap, tap } from "@/compon
 import type { OrderRow } from "@/components/chat/tabs/OrdersTab";
 import { useCart } from "@/components/cart/CartProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { canSpeak, primeSpeech, speak, speakFiller, stopSpeaking } from "@/components/chat/voice";
 import { ChatContainerContent, ChatContainerRoot, ChatContainerScrollAnchor } from "@/components/shadcn/chat-container";
 import { PromptInput, PromptInputAction, PromptInputActions, PromptInputTextarea } from "@/components/shadcn/prompt-input";
 import { ScrollButton } from "@/components/shadcn/scroll-button";
@@ -35,8 +36,13 @@ type ChatMessage = { role: "assistant" | "user"; text: string; key?: string; blo
 type Intent = "track" | "cancel" | "refund" | "return";
 
 /** Language for the widget's own fallback lines: the menu choice, else the shopper's last message. */
+function langOf(language: string, lastText: string): "Hindi" | "Hinglish" | "English" {
+  if (language === "Hindi" || language === "Hinglish" || language === "English") return language;
+  if (/[\u0900-\u097F]/.test(lastText)) return "Hindi";
+  return /\b(what|which|how|is|are|the|please|price|can|do|does|my|i)\b/i.test(lastText) && !/\b(hai|kya|kaise|ka|ki|ke|mein|aap|chahiye|kitna|nahi)\b/i.test(lastText) ? "English" : "Hinglish";
+}
 function lineFor(language: string, lastText: string, t: { en: string; hinglish: string; hi: string }) {
-  const lang = language !== "auto" ? language : /[\u0900-\u097F]/.test(lastText) ? "Hindi" : /\b(what|which|how|is|are|the|please|price|can|do|does|my|i)\b/i.test(lastText) && !/\b(hai|kya|kaise|ka|ki|ke|mein|aap|chahiye|kitna|nahi)\b/i.test(lastText) ? "English" : "Hinglish";
+  const lang = langOf(language, lastText);
   return lang === "Hindi" ? t.hi : lang === "English" ? t.en : t.hinglish;
 }
 type SpeechCtor = new () => { lang: string; interimResults: boolean; onresult: (event: { results: { 0: { transcript: string } }[] }) => void; onerror: (event: { error: string }) => void; onend: () => void; start: () => void; stop: () => void };
@@ -159,6 +165,10 @@ export function ChatWidget() {
   // Phones get a full-screen sheet (max-sm), so it slides up instead of scaling from the corner.
   const phone = useIsMobile();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadSaved()?.messages ?? [greeting]);
+  // Always the latest conversation: voice callbacks (mic result, hands-free re-listen) are created
+  // earlier and would otherwise send a stale history, so the bot "forgot" what was just discussed.
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
   const [tab, setTab] = useState<ChatTab>(() => loadSaved()?.tab ?? "chat");
   const [language, setLanguage] = useState<ChatLanguage>(() => loadSaved()?.language ?? "auto");
   const [catalog, setCatalog] = useState<ShopProduct[] | null>(null);
@@ -184,6 +194,19 @@ export function ChatWidget() {
   }, [cartDrawerOpen]);
   const [sheetRoot, setSheetRoot] = useState<HTMLElement | null>(null);
   const [listening, setListening] = useState(false);
+  // Voice mode: the shopper spoke, so replies are read aloud (Dadi ji's voice) and the mic re-opens after.
+  const voiceModeRef = useRef(false);
+  const [speakingKey, setSpeakingKey] = useState<string | null>(null);
+  const recognitionRef = useRef<{ stop: () => void } | null>(null);
+  const voiceOk = typeof window !== "undefined" && canSpeak();
+
+  /** Read one reply aloud; in voice mode, listen again when it ends. */
+  async function readAloud(key: string, text: string, langHint: string, thenListen = false) {
+    setSpeakingKey(key);
+    await speak(text, langOf(language, langHint));
+    setSpeakingKey((k) => (k === key ? null : k));
+    if (thenListen && voiceModeRef.current) startVoice(true);
+  }
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -264,6 +287,12 @@ export function ChatWidget() {
 
   function toggle(next: boolean) {
     setOpen(next);
+    if (!next) {
+      voiceModeRef.current = false;
+      recognitionRef.current?.stop();
+      stopSpeaking();
+      setSpeakingKey(null);
+    }
     if (!next) requestAnimationFrame(() => launcherRef.current?.focus());
     if (next || nudge) {
       setNudge(false);
@@ -440,6 +469,10 @@ export function ChatWidget() {
   async function submitQuestion(text: string, opts: { voice?: boolean } = {}) {
     const trimmed = text.trim();
     if (!trimmed || busy) return;
+    // A new question cuts the current reading; typing (not speaking) leaves voice mode.
+    stopSpeaking();
+    setSpeakingKey(null);
+    if (!opts.voice) voiceModeRef.current = false;
     if (looksLikePaymentSecret(trimmed)) {
       // Never sent to the server, Gemini or the transcript.
       setInput("");
@@ -451,7 +484,7 @@ export function ChatWidget() {
     sessionRef.current ??= newKey();
     const msgKey = newKey();
     // Assistant turns go back with the server's signature (unsigned ones are ignored by the server).
-    const history = messages
+    const history = messagesRef.current
       .slice(1)
       .filter((message) => message.text && (message.role === "user" || message.sig))
       .map(({ role, text: body, turn, sig }) => (role === "assistant" ? { role, text: (turn ?? body).slice(0, 2000), sig } : { role, text: body.slice(0, 2000) }))
@@ -459,6 +492,12 @@ export function ChatWidget() {
     setMessages((current) => [...current, { role: "user", text: trimmed }]);
     setInput("");
     setBusy(true);
+    // Spoken question and the answer takes a moment: say a short "जी, देखती हूँ…" so it never feels dead.
+    let fillerTimer: ReturnType<typeof setTimeout> | null = opts.voice ? setTimeout(() => speakFiller(langOf(language, trimmed)), 700) : null;
+    const stopFiller = () => {
+      if (fillerTimer) clearTimeout(fillerTimer);
+      fillerTimer = null;
+    };
     try {
       const response = await fetch("/api/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -489,6 +528,7 @@ export function ChatWidget() {
             if (event.type === "options" && Array.isArray((event as { options?: unknown }).options)) patchLast((message) => ({ ...message, options: (event as unknown as { options: string[] }).options }));
             if (event.type === "products" && event.products?.length) patchLast((message) => (message.cart?.action === "add" ? message : { ...message, products: event.products }));
             if (event.type === "text" && event.delta) {
+              stopFiller();
               full += event.delta;
               const visible = clean(full);
               patchLast((message) => ({ ...message, text: visible }));
@@ -496,6 +536,8 @@ export function ChatWidget() {
           }
         }
         const intent = full.match(ORDER_MARKER)?.[1] as Intent | undefined;
+        // Asked by voice: Dadi ji reads the answer out, then the mic listens again.
+        if (opts.voice && clean(full)) void readAloud(msgKey, clean(full), trimmed, !intent);
         patchLast((message) => ({
           ...message,
           streaming: false,
@@ -512,6 +554,7 @@ export function ChatWidget() {
       const data = await readJson<{ answer?: string; sources?: Source[]; suggestions?: Suggestion[]; products?: ShopProduct[]; action?: string; cartAction?: "cart" | "checkout"; blocks?: unknown; error?: string; turn?: string; sig?: string }>(response);
       if (!response.ok) throw new Error(data.error || "Please try again.");
       setMessages((current) => [...current, { role: "assistant", key: msgKey, turn: data.turn, sig: data.sig, text: data.answer ?? "I couldn't find an answer.", sources: data.sources, suggestions: data.suggestions, products: data.products, ...(data.cartAction ? { cart: { action: data.cartAction } } : {}), blocks: parseBlocks(data.blocks) }]);
+      if (opts.voice && data.answer) void readAloud(msgKey, data.answer, trimmed, !data.action);
       if (data.action === "orders") await loadOrders(intentFor(trimmed), LIST_WORDS.test(trimmed));
       if (data.action === "reorder") await reorderLatest();
     } catch (error) {
@@ -521,6 +564,7 @@ export function ChatWidget() {
         hi: "मैसेज नहीं जा पाया। इंटरनेट देखकर फिर से भेजें।",
       }) }]);
     } finally {
+      stopFiller();
       setBusy(false);
     }
   }
@@ -579,9 +623,21 @@ export function ChatWidget() {
       ?? (window as unknown as { webkitSpeechRecognition?: SpeechCtor }).webkitSpeechRecognition)
     : undefined;
 
-  function startVoice() {
-    if (!Speech || listening) return;
+  function startVoice(auto = false) {
+    if (!Speech) return;
+    // Tapping the mic while it listens turns voice mode off.
+    if (listening) {
+      voiceModeRef.current = false;
+      recognitionRef.current?.stop();
+      return;
+    }
+    stopSpeaking();
+    setSpeakingKey(null);
+    voiceModeRef.current = true;
+    // This tap is the user gesture mobile browsers need before the reply can be spoken later.
+    if (!auto) primeSpeech();
     const recognition = new Speech();
+    recognitionRef.current = recognition as unknown as { stop: () => void };
     // The language menu decides: English → en-IN, otherwise Hindi voice (it also hears Hinglish).
     recognition.lang = language === "English" ? "en-IN" : "hi-IN";
     recognition.interimResults = false;
@@ -592,7 +648,8 @@ export function ChatWidget() {
     recognition.onerror = (event) => {
       setListening(false);
       if (event.error === "not-allowed" || event.error === "service-not-allowed") say("Mic ki permission nahi mili 🎙️\n\nBrowser ke address bar mein mic icon par click karke **Allow** kijiye, phir dobara try kijiye.");
-      else if (event.error === "no-speech") say("Kuch sunai nahi diya. Mic button dabake dobara boliye. 🙂");
+      // Hands-free re-listen that hears nothing: just end voice mode quietly (no nagging message).
+      else if (event.error === "no-speech") { voiceModeRef.current = false; if (!auto) say("Kuch sunai nahi diya. Mic button dabake dobara boliye. 🙂"); }
       else if (event.error !== "aborted") say("Voice abhi kaam nahi kar raha. Please type karke poochiye.");
     };
     recognition.onend = () => setListening(false);
@@ -755,6 +812,26 @@ export function ChatWidget() {
             {message.role === "assistant" && !message.streaming && !!message.blocks?.length && <BlockList blocks={message.blocks} handlers={blockHandlers} actionKey={message.key ?? String(index)} />}
             {message.role === "assistant" && !message.streaming && message.key && (
                     <div className="mt-1 flex items-center gap-0.5 pl-9">
+                      {voiceOk && message.text && (
+                        <motion.button
+                          whileTap={{ scale: 0.9, transition: spring.press }}
+                          type="button"
+                          onClick={() => {
+                            if (speakingKey === message.key) {
+                              stopSpeaking();
+                              setSpeakingKey(null);
+                            } else {
+                              primeSpeech();
+                              void readAloud(message.key!, message.text, message.text);
+                            }
+                          }}
+                          aria-label={speakingKey === message.key ? "Stop reading" : "Read aloud"}
+                          title={speakingKey === message.key ? "Rokein" : "Sunein"}
+                          className={`${iconBtn} ${speakingKey === message.key ? "text-forest" : ""}`}
+                        >
+                          {speakingKey === message.key ? <VolumeX size={14} className="animate-pulse" /> : <Volume2 size={14} />}
+                        </motion.button>
+                      )}
                       <motion.button whileTap={{ scale: 0.9, transition: spring.press }} type="button" onClick={() => void copyMessage(message)} aria-label="Copy answer" title="Copy" className={iconBtn}><AnimatePresence mode="wait" initial={false}>{copied === message.key ? <motion.span key="ok" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1, transition: spring.press }} exit={{ scale: 0.4, opacity: 0, transition: { duration: 0.12, ease: ease.inQuart } }}><Check size={14} className="text-forest" /></motion.span> : <motion.span key="copy" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1, transition: spring.press }} exit={{ scale: 0.4, opacity: 0, transition: { duration: 0.12, ease: ease.inQuart } }}><Copy size={14} /></motion.span>}</AnimatePresence></motion.button>
                       <motion.button whileTap={{ scale: 0.9, transition: spring.press }} type="button" onClick={() => void sendFeedback(message, 1)} aria-label="Helpful" title="Helpful" disabled={!!message.feedback} className={`${iconBtn} ${message.feedback === 1 ? "text-forest" : ""}`}><ThumbsUp size={14} fill={message.feedback === 1 ? "currentColor" : "none"} /></motion.button>
                       <motion.button whileTap={{ scale: 0.9, transition: spring.press }} type="button" onClick={() => void sendFeedback(message, -1)} aria-label="Not helpful" title="Not helpful" disabled={!!message.feedback} className={`${iconBtn} ${message.feedback === -1 ? "text-alert" : ""}`}><ThumbsDown size={14} fill={message.feedback === -1 ? "currentColor" : "none"} /></motion.button>
@@ -843,7 +920,7 @@ export function ChatWidget() {
                       <PromptInputActions className="shrink-0 gap-0.5 pb-0.5 pr-0.5">
                         {Speech && (
                           <PromptInputAction tooltip="Bol kar poochiye (Hindi)">
-                            <button type="button" onClick={startVoice} aria-label="Speak your question" className={`grid size-10 place-items-center rounded-full transition-colors ${listening ? "animate-pulse bg-alert text-white" : "text-forest hover:bg-co-brand-soft"}`}><Mic size={18} /></button>
+                            <button type="button" onClick={() => startVoice()} aria-label={listening ? "Stop listening" : "Speak your question"} className={`grid size-10 place-items-center rounded-full transition-colors ${listening ? "animate-pulse bg-alert text-white" : "text-forest hover:bg-co-brand-soft"}`}><Mic size={18} /></button>
                           </PromptInputAction>
                         )}
                         <PromptInputAction tooltip={busy ? "Wait…" : "Send"}>

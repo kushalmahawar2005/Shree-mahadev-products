@@ -64,7 +64,8 @@ const LANGUAGE_RULE = {
  * Free-tier quotas are per model and per minute, so a 429 on one model falls
  * through to the next before the route gives up and uses the local answer.
  */
-const MODELS = () => [...new Set([process.env.GEMINI_MODEL || "gemini-3.5-flash-lite", "gemini-2.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash"])];
+// 2.5 models are closed to new keys (404) and only burned an attempt from the 12 s budget.
+const MODELS = () => [...new Set([process.env.GEMINI_MODEL || "gemini-3.5-flash-lite", "gemini-3.1-flash-lite"])];
 const coolingUntil = new Map<string, number>();
 /** Groq (OpenAI-compatible API) is the backup when every Gemini model fails or no Gemini key is set. */
 const GROQ_MODELS = () => [...new Set([process.env.GROQ_MODEL || "openai/gpt-oss-120b", "openai/gpt-oss-20b"])];
@@ -91,6 +92,7 @@ How to answer:
 - Use **bold** only for product names, prices and key facts. At most one emoji. Never use headings or tables. Never repeat the question.
 - Use ONLY facts from STORE INFORMATION below. Never invent prices, sizes, offers, discounts, delivery dates, stock or lab results. If the information is not there, say you are not sure and suggest WhatsApp ${site.phone}. Only mention WhatsApp/contact when you could not fully answer.
 - Prices are in Indian rupees (₹). Mention the size with every price.
+- Sizes: read the product's "Sizes and prices" in the Catalog / STORE INFORMATION before answering. Every size listed with a ₹ price IS available. Say a size is unavailable ONLY when it is listed as "currently unavailable" or not listed at all.
 - When recommending, compare honestly using the store information (taste, use, size, price) and name the product exactly as listed.
 - Health: share product facts only. Never claim a product cures, treats or prevents any disease, and never give dosage or medical advice; suggest a doctor for health conditions.
 - Stay on topic (the store, its products, cooking with them, orders, shipping, payments, policies). Politely decline anything unrelated.
@@ -170,14 +172,16 @@ export async function streamGeminiAnswer(input: {
   cacheKey: string | null;
   /** Shopper's choice from the widget menu; otherwise each message's own language. */
   language?: "English" | "Hinglish" | "Hindi";
+  /** The message came from voice typing (may contain mis-heard words; reply will be read aloud). */
+  voice?: boolean;
 }): Promise<ReadableStream<string>> {
   const contents = [
     ...input.history.slice(-6).map((turn) => ({ role: turn.role === "user" ? "user" : "model", parts: [{ text: turn.text.slice(0, 800) }] })),
-    { role: "user", parts: [{ text: `${contextBlock(input.sources, input.catalog)}\n\nLANGUAGE: ${LANGUAGE_RULE[input.language ?? replyLanguage(input.message, input.history.findLast((turn) => turn.role === "user")?.text)]}\n\nCUSTOMER: ${input.message}` }] },
+    { role: "user", parts: [{ text: `${contextBlock(input.sources, input.catalog)}\n\nLANGUAGE: ${LANGUAGE_RULE[input.language ?? replyLanguage(input.message, input.history.findLast((turn) => turn.role === "user")?.text)]}${input.voice ? `\n\nVOICE: The customer SPOKE this message (voice typing). It may contain mis-heard words, e.g. "कल नेट"/"कोकोनट" = coconut, "ग्राउंड नेट" = groundnut, "मस्टर्ड"/"सरसों" = mustard, "हनी" = honey, "100 नंबर" = 100 ml. Use the earlier conversation to work out what they mean instead of saying you didn't understand. "यह"/"ये"/"इसको" means the product just discussed. Your reply will be read aloud: keep it to 1-2 short sentences, write product names in Hindi.` : ""}\n\nCUSTOMER: ${input.message}` }] },
   ];
 
-  let response: Response | null = null;
-  let provider: "gemini" | "groq" = "gemini";
+  let response = null as Response | null; // assigned inside tryGemini / tryGroq
+  let provider = "gemini" as "gemini" | "groq";
   let lastError = "no model available";
   // One budget for the whole answer: at most 3 provider attempts and 12 s to the first byte, so a slow
   // or rate-limited AI can't keep the shopper (and a server worker) waiting minutes before the local answer.
@@ -187,6 +191,8 @@ export async function streamGeminiAnswer(input: {
     const left = deadline - Date.now();
     return attempts < 3 && left > 1_500 ? left : 0;
   };
+  const tryGemini = async () => {
+    if (response?.body) return;
   for (const model of process.env.GEMINI_API_KEY ? MODELS() : []) {
     if ((coolingUntil.get(model) ?? 0) > Date.now()) continue;
     const left = budget();
@@ -201,7 +207,7 @@ export async function streamGeminiAnswer(input: {
         generationConfig: {
           temperature: 0.3,
           // Replies are meant to be under ~60 words; this leaves room for markers and Devanagari.
-          maxOutputTokens: 500,
+          maxOutputTokens: input.voice ? 280 : 500,
           ...(/gemini-[3-9]/.test(model) ? { thinkingConfig: { thinkingLevel: "minimal" } } : {}),
         },
       }),
@@ -214,7 +220,9 @@ export async function streamGeminiAnswer(input: {
       else if (attempt.status !== 404) break;
     }
   }
-  if (!response?.body && process.env.GROQ_API_KEY) {
+  };
+  const tryGroq = async () => {
+    if (response?.body || !process.env.GROQ_API_KEY) return;
     // Backup provider: same system prompt, store context and history, OpenAI-style messages.
     const messages = [
       { role: "system", content: SYSTEM },
@@ -248,7 +256,11 @@ export async function streamGeminiAnswer(input: {
         else if (attempt.status !== 404) break;
       }
     }
-  }
+  };
+  // Gemini first (it follows the store information and the conversation best; Groq was faster but
+  // mixed up products and ran into its free-tier limits in tests), Groq as the backup.
+  await tryGemini();
+  await tryGroq();
   if (!response?.body) throw new Error(`AI unavailable: ${lastError}`);
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
