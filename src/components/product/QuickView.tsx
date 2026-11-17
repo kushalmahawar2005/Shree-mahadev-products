@@ -20,14 +20,17 @@ export function QuickView({ product: p }: { product: Product }) {
   const uses = shopByUse.filter((u) => p.tags.includes(u.tag));
   const body = (
     <VariantImageProvider>
-      <div className="grid gap-6 md:grid-cols-2">
-        <Gallery images={p.images} title={p.title} swatch={p.swatch} />
-        <div>
-          <p className="font-hindi text-lg text-co-accent-ink" lang="hi">
+      {/* Photo column sized to the dialog (not the viewport) and kept in view while the buy box scrolls. */}
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] md:gap-8">
+        <div className="min-w-0 md:sticky md:top-0 md:self-start">
+          <Gallery images={p.images} title={p.title} swatch={p.swatch} fit />
+        </div>
+        <div className="min-w-0">
+          <p className="font-hindi text-base leading-snug text-co-accent-ink md:text-lg" lang="hi">
             {p.titleHi}
           </p>
-          <p className="mt-1 text-2xl leading-tight text-ink md:text-3xl">{p.title}</p>
-          <p className="mt-2 text-ink-muted">{p.shortDescription.replace(/\*\*/g, "")}</p>
+          <p className="mt-1 text-[22px] leading-tight font-semibold text-ink md:text-[28px]">{p.title}</p>
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-muted md:text-base">{p.shortDescription.replace(/\*\*/g, "")}</p>
           <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-ink-muted">
             <li>Wood-pressed</li>
             <li>· No chemicals</li>
@@ -80,7 +83,7 @@ export function QuickView({ product: p }: { product: Product }) {
           </Sheet>
         ) : (
           <Dialog open onOpenChange={setOpen}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl bg-page p-6 sm:max-w-4xl">
+            <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl bg-page p-6 sm:max-w-5xl md:p-8">
               <DialogTitle className="sr-only">{p.title}</DialogTitle>
               <DialogDescription className="sr-only">Quick view</DialogDescription>
               {body}

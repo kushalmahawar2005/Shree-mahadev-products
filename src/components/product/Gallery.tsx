@@ -36,12 +36,15 @@ export function Gallery({
   swatch = "#d0b17a",
   badge,
   video,
+  fit = false,
 }: {
   images: ProductImage[];
   title: string;
   swatch?: string;
   badge?: React.ReactNode;
   video?: GalleryVideo;
+  /** Inside a container (quick view): size to the column instead of the viewport, compact on phones. */
+  fit?: boolean;
 }) {
   const { size } = useVariantImage();
   const images = forSize(all, size);
@@ -97,10 +100,10 @@ export function Gallery({
   return (
     // Desktop: the stage width follows the viewport height (4:5 photo fits above the fold) and the
     // page grid gives the buy box whatever is left, so there's no dead gap between the two.
-    <div className="lg:[--stage-w:min(calc((100svh-150px)*0.88),48vw,680px)]">
+    <div className={fit ? "[--stage-w:100%]" : "lg:[--stage-w:min(calc((100svh-150px)*0.88),48vw,680px)]"}>
       <div
         ref={stageRef}
-        className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-[28px] border border-line bg-sunken sm:max-lg:aspect-auto sm:max-lg:h-[min(56svh,500px)] sm:max-lg:bg-[#fbf5e5] lg:w-[var(--stage-w)] lg:shrink-0"
+        className={cn("group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-[28px] border border-line bg-sunken sm:max-lg:aspect-auto sm:max-lg:h-[min(56svh,500px)] sm:max-lg:bg-[#fbf5e5] lg:w-[var(--stage-w)] lg:shrink-0", fit && "max-md:mx-auto max-md:w-[62%] sm:max-lg:aspect-[4/5] sm:max-lg:h-auto lg:w-full")}
         role="region"
         aria-roledescription="carousel"
         aria-label={`${title} images`}
@@ -240,7 +243,7 @@ export function Gallery({
       </Dialog>
 
       {many && (
-        <div ref={thumbsRef} data-pdp-thumbs="" className="no-scrollbar mt-3 flex gap-2.5 overflow-x-auto pb-1 lg:w-[var(--stage-w)]">
+        <div ref={thumbsRef} data-pdp-thumbs="" className={cn("no-scrollbar mt-3 flex gap-2.5 overflow-x-auto pb-1 lg:w-[var(--stage-w)]", fit && "max-md:justify-center")}>
           {images.map((im, n) => (
             <button
               key={im.url}

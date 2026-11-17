@@ -924,3 +924,10 @@ body:has([data-float="sticky-cta"]) .chat-float {
     display: none;
   }
 }
+
+/* Quick view / any sheet or dialog open: the chat launcher steps aside so it never covers Buy / Add buttons. */
+body:has([data-slot="sheet-content"][data-state="open"]) .chat-float:not(:has(section[role="dialog"])),
+body:has([data-slot="dialog-content"][data-state="open"]) .chat-float:not(:has(section[role="dialog"])) {
+  opacity: 0;
+  pointer-events: none;
+}
