@@ -86,7 +86,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
     available.length === 0 ? (
       <Link
         href={href}
-        className="inline-flex h-8 w-full items-center justify-center rounded-full border border-forest px-2 text-[12.5px] whitespace-nowrap sm:h-11 sm:px-4 sm:text-sm font-medium text-forest transition-colors hover:bg-forest hover:text-white"
+        className="inline-flex h-10 w-full items-center justify-center rounded-full border border-forest px-2 text-[12.5px] whitespace-nowrap sm:h-11 sm:px-4 sm:text-sm font-medium text-forest transition-colors hover:bg-forest hover:text-white"
       >
         Coming soon<span className="@max-[200px]:hidden">&nbsp;· View details</span>
       </Link>
@@ -102,12 +102,12 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
         {selected?.outOfStock ? (
           <NotifyMe key={selected.id} variantKey={selected.id} sizeLabel={`${shortTitle(product.title)} ${selected.title}`} compact />
         ) : line && !added ? (
-          <motion.div layout className="flex h-8 items-center gap-1 rounded-full bg-forest p-0.5 text-white sm:h-11 sm:p-1" aria-label={`${line.quantity} in cart`}>
+          <motion.div layout className="flex h-10 items-center gap-1 rounded-full bg-forest p-0.5 text-white sm:h-11 sm:p-1" aria-label={`${line.quantity} in cart`}>
             <button
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity - 1))}
-              className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
+              className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Remove one"
             >
               <Minus className="size-4" />
@@ -137,7 +137,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
               type="button"
               disabled={busy}
               onClick={() => withBusy(() => update(line.id, line.quantity + 1))}
-              className="grid size-7 shrink-0 place-items-center rounded-full bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
+              className="grid size-9 shrink-0 place-items-center rounded-full bg-white/10 sm:size-9 transition-colors hover:bg-white/20 disabled:opacity-60"
               aria-label="Add one more"
             >
               <Plus className="size-4" />
@@ -149,7 +149,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
             type="button"
             disabled={busy}
             onClick={onAdd}
-            className="btn-shine inline-flex h-8 w-full items-center justify-center gap-1.5 overflow-hidden rounded-full bg-forest px-3 text-[12.5px] sm:h-11 sm:gap-2 sm:text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
+            className="btn-shine inline-flex h-10 w-full items-center justify-center gap-1.5 overflow-hidden rounded-full bg-forest px-3 text-[12.5px] sm:h-11 sm:gap-2 sm:text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
             aria-label={`Add ${product.title} ${selected?.title ?? ""} to cart`}
           >
             <AnimatePresence mode="wait" initial={false}>

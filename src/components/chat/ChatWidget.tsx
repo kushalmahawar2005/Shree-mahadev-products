@@ -751,7 +751,7 @@ export function ChatWidget() {
   return (
     <MotionConfig reducedMotion="user">
       <LayoutGroup>
-        <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] right-4 z-[80] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+        <div className="chat-float fixed bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] right-4 z-[80] flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
           <AnimatePresence>
             {open && (
               <motion.section

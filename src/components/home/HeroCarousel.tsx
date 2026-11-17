@@ -191,7 +191,8 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                   alt={s.alt}
                   width={HERO_WIDTH}
                   height={HERO_HEIGHT}
-                  priority={i === 0}
+                  // No `priority`/`preload` here: it would preload the DESKTOP file even on phones, which
+                  // pick the <source> above. fetchPriority + eager lets the browser fetch the right one first.
                   fetchPriority={i === 0 ? "high" : "low"}
                   loading={i === 0 ? "eager" : "lazy"}
                   sizes="100vw"

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { animate } from "motion";
-import { revealImage } from "@/components/motion/Reveal";
 import { DUR, EASE, STAGGER, prefersReducedMotion } from "@/lib/motion";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
@@ -68,8 +67,7 @@ export function Gallery({
   // Page open: main image scales 1.1 → 1 and fades in once loaded; thumbnails slide in alongside
   // (from the side when they sit under the image, from below when they are a left column).
   useEffect(() => {
-    const stage = stageRef.current;
-    if (stage) void revealImage(stage);
+    // The main photo is the page's LCP: it is shown at once (no hidden-until-revealed state).
     const rail = thumbsRef.current;
     if (!rail) return;
     const items = [...rail.children] as HTMLElement[];
@@ -102,7 +100,6 @@ export function Gallery({
     <div className="lg:[--stage-w:min(calc((100svh-150px)*0.88),48vw,680px)]">
       <div
         ref={stageRef}
-        data-img-reveal=""
         className="group relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-[28px] border border-line bg-sunken sm:max-lg:aspect-auto sm:max-lg:h-[min(56svh,500px)] sm:max-lg:bg-[#fbf5e5] lg:w-[var(--stage-w)] lg:shrink-0"
         role="region"
         aria-roledescription="carousel"
@@ -167,7 +164,7 @@ export function Gallery({
               alt={img!.alt}
               width={img!.width}
               height={img!.height}
-              priority={i === 0}
+              preload={i === 0}
               sizes="(min-width: 1024px) 560px, 100vw"
               className={cn(
                 "pointer-events-none transition-transform duration-200 ease-out",

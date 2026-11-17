@@ -485,10 +485,7 @@ html[data-admin-theme="dark"] {
 @media (min-width: 1000px) { :root { --reveal-y: 60px; } }
 @media (prefers-reduced-motion: reduce) { :root { --reveal-y: 0px; } }
 
-/* 1 · Page open: body hidden until hydrated + fonts ready (inline script sets the attribute,
-   PageReady removes it; a fail-safe removes it after 3s). Opacity only, no layout movement. */
-body { transition: opacity 0.2s ease-in; }
-body[data-unresolved] { opacity: 0; }
+/* 1 · Page open: painted immediately (no body-wide hide; that delayed LCP until hydration). */
 
 /* Reveal "before" states. Only with JS (html.js-motion) and only until revealed. */
 html.js-motion:not(.motion-failsafe) [data-reveal]:not([data-revealed]),
@@ -881,4 +878,42 @@ html.js-motion:not(.motion-failsafe) [data-pdp-thumbs]:not([data-revealed]) > * 
 @keyframes shimmer {
   0% { background-position: 200% 50%; }
   100% { background-position: -200% 50%; }
+}
+
+/* ───────── Floating layers on the storefront (chat launcher, cookie strip, login nudge, sticky CTA) ─────────
+   Each floating thing carries a data-float marker; :has() keeps them from covering each other without
+   any shared JS state. The chat launcher moves above whatever is showing and hides behind open drawers. */
+.chat-float {
+  transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+body:has([data-drawer-open]) .chat-float {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Desktop: the sticky Add-to-cart bar runs full width at the bottom. */
+body:has([data-float="sticky-cta"]) .chat-float {
+  bottom: 6rem;
+}
+@media (max-width: 767px) {
+  /* Cookie strip (≈3rem tall) sits above the bottom bar: launcher goes above it. */
+  body:has([data-float="consent"]) .chat-float {
+    bottom: calc(env(safe-area-inset-bottom) + 8.5rem);
+  }
+  /* Sticky Add-to-cart (≈4.25rem) above the bottom bar: launcher goes above it. */
+  body:has([data-float="sticky-cta"]) .chat-float {
+    bottom: calc(env(safe-area-inset-bottom) + 8.5rem);
+  }
+  /* Both: the cookie strip moves above the sticky bar, the launcher above both. */
+  body:has([data-float="sticky-cta"]) [data-float="consent"] {
+    bottom: calc(env(safe-area-inset-bottom) + 8.25rem);
+  }
+  body:has([data-float="sticky-cta"]):has([data-float="consent"]) .chat-float {
+    bottom: calc(env(safe-area-inset-bottom) + 12.25rem);
+  }
+  /* One message at a time: the login nudge waits until the cookie choice is made, and stays out
+     of the way of the sticky Add-to-cart. */
+  body:has([data-float="consent"]) [data-float="login-nudge"],
+  body:has([data-float="sticky-cta"]) [data-float="login-nudge"] {
+    display: none;
+  }
 }

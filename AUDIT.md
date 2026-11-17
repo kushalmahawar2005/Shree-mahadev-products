@@ -280,3 +280,30 @@ Not committed (waiting for review). No new migration.
 - Flagged orders show an "⚠ Attention" badge in the admin orders list, count in the dashboard task bar ("Orders flagged"), and appear under the "Needs action" filter.
 
 **Tests**: `test-money-safety` **40/40** (14 new for Batch 3) · `tsc` ✅ · eslint on changed files ✅ · cart-math 7/7 · invoice-math 13/13.
+
+---
+
+## 11. Batch 4 status (sales + speed + SEO), 2026-11-17
+
+Not committed (waiting for review). No migration.
+
+| ID | Status | Fix |
+|---|---|---|
+| P1-17 | **Fixed** | `PAGE_OPEN_SCRIPT` no longer hides `body` until hydration + fonts (`components/motion/PageReady.tsx`, `globals.css`); scroll reveals below the fold keep working. PDP main photo is no longer behind a reveal (it is the LCP): `product/Gallery.tsx` |
+| P1-18 | **Fixed** | Hero first slide: dropped `priority` (it preloaded the desktop file on phones); `fetchPriority="high"` + eager lets the browser fetch the right `<source>` (`home/HeroCarousel.tsx`) |
+| P1-19 | **Fixed** | `src/proxy.ts`: product / collection handles and collection redirects cached per process for 60 s (one small query a minute instead of one per request); real 404 status kept. A brand-new product can 404 for up to a minute |
+| P1-20 | **Fixed** | Tiro Devanagari: normal only (italic unused), Devanagari subset; Mukta: Devanagari subset (Latin is Figtree); both `preload: false` (`(site)/layout.tsx`). Figtree unchanged (all 5 weights are used) |
+| P1-21 | **Fixed** | Product JSON-LD: every size as an Offer with In/OutOfStock, `itemCondition`, `seller`; `aggregateRating` only at 5+ reviews like the page (`utils/seo.ts`) |
+| P1-22 | **Fixed** | `src/app/(site)/error.tsx` (branded, inside the site layout, Try again / Home / Cart / WhatsApp) and `src/app/global-error.tsx` (own html/body, inline styles). Uses Next 16 `retry` prop |
+| P1-23 | **Fixed** | `public/og-default.png` (1200×630: logo, line, 6 products). Layout default + `pageMetadata` always sets an image (own photo or the default) and a large Twitter card |
+| P1-24 | **Fixed** | Floating layers on phones (`globals.css` "Floating layers" block + `data-float` markers): chat launcher moves above the cookie strip / sticky Add-to-cart, cookie strip moves above the sticky bar, launcher hides behind open drawers (cart, menu); login nudge waits until the cookie choice and hides with the sticky bar; desktop launcher lifts above the sticky bar. Verified at 360px: no overlaps, drawer hides the launcher |
+| P1-25 | **Fixed** | Home "Top picks" card: Add to cart 40px, stepper 40px with 36px +/- (`home/PickCard.tsx`) |
+| P1-26 | **Fixed** | New `src/lib/search/product-match.ts`: Hinglish/Hindi synonyms (sarson, moongfali, til, alsi, shahad, सरसों…), typo tolerance (1–2 letters), title-first ranking. Used by the search page and the header search box. Verified: sarson / musturd → both mustard oils, moongfali → groundnut, honay → all honeys |
+| P2-22 | **Fixed** | Site-wide `canonical: "/"` removed from the layout; home sets its own |
+| P2-23 | **Fixed** | Gallery `priority` → `preload`; hero has neither (see P1-18) |
+| P2-24 | **Fixed** | Sitemap: no fake `lastModified: now` on static pages / collections |
+| P2-25 | **Partly** | robots: `/order` no longer blocked (it's noindex), non-standard `host` removed. FAQPage JSON-LD on PDPs left as is (harmless) |
+
+Also: sticky Add-to-cart uses the motion token instead of `easeInOut`.
+
+**Tests**: `tsc` ✅ · `eslint src` 0 errors (old CheckoutForm warning) · `pnpm build` ✅ · cart-math 7/7 · money-safety 40/40 · 360px browser checks (overlaps, drawer, search, PDP photo visible, og:image, JSON-LD offers). Not measured: real LCP on a production build / phone network (dev mode numbers aren't meaningful).

@@ -1,6 +1,7 @@
 "use client";
 
 import { thumbUrl } from "@/lib/image-loader";
+import { rankProducts } from "@/lib/search/product-match";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -77,9 +78,7 @@ export function SearchBox({
   const cat = categories.find((c) => c.href === hoverCat);
   const catHandle = cat?.href.split("/").pop();
   const matches = term
-    ? all
-        .filter((p) => `${p.title} ${p.titleHi}`.toLowerCase().includes(term))
-        .slice(0, 4)
+    ? rankProducts(term, all, (p) => ({ title: p.title, titleHi: p.titleHi, extra: p.handle.replace(/-/g, " ") })).slice(0, 4)
     : cat
       ? all.filter((p) => p.collections?.includes(catHandle!)).slice(0, 4)
       : recommended.slice(0, 4);

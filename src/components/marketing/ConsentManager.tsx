@@ -151,7 +151,7 @@ export function ConsentManager() {
       {clarityId && <Script id="smp-clarity" strategy="afterInteractive">{`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src='https://www.clarity.ms/tag/'+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,'clarity','script','${clarityId}');`}</Script>}
     </>}
     {/* Compact strip: one short line + two small buttons, so it never covers the product or Add to cart. */}
-    {choice === null && <aside aria-label="Privacy choices" className="fixed inset-x-2 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-3 rounded-full border border-line bg-white/95 py-1.5 pl-4 pr-1.5 shadow-lg backdrop-blur md:inset-x-auto md:bottom-4 md:left-4 md:max-w-md">
+    {choice === null && <aside aria-label="Privacy choices" data-float="consent" className="fixed inset-x-2 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[70] flex items-center gap-3 rounded-full border border-line bg-white/95 py-1.5 pl-4 pr-1.5 shadow-lg backdrop-blur md:inset-x-auto md:bottom-4 md:left-4 md:max-w-md">
       <p className="min-w-0 flex-1 text-xs leading-snug text-ink-muted">
         We use cookies for analytics &amp; ads.{" "}
         <Link href="/policies/privacy" prefetch={false} className="font-medium text-forest underline underline-offset-2">Learn more</Link>

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { ReelStories, Reels, type ReelItem } from "@/components/home/Reels";
 import { getHomeVideos } from "@/lib/home-videos";
 import { getStoreSettings } from "@/lib/server/store-settings";
@@ -35,6 +36,9 @@ const SHOW_BEYOND_OILS = false;
  * Homepage. Below the hero the section order and layout follow twobrothersindiashop.com:
  * Top Picks → promo strip → brand film → proof → shop by use → spotlight + endorsements → beyond.
  */
+/** Home owns the "/" canonical (it used to come from the layout and leak onto every page). */
+export const metadata: Metadata = { alternates: { canonical: "/" } };
+
 export default async function HomePage() {
   const [all, ...pickLists] = await Promise.all([
     getProducts(),

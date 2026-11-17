@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
+import { showRating } from "@/lib/utils/reviews";
 import type { Product } from "@/lib/commerce/types";
 import { fullAddress, site } from "@/data/site";
 
 export function absoluteUrl(path = "/") {
   return new URL(path, site.url).toString();
 }
+
+/** Share card for pages without their own image (home, shop, content pages): public/og-default.png. */
+export const DEFAULT_OG_IMAGE = "/og-default.png";
 
 export function pageMetadata({
   title,
@@ -28,8 +32,10 @@ export function pageMetadata({
       siteName: site.name,
       locale: "en_IN",
       type: "website",
-      ...(image ? { images: [{ url: image }] } : {}),
+      // A page-level openGraph replaces the layout's, so always carry an image (own photo or the default card).
+      images: image ? [{ url: image }] : [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: site.name }],
     },
+    twitter: { card: "summary_large_image", images: [image ?? DEFAULT_OG_IMAGE] },
   };
 }
 
@@ -74,17 +80,19 @@ export function localBusinessJsonLd() {
 }
 
 export function productJsonLd(p: Product) {
-  const offers = p.variants
-    .filter((v) => v.availableForSale)
-    .map((v) => ({
-      "@type": "Offer",
-      sku: v.sku,
-      name: `${p.title} ${v.title}`,
-      price: v.price.amount,
-      priceCurrency: v.price.currencyCode,
-      availability: "https://schema.org/InStock",
-      url: absoluteUrl(`/products/${p.handle}`),
-    }));
+  // Every size, with its real stock state: a sold-out product still has valid offers (OutOfStock)
+  // instead of none, which made the Product invalid for Google rich results.
+  const offers = p.variants.map((v) => ({
+    "@type": "Offer",
+    sku: v.sku,
+    name: `${p.title} ${v.title}`,
+    price: v.price.amount,
+    priceCurrency: v.price.currencyCode,
+    availability: v.availableForSale ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    itemCondition: "https://schema.org/NewCondition",
+    url: absoluteUrl(`/products/${p.handle}`),
+    seller: { "@type": "Organization", name: site.name },
+  }));
   return {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -94,7 +102,8 @@ export function productJsonLd(p: Product) {
     image: p.images.map((i) => absoluteUrl(i.url)),
     brand: { "@type": "Brand", name: site.name },
     ...(offers.length ? { offers } : {}),
-    ...(p.rating && p.reviewCount
+    // Only when the page itself shows the rating (5+ reviews): markup must match visible content.
+    ...(p.rating && showRating(p.reviewCount)
       ? {
           aggregateRating: {
             "@type": "AggregateRating",

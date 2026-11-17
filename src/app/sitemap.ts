@@ -30,8 +30,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   return [
-    ...fixed.map(([path, priority, changeFrequency]) => ({ url: absoluteUrl(path), lastModified: now, changeFrequency, priority })),
-    ...collections.map((c) => ({ url: absoluteUrl(`/collections/${c.handle}`), lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 })),
+    // No lastModified on static pages / collections: "now" on every crawl teaches Google to ignore the field.
+    ...fixed.map(([path, priority, changeFrequency]) => ({ url: absoluteUrl(path), changeFrequency, priority })),
+    ...collections.map((c) => ({ url: absoluteUrl(`/collections/${c.handle}`), changeFrequency: "weekly" as const, priority: 0.8 })),
     ...products.map((p) => ({
       url: absoluteUrl(`/products/${p.handle}`),
       lastModified: toDate((p as { updatedAt?: string }).updatedAt),

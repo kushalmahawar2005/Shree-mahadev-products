@@ -1,4 +1,5 @@
 import "server-only";
+import { rankProducts } from "@/lib/search/product-match";
 import { catalogIsEmpty, findVariants, loadCollections, loadProducts } from "@/lib/server/catalog";
 import { getCollectionProductHandles } from "@/lib/server/collections";
 import { sweepExpiredHolds } from "@/lib/server/inventory";
@@ -133,12 +134,13 @@ export const dbProvider: CommerceProvider = {
   },
 
   async searchProducts(query) {
-    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    if (!terms.length) return [];
-    return (await active()).filter((p) => {
-      const hay = [p.title, p.titleHi, p.shortDescription, ...p.tags, ...p.bestFor].join(" ").toLowerCase();
-      return terms.every((t) => hay.includes(t));
-    });
+    if (!query.trim()) return [];
+    // Hinglish / Hindi names, small typos, title hits ranked first (see lib/search/product-match).
+    return rankProducts(query, await active(), (p) => ({
+      title: p.title,
+      titleHi: p.titleHi,
+      extra: [p.shortDescription, ...p.tags, ...p.bestFor].join(" "),
+    }));
   },
 
   createCart: () => build([]),

@@ -8,8 +8,6 @@ export const metadata: Metadata = { title: "You're offline", robots: { index: fa
 export default function OfflinePage() {
   return (
     <section className="mx-auto flex max-w-md flex-col items-center px-6 py-20 text-center md:py-28">
-      {/* Offline, the app's scripts may not load: show the page at once (no fade-in waiting on JS). */}
-      <style>{"body[data-unresolved]{opacity:1!important}"}</style>
       <span className="grid size-16 place-items-center rounded-full bg-khaki-soft text-forest">
         <WifiOff className="size-7" />
       </span>

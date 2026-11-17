@@ -54,6 +54,7 @@ export function LoginNudge() {
         <motion.div
           role="dialog"
           aria-label="Login benefits"
+          data-float="login-nudge"
           initial={{ opacity: 0, y: 12, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.96 }}

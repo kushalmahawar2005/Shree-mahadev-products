@@ -24,15 +24,39 @@ function handleAfter(pathname: string, prefix: string) {
   return handle && !handle.includes("/") ? handle : null;
 }
 
-async function exists(sql: string, handle: string) {
-  try {
-    const [rows] = await db().execute<RowDataPacket[]>(sql, [handle]);
-    return rows.length > 0;
-  } catch (error) {
-    // DB hiccup: let the page render (it still calls notFound()) rather than 404 a real product.
-    console.error("Handle lookup failed", error);
-    return true;
-  }
+/**
+ * Active product / collection handles and collection redirects, cached per process for a minute, so
+ * a product page request no longer waits on a DB round-trip (one small query per minute instead).
+ * A just-added product can 404 for up to a minute; a DB hiccup lets the page render (it still 404s itself).
+ */
+const LOOKUP_TTL = 60_000;
+type Lookups = { at: number; products: Set<string>; collections: Set<string>; redirects: Map<string, string> };
+let lookups: Lookups | null = null;
+let loading: Promise<Lookups | null> | null = null;
+async function getLookups(): Promise<Lookups | null> {
+  if (lookups && Date.now() - lookups.at < LOOKUP_TTL) return lookups;
+  loading ??= (async () => {
+    try {
+      const [[p], [c], [r]] = await Promise.all([
+        db().query<RowDataPacket[]>("SELECT handle FROM products WHERE status = 'active'"),
+        db().query<RowDataPacket[]>("SELECT handle FROM collections WHERE active = 1"),
+        db().query<RowDataPacket[]>("SELECT source_path, destination_path FROM redirects WHERE source_path LIKE '/collections/%'"),
+      ]);
+      lookups = {
+        at: Date.now(),
+        products: new Set(p.map((x) => String(x.handle))),
+        collections: new Set(c.map((x) => String(x.handle))),
+        redirects: new Map(r.map((x) => [String(x.source_path), String(x.destination_path)])),
+      };
+      return lookups;
+    } catch (error) {
+      console.error("Handle lookup failed", error);
+      return lookups; // keep serving the last good list (or null = allow)
+    } finally {
+      loading = null;
+    }
+  })();
+  return loading;
 }
 
 /** Admin gate: every /admin page needs a valid signed session cookie, except the login page. */
@@ -44,30 +68,20 @@ export async function proxy(req: NextRequest) {
   }
   if (process.env.DATABASE_NAME && pathname.startsWith("/products/")) {
     const handle = handleAfter(pathname, "/products/");
-    if (handle && !(await exists("SELECT 1 FROM products WHERE handle = ? AND status = 'active' LIMIT 1", handle))) {
-      return notFoundResponse(req);
-    }
+    const l = handle ? await getLookups() : null;
+    if (handle && l && !l.products.has(handle)) return notFoundResponse(req);
   }
   if (process.env.DATABASE_NAME && pathname.startsWith("/collections/")) {
     const handle = pathname.slice("/collections/".length);
     if (handle && !handle.includes("/")) {
-      try {
-        const [rows] = await db().execute<RowDataPacket[]>(
-          "SELECT destination_path FROM redirects WHERE source_path=? LIMIT 1",
-          [`/collections/${handle}`],
-        );
-        const destination = rows[0]?.destination_path;
-        if (typeof destination === "string" && destination.startsWith("/collections/")) {
-          const url = req.nextUrl.clone();
-          url.pathname = destination;
-          return NextResponse.redirect(url, 301);
-        }
-      } catch (error) {
-        console.error("Collection redirect lookup failed", error);
+      const l = await getLookups();
+      const destination = l?.redirects.get(`/collections/${handle}`);
+      if (destination?.startsWith("/collections/")) {
+        const url = req.nextUrl.clone();
+        url.pathname = destination;
+        return NextResponse.redirect(url, 301);
       }
-      if (!(await exists("SELECT 1 FROM collections WHERE handle = ? AND active = 1 LIMIT 1", decodeURIComponent(handle)))) {
-        return notFoundResponse(req);
-      }
+      if (l && !l.collections.has(decodeURIComponent(handle))) return notFoundResponse(req);
     }
   }
   // Account area: no customer cookie → sign in first, then come back. (The layout verifies the session.)

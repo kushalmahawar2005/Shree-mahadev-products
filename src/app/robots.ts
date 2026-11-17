@@ -8,8 +8,8 @@ export default function robots(): MetadataRoute.Robots {
   // Preview hosts (vercel.app, localhost) must never be indexed.
   if (!isLiveDomain) return { rules: { userAgent: "*", disallow: "/" } };
   return {
-    rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/checkout", "/order", "/cart/", "/api/"] },
+    // /order pages are noindex; they stay crawlable so Google can actually see that tag.
+    rules: { userAgent: "*", allow: "/", disallow: ["/admin", "/checkout", "/cart/", "/api/"] },
     sitemap: `${SITE}/sitemap.xml`,
-    host: SITE,
   };
 }

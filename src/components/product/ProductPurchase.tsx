@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Check, Loader2, ShoppingBag } from "lucide-react";
 import { LoadingDots } from "@/components/ui/LoadingDots";
-import { DUR } from "@/lib/motion";
+import { DUR, EASE } from "@/lib/motion";
 import { Zap } from "@/components/icons/duo";
 import { QtyStepper } from "@/components/cart/CartLine";
 import { useCart } from "@/components/cart/CartProvider";
@@ -203,7 +203,8 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
             initial={{ y: "100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
-            transition={{ duration: DUR.stickyBar, ease: "easeInOut" }}
+            transition={{ duration: DUR.stickyBar, ease: EASE.menuSlide }}
+            data-float="sticky-cta"
             className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-line bg-white/95 shadow-[0_-10px_24px_-18px_rgba(7,47,27,0.35)] backdrop-blur md:bottom-0 md:pb-[env(safe-area-inset-bottom)]"
           >
             <div className="mx-auto flex max-w-[1360px] items-center gap-3 px-4 py-3 md:px-8">

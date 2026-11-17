@@ -77,7 +77,7 @@ export function Drawer({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-50" role="presentation">
+        <div className="fixed inset-0 z-50" role="presentation" data-drawer-open>
           <motion.div
             className={cn("absolute inset-0 bg-black", side === "right" && "backdrop-blur-[2px]")}
             initial={{ opacity: 0 }}
