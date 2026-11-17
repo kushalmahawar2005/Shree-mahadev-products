@@ -102,7 +102,7 @@ export function BoughtTogether({ items }: { items: BundleItem[] }) {
               open();
             })
           }
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-[#E8C879] px-4 text-[13px] lg:mt-2.5 lg:w-full lg:text-sm font-semibold text-forest-text transition-colors hover:bg-white disabled:opacity-50"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-full bg-co-gold px-4 text-[13px] lg:mt-2.5 lg:w-full lg:text-sm font-semibold text-forest-text transition-colors hover:bg-white disabled:opacity-50"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : <ShoppingBag className="size-4" />}
           <span className="sm:hidden">{chosen.length ? `Add ${chosen.length}` : "Pick one"}</span>

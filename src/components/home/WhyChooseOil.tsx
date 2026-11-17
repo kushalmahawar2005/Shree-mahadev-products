@@ -86,7 +86,7 @@ export function WhyChooseOil() {
             >
               <motion.div
                 animate={reduce ? undefined : { y: [0, -4, 0] }}
-                transition={reduce ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                transition={reduce ? undefined : { duration: 6, repeat: Infinity, ease: [0.37, 0, 0.63, 1] }}
               >
                 <Image
                   src="/illustrations/dadi-ghani.webp"
@@ -140,7 +140,7 @@ export function WhyChooseOil() {
                     <span
                       className={cn(
                         "absolute top-1/2 left-0 z-10 grid size-7 -translate-y-1/2 place-items-center rounded-full text-xs font-bold ring-4 md:size-9 md:text-sm ring-ivory transition-colors duration-500",
-                        on ? "bg-mustard text-forest-deep" : "bg-forest text-[#f6efe2]",
+                        on ? "bg-mustard text-forest-deep" : "bg-forest text-khaki-soft",
                       )}
                     >
                       {i + 1}

@@ -15,6 +15,11 @@ export const EASE = {
   btnHover: [0.215, 0.61, 0.355, 1] as Bezier,
   menuSlide: [0.4, 0, 0.2, 1] as Bezier,
   menuOpen: [0.2, 0.7, 0.3, 1] as Bezier,
+  /** General "settle in" (easeOutQuart) and "leave" (easeInQuart) curves for small UI motion. */
+  out: [0.25, 1, 0.5, 1] as Bezier,
+  in: [0.5, 0, 0.75, 0] as Bezier,
+  /** Gentle back-and-forth loops (floating badges). */
+  sine: [0.37, 0, 0.63, 1] as Bezier,
 } as const;
 
 /** Durations in seconds (motion's unit). */

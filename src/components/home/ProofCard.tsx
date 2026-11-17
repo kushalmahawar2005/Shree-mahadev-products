@@ -60,7 +60,7 @@ export function ProofCard({
         type="button"
         onClick={onOpenMedia}
         aria-label={`Open: ${media.alt}`}
-        className="relative block aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-[#f6efe2] md:aspect-[4/3] md:rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
+        className="relative block aspect-square w-full shrink-0 overflow-hidden rounded-xl bg-khaki-soft md:aspect-[4/3] md:rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-forest/40"
       >
         {media.kind === "doc" ? (
           <>
@@ -86,7 +86,7 @@ export function ProofCard({
               <Image src={media.src} alt={media.alt} width={1100} height={1555} sizes="(min-width: 1024px) 340px, 80vw" className="h-auto w-full" />
             </motion.span>
             {/* soft fade where the page leaves the frame */}
-            <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#f6efe2] to-transparent" />
+            <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-khaki-soft to-transparent" />
           </>
         ) : (
           <>

@@ -32,7 +32,7 @@ export async function Footer() {
           {/* WhatsApp CTA card */}
           <div className="relative overflow-hidden rounded-2xl bg-forest px-4 py-5 text-white sm:rounded-[28px] sm:px-6 sm:py-8 md:flex md:items-center md:justify-between md:gap-8 md:px-10">
             <div className="relative">
-              <p className="font-hindi text-sm text-[#e8c879] sm:text-lg" lang="hi">
+              <p className="font-hindi text-sm text-co-gold sm:text-lg" lang="hi">
                 स्वदेशी · धीमी घानी
               </p>
               <p className="text-lg font-bold sm:text-2xl md:text-3xl">Slow-pressed, the old way</p>
@@ -42,7 +42,7 @@ export async function Footer() {
               href={whatsappLink("Hi, please add me to the Swadeshi Mahadev updates list.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-shine relative mt-3.5 inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-4 text-[13px] sm:mt-5 sm:gap-2.5 sm:px-5 sm:text-sm sm:h-12 sm:px-6 font-bold text-forest-deep transition-colors hover:bg-white md:mt-0"
+              className="btn-shine relative mt-3.5 inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-co-gold px-4 text-[13px] sm:mt-5 sm:gap-2.5 sm:px-5 sm:text-sm sm:h-12 sm:px-6 font-bold text-forest-deep transition-colors hover:bg-white md:mt-0"
             >
               <MessageCircle className="size-5" /> Join on WhatsApp <ArrowRight className="size-4" />
             </a>

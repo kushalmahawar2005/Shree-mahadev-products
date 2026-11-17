@@ -104,14 +104,14 @@ export function ReviewsWall({ reviews }: { reviews: PublicReview[] }) {
             <Link
               href="/shop"
               aria-label="Explore the store"
-              className="relative grid size-10 shrink-0 place-items-center rounded-full bg-[#e8c879] text-forest-deep transition-colors hover:bg-white sm:hidden"
+              className="relative grid size-10 shrink-0 place-items-center rounded-full bg-co-gold text-forest-deep transition-colors hover:bg-white sm:hidden"
             >
               <ArrowRight className="size-[18px]" />
             </Link>
             <p className="relative mt-5 hidden text-sm leading-relaxed text-white/85 sm:block">Every review here is from someone who bought from us. We don&apos;t edit them.</p>
             <Link
               href="/shop"
-              className="btn-shine relative mt-6 hidden h-11 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white sm:inline-flex"
+              className="btn-shine relative mt-6 hidden h-11 items-center gap-2 overflow-hidden rounded-full bg-co-gold px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white sm:inline-flex"
             >
               Explore the store <ArrowRight className="size-4" />
             </Link>

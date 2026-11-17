@@ -155,7 +155,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
 
         {/* Trust strip */}
         <div className="relative z-10 flex items-center justify-between rounded-b-[18px] bg-forest px-2 py-1 text-white shadow-[0_8px_18px_-12px_rgba(7,47,27,0.6)]">
-          <button type="button" aria-label="Previous" onClick={() => setT((n) => (n - 1 + TRUST.length) % TRUST.length)} className="grid size-7 place-items-center rounded-full hover:bg-white/10">
+          <button type="button" aria-label="Previous" onClick={() => setT((n) => (n - 1 + TRUST.length) % TRUST.length)} className="grid size-9 place-items-center rounded-full hover:bg-white/10">
             <ChevronLeft className="size-4" strokeWidth={2.5} />
           </button>
           <div className="relative h-5 flex-1 overflow-hidden text-center text-[13px] font-bold tracking-[-0.01em]">
@@ -165,7 +165,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
               </motion.p>
             </AnimatePresence>
           </div>
-          <button type="button" aria-label="Next" onClick={() => setT((n) => (n + 1) % TRUST.length)} className="grid size-7 place-items-center rounded-full hover:bg-white/10">
+          <button type="button" aria-label="Next" onClick={() => setT((n) => (n + 1) % TRUST.length)} className="grid size-9 place-items-center rounded-full hover:bg-white/10">
             <ChevronRight className="size-4" strokeWidth={2.5} />
           </button>
         </div>
@@ -262,7 +262,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold tracking-wide text-forest-text">{coupon.code} applied</p>
-                      <p className="text-xs text-[#1f7a3d]">
+                      <p className="text-xs text-co-success">
                         {coupon.freeShipping ? "Free shipping on this order" : `You save ${formatMoney(coupon.discount)}`}
                         {coupon.phoneRulesPending && <span className="text-ink-muted"> · final check at checkout</span>}
                       </p>
@@ -331,7 +331,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                         <li key={p.handle} className="flex w-[190px] shrink-0 snap-start gap-2.5 rounded-xl border border-line p-2.5">
                           <Link href={`/products/${p.handle}`} onClick={close} className="relative grid size-16 shrink-0 place-items-center rounded-lg bg-[radial-gradient(circle_at_50%_60%,#f3e6c8,#f6efe2_70%)]">
                             {p.images[0] && <SmartImage src={cutoutUrl(p.images[0].url)} alt={p.images[0].alt} width={64} height={64} className="size-14 object-contain" />}
-                            {off > 0 && <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-[#1f7a3d] px-1.5 py-px text-[10px] font-bold whitespace-nowrap text-white">{off}% off</span>}
+                            {off > 0 && <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-co-success px-1.5 py-px text-[10px] font-bold whitespace-nowrap text-white">{off}% off</span>}
                           </Link>
                           <div className="flex min-w-0 flex-1 flex-col">
                             <p className="line-clamp-2 text-[13px] leading-snug font-semibold text-ink">{shortTitle(p.title)}</p>
@@ -349,7 +349,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                                   setAdding(null);
                                 }
                               }}
-                              className="mt-auto inline-flex h-8 items-center justify-center gap-1 rounded-full border border-forest/25 text-xs font-semibold text-forest transition-colors hover:bg-forest hover:text-white disabled:opacity-60"
+                              className="mt-auto inline-flex h-9 items-center justify-center gap-1 rounded-full border border-forest/25 text-xs font-semibold text-forest transition-colors hover:bg-forest hover:text-white disabled:opacity-60"
                               aria-label={`Add ${p.title} ${v.title}`}
                             >
                               {adding === v.id ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />} Add · {v.title}
@@ -387,7 +387,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                         <NumberFlow value={total} format={NF2} locales="en-IN" />
                       </span>
                     </span>
-                    {m.percentOff > 0 && <span className="block text-xs font-bold text-[#1f7a3d]">({m.percentOff}% OFF)</span>}
+                    {m.percentOff > 0 && <span className="block text-xs font-bold text-co-success">({m.percentOff}% OFF)</span>}
                   </span>
                 </button>
                 <AnimatePresence initial={false}>
@@ -424,7 +424,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                   )}
                 </div>
 
-                <Button asChild className="btn-shine checkout-glow mt-2.5 h-12 w-full justify-between rounded-xl bg-forest pr-2 pl-4 text-white hover:bg-forest-mid aria-disabled:opacity-60">
+                <Button asChild className="btn-shine checkout-glow mt-2.5 h-12 w-full justify-between rounded-full bg-forest pr-2 pl-5 text-white hover:bg-forest-mid aria-disabled:opacity-60">
                   <a href={cart.checkoutUrl} aria-disabled={pending} {...(isMock ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
                     <span className="flex items-center gap-1.5 text-base font-bold">
                       {isMock ? "Order on WhatsApp" : "Checkout"} <ArrowRight className="size-4" />
@@ -451,7 +451,7 @@ function Row({ label, value, good = false }: { label: string; value: string; goo
   return (
     <div className="flex justify-between">
       <dt className="text-ink-muted">{label}</dt>
-      <dd className={cn("font-semibold tabular-nums", good ? "text-[#1f7a3d]" : "text-ink")}>{value}</dd>
+      <dd className={cn("font-semibold tabular-nums", good ? "text-co-success" : "text-ink")}>{value}</dd>
     </div>
   );
 }
@@ -468,11 +468,11 @@ function UndoNotice({ removed, onUndo }: { removed: { name: string } | null; onU
           className="overflow-hidden"
           role="status"
         >
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-[#1f7a3d]/10 px-3 py-2 text-[13px] text-[#1f7a3d]">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl bg-co-success/10 px-3 py-2 text-[13px] text-co-success">
             <span>
               Removed <strong>{removed.name}</strong>
             </span>
-            <button type="button" onClick={onUndo} className="inline-flex h-9 items-center gap-1 rounded-full px-3 font-semibold hover:bg-[#1f7a3d]/10">
+            <button type="button" onClick={onUndo} className="inline-flex h-9 items-center gap-1 rounded-full px-3 font-semibold hover:bg-co-success/10">
               <Undo2 className="size-4" /> Undo
             </button>
           </div>
@@ -484,7 +484,7 @@ function UndoNotice({ removed, onUndo }: { removed: { name: string } | null; onU
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <Badge variant="secondary" className="h-6 gap-1 rounded-md border-0 bg-[#1f7a3d]/8 px-2 text-[11px] font-semibold text-[#1f7a3d] [&>svg]:size-3.5">
+    <Badge variant="secondary" className="h-6 gap-1 rounded-md border-0 bg-co-success/8 px-2 text-[11px] font-semibold text-co-success [&>svg]:size-3.5">
       {children}
     </Badge>
   );
@@ -500,7 +500,7 @@ function SavedRibbon({ value }: { value: number }) {
         {/* folded ends, tucked behind and slightly lower */}
         <span aria-hidden className="absolute top-1.5 -left-2 h-full w-5 rounded-l-md bg-[#145c34]" />
         <span aria-hidden className="absolute top-1.5 -right-2 h-full w-5 rounded-r-md bg-[#145c34]" />
-        <span className="relative block rounded-md bg-[#1f7a3d] py-1 text-center text-[13px] font-bold text-white shadow-[0_6px_14px_-8px_rgba(7,47,27,0.6)] tabular-nums">
+        <span className="relative block rounded-md bg-co-success py-1 text-center text-[13px] font-bold text-white shadow-[0_6px_14px_-8px_rgba(7,47,27,0.6)] tabular-nums">
           <NumberFlow value={value} format={NF2} locales="en-IN" /> Saved so far!
         </span>
       </motion.div>

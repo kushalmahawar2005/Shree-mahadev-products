@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { requireRole } from "@/lib/server/admin-auth";
 import { connection } from "next/server";
 import { ChatAssistantWorkspace } from "@/components/admin/ChatAssistantWorkspace";
 import { Skeleton } from "@/components/shadcn/skeleton";
@@ -23,6 +24,8 @@ export default function ChatAssistantPage() {
 
 async function ChatData() {
   await connection();
+  // Shopper conversations: owner / manager only (staff can't read them).
+  await requireRole("owner", "manager");
   const [stats, open, recent, answers] = await Promise.all([chatStats(14), listChatLogs("open"), listChatLogs("all", 200), listChatAnswers()]);
   return <ChatAssistantWorkspace stats={stats} openLogs={open} recentLogs={recent} answers={answers} aiOn={geminiEnabled()} />;
 }

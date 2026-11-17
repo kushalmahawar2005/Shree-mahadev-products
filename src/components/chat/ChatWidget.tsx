@@ -29,8 +29,16 @@ import { PAY_RESUME_KEY } from "@/components/chat/CheckoutCard";
 import { RETURN_CHOICES } from "@/components/chat/ChatBlocks";
 import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
 
-type ChatMessage = { role: "assistant" | "user"; text: string; key?: string; blocks?: ChatBlock[]; login?: Intent; sources?: Source[]; suggestions?: Suggestion[]; products?: ShopProduct[]; cart?: CartIntent; options?: string[]; streaming?: boolean; feedback?: 1 | -1 };
+type ChatMessage = { role: "assistant" | "user"; text: string; key?: string; blocks?: ChatBlock[]; login?: Intent; sources?: Source[]; suggestions?: Suggestion[]; products?: ShopProduct[]; cart?: CartIntent; options?: string[]; streaming?: boolean; feedback?: 1 | -1;
+  /** Server's canonical text + signature for this reply; sent back in the history so it is trusted. */
+  turn?: string; sig?: string };
 type Intent = "track" | "cancel" | "refund" | "return";
+
+/** Language for the widget's own fallback lines: the menu choice, else the shopper's last message. */
+function lineFor(language: string, lastText: string, t: { en: string; hinglish: string; hi: string }) {
+  const lang = language !== "auto" ? language : /[\u0900-\u097F]/.test(lastText) ? "Hindi" : /\b(what|which|how|is|are|the|please|price|can|do|does|my|i)\b/i.test(lastText) && !/\b(hai|kya|kaise|ka|ki|ke|mein|aap|chahiye|kitna|nahi)\b/i.test(lastText) ? "English" : "Hinglish";
+  return lang === "Hindi" ? t.hi : lang === "English" ? t.en : t.hinglish;
+}
 type SpeechCtor = new () => { lang: string; interimResults: boolean; onresult: (event: { results: { 0: { transcript: string } }[] }) => void; onerror: (event: { error: string }) => void; onend: () => void; start: () => void; stop: () => void };
 type Order = { id: number; orderNo: string; status: string; createdAt: string; eta?: string | null };
 type OrderDetail = {
@@ -442,7 +450,12 @@ export function ChatWidget() {
     setTab("chat");
     sessionRef.current ??= newKey();
     const msgKey = newKey();
-    const history = messages.slice(1).filter((message) => message.text).map(({ role, text: body }) => ({ role, text: body.slice(0, 2000) })).slice(-8);
+    // Assistant turns go back with the server's signature (unsigned ones are ignored by the server).
+    const history = messages
+      .slice(1)
+      .filter((message) => message.text && (message.role === "user" || message.sig))
+      .map(({ role, text: body, turn, sig }) => (role === "assistant" ? { role, text: (turn ?? body).slice(0, 2000), sig } : { role, text: body.slice(0, 2000) }))
+      .slice(-8);
     setMessages((current) => [...current, { role: "user", text: trimmed }]);
     setInput("");
     setBusy(true);
@@ -464,7 +477,8 @@ export function ChatWidget() {
           buffer = lines.pop() ?? "";
           for (const line of lines) {
             if (!line.trim()) continue;
-            const event = JSON.parse(line) as { type: string; delta?: string; sources?: Source[]; products?: ShopProduct[] } & Partial<CartIntent>;
+            const event = JSON.parse(line) as { type: string; delta?: string; sources?: Source[]; products?: ShopProduct[]; turn?: string; sig?: string } & Partial<CartIntent>;
+            if (event.type === "done" && event.sig) patchLast((message) => ({ ...message, turn: event.turn, sig: event.sig }));
             if (event.type === "action" && event.action) {
               const { type: _type, ...cart } = event;
               void _type;
@@ -485,19 +499,27 @@ export function ChatWidget() {
         patchLast((message) => ({
           ...message,
           streaming: false,
-          text: clean(full) || "Maaf kijiye, abhi jawab nahi mil paaya. Please dobara poochiye ya WhatsApp par team se baat kijiye.",
+          text: clean(full) || lineFor(language, trimmed, {
+            en: "Sorry, I couldn't get an answer just now. Please ask again, or message the team on WhatsApp.",
+            hinglish: "Maaf kijiye, abhi jawab nahi mil paaya. Please dobara poochiye ya WhatsApp par team se baat kijiye.",
+            hi: "माफ़ कीजिए, अभी जवाब नहीं मिल पाया। कृपया दोबारा पूछें या WhatsApp पर टीम से बात करें।",
+          }),
           ...(intent ? { sources: [], products: [] } : {}),
         }));
         if (intent) await loadOrders(intent, LIST_WORDS.test(trimmed));
         return;
       }
-      const data = await readJson<{ answer?: string; sources?: Source[]; suggestions?: Suggestion[]; products?: ShopProduct[]; action?: string; cartAction?: "cart" | "checkout"; blocks?: unknown; error?: string }>(response);
+      const data = await readJson<{ answer?: string; sources?: Source[]; suggestions?: Suggestion[]; products?: ShopProduct[]; action?: string; cartAction?: "cart" | "checkout"; blocks?: unknown; error?: string; turn?: string; sig?: string }>(response);
       if (!response.ok) throw new Error(data.error || "Please try again.");
-      setMessages((current) => [...current, { role: "assistant", key: msgKey, text: data.answer ?? "I couldn't find an answer.", sources: data.sources, suggestions: data.suggestions, products: data.products, ...(data.cartAction ? { cart: { action: data.cartAction } } : {}), blocks: parseBlocks(data.blocks) }]);
+      setMessages((current) => [...current, { role: "assistant", key: msgKey, turn: data.turn, sig: data.sig, text: data.answer ?? "I couldn't find an answer.", sources: data.sources, suggestions: data.suggestions, products: data.products, ...(data.cartAction ? { cart: { action: data.cartAction } } : {}), blocks: parseBlocks(data.blocks) }]);
       if (data.action === "orders") await loadOrders(intentFor(trimmed), LIST_WORDS.test(trimmed));
       if (data.action === "reorder") await reorderLatest();
     } catch (error) {
-      setMessages((current) => [...current.filter((message) => !(message.streaming && !message.text)), { role: "assistant", text: error instanceof Error ? error.message : "Couldn't send that. Please try again." }]);
+      setMessages((current) => [...current.filter((message) => !(message.streaming && !message.text)), { role: "assistant", text: error instanceof Error && error.message && !/fetch|network|load failed/i.test(error.message) ? error.message : lineFor(language, trimmed, {
+        en: "Couldn't send that. Please check your internet and try again.",
+        hinglish: "Message nahi ja paaya. Internet check karke dobara bhejiye.",
+        hi: "मैसेज नहीं जा पाया। इंटरनेट देखकर फिर से भेजें।",
+      }) }]);
     } finally {
       setBusy(false);
     }
@@ -507,7 +529,7 @@ export function ChatWidget() {
     if (!message.key || message.feedback) return;
     setMessages((current) => current.map((item) => item.key === message.key ? { ...item, feedback: value } : item));
     if (value === -1) say("Maaf kijiye, jawab theek nahi tha. Hamari team se seedha baat kar sakte hain:", { blocks: [{ type: "handoff" }] });
-    await fetch("/api/chat/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ msgKey: message.key, value }) }).catch(() => undefined);
+    await fetch("/api/chat/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ msgKey: message.key, sessionId: sessionRef.current, value }) }).catch(() => undefined);
   }
 
   async function copyMessage(message: ChatMessage) {
@@ -681,10 +703,19 @@ export function ChatWidget() {
   );
 
   const conversation = (
-    <ChatContainerRoot className={`relative h-full ${scrollArea}`}>
+    // Follow the conversation, but never scroll past the start of the latest step: the shopper's question,
+    // or a new assistant step that followed another assistant message (order list → order status, tracking).
+    // The answer then reads from its top instead of the view jumping down to the cards at the end.
+    <ChatContainerRoot className={`relative h-full ${scrollArea}`} targetScrollTop={(target, { contentElement }) => {
+      const questions = contentElement.querySelectorAll<HTMLElement>("[data-chat-anchor]");
+      const last = questions[questions.length - 1];
+      return last ? Math.min(target, Math.max(0, last.offsetTop - 12)) : target;
+    }}>
       <ChatContainerContent className="space-y-4 px-3.5 py-4">
-        {messages.slice(1).map((message, index) => (
-          <motion.div key={message.key ?? `${message.role}-${index}`} layout="position" initial="hidden" animate="show" variants={rise} style={{ transformOrigin: message.role === "user" ? "bottom right" : "top left" }}>
+        {messages.slice(1).map((message, index, list) => (
+          <motion.div
+            data-chat-anchor={message.role === "user" || (index > 0 && list[index - 1].role === "assistant") ? "" : undefined}
+            key={message.key ?? `${message.role}-${index}`} layout="position" initial="hidden" animate="show" variants={rise} style={{ transformOrigin: message.role === "user" ? "bottom right" : "top left" }}>
             {message.role === "user" ? (
               <div className={`ml-auto w-fit max-w-[82%] rounded-2xl rounded-br-md bg-forest px-3.5 py-2.5 text-white shadow-sm ${textClass(message.text)}`}>
                 <p className="whitespace-pre-wrap">{message.text}</p>
@@ -798,7 +829,7 @@ export function ChatWidget() {
                   </div>
 
                   <div className="shrink-0 space-y-2 bg-ivory px-3 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-2">
-                    {tab === "chat" && <ChipRow chips={chips} slim={!welcome} disabled={busy} />}
+                    {tab === "chat" && <div className="pb-1"><ChipRow chips={chips} slim={!welcome} disabled={busy} /></div>}
                     {!TABS_ON_TOP && <ChatTabBar tab={tab} onChange={setTab} className="-mx-3 border-y border-line/70" />}
                     <PromptInput
                       value={input}

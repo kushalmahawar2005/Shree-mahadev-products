@@ -371,6 +371,9 @@ export function CheckoutForm({
         form.clearErrors(),
       );
     });
+    // Subscription (not a render-time read): react-hook-form's watch(callback) is the documented way to
+    // persist a draft; React Compiler just skips memoising this component, which is fine here.
+    // eslint-disable-next-line react-hooks/incompatible-library
     const sub = watch((val) => {
       try {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(val));
@@ -1378,7 +1381,7 @@ function ContinueButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl border-[1.5px] border-forest bg-co-brand-soft px-6 text-sm font-bold text-forest transition-colors hover:bg-forest hover:text-white disabled:opacity-50 sm:w-auto"
+      className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-full border-[1.5px] border-forest bg-co-brand-soft px-6 text-sm font-bold text-forest transition-colors hover:bg-forest hover:text-white disabled:opacity-50 sm:w-auto"
     >
       {children}
     </button>

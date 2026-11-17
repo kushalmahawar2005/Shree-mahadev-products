@@ -71,8 +71,8 @@ export function Drawer({
   const x = side === "right" ? "100%" : "-100%";
   // Cart (right): 0.6s drawer curve both ways, overlay to 30%. Menu (left): quick 0.26s in, 0.2s ease-in out.
   const panelIn = side === "right" ? { duration: DUR.cartDrawer, ease: EASE.drawer } : { duration: DUR.menuOpen, ease: EASE.menuOpen };
-  const panelOut = side === "right" ? panelIn : { duration: DUR.menuClose, ease: "easeIn" as const };
-  const overlay = side === "right" ? { duration: DUR.cartDrawer, ease: "easeInOut" as const } : { duration: DUR.menuOpen };
+  const panelOut = side === "right" ? panelIn : { duration: DUR.menuClose, ease: EASE.in };
+  const overlay = side === "right" ? { duration: DUR.cartDrawer, ease: EASE.menuSlide } : { duration: DUR.menuOpen };
 
   return (
     <AnimatePresence>

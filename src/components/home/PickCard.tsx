@@ -232,7 +232,7 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
           <Link href={href} className="block truncate hover:text-forest hover:underline" title={shortTitle(product.title)}>
             {shortTitle(product.title)}
           </Link>
-          <span lang="hi" className="font-hindi block truncate text-[12px] font-normal text-sale sm:text-[15px]">
+          <span lang="hi" className="font-hindi block truncate py-px text-[12px] leading-normal font-normal text-sale sm:text-[15px]">
             {product.titleHi}
           </span>
         </h3>

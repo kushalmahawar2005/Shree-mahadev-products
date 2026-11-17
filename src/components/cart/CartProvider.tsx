@@ -131,7 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     <CartContext.Provider value={value}>
       {children}
       {/* Bottom-centre; on phones it sits just above the bottom bar (56px + safe area). */}
-      <Toaster position="bottom-center" offset={{ bottom: 24 }} mobileOffset={{ bottom: 76, left: 12, right: 12 }} gap={8} />
+      <Toaster position="bottom-center" offset={{ bottom: 24 }} mobileOffset={{ bottom: "var(--toast-bottom, 76px)", left: 12, right: 12 }} gap={8} />
     </CartContext.Provider>
   );
 }

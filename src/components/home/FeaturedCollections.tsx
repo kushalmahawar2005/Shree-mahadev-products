@@ -148,8 +148,8 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     phoneHalf && "max-sm:max-w-full max-sm:p-3",
                   )}
                 >
-                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-none md:text-lg", half && "max-lg:text-sm", phoneHalf && "max-sm:gap-1.5 max-sm:text-[12px]", light ? "text-[#e8c879]" : "text-sale")} lang="hi">
-                    <span aria-hidden className={cn("h-px w-5", half && "max-lg:w-3", light ? "bg-[#e8c879]/70" : "bg-sale/60")} />
+                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-snug md:text-lg", half && "max-lg:text-sm", phoneHalf && "max-sm:gap-1.5 max-sm:text-[12px]", light ? "text-co-gold" : "text-sale")} lang="hi">
+                    <span aria-hidden className={cn("h-px w-5", half && "max-lg:w-3", light ? "bg-co-gold/70" : "bg-sale/60")} />
                     {t.titleHi}
                   </span>
                   <span

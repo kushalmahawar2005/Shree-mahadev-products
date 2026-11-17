@@ -16,7 +16,7 @@ export function AddedToast({ line, count, onView }: { line: CartLine; count: num
   const img = variantImage(line.product.images, line.variant.title) ?? line.product.images[0];
   return (
     <div className="flex w-full items-center gap-3 rounded-2xl border border-line bg-white p-2.5 pr-3 shadow-[0_18px_40px_-20px_rgba(7,47,27,0.45)] sm:w-[360px]">
-      <span className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-[#f6efe2]">
+      <span className="relative grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-khaki-soft">
         {/* whole pack, not a crop of its cap */}
         {img && <SmartImage src={cutoutUrl(img.url)} alt="" width={56} height={56} sizes="56px" className="!h-[50px] !w-auto max-w-full object-contain" />}
         <span className="absolute -right-0.5 -bottom-0.5 grid size-5 place-items-center rounded-full bg-forest text-white ring-2 ring-white">

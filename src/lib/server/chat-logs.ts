@@ -2,17 +2,22 @@ import "server-only";
 
 import type { RowDataPacket } from "mysql2/promise";
 import { db } from "@/lib/server/db";
+import { redactPII } from "@/lib/server/chat-guard";
 
 export type ChatEngine = "ai" | "cache" | "local" | "orders" | "medical";
 export type ChatLogStatus = "new" | "resolved" | "ignored";
 export type ChatLog = { id: number; sessionId: string | null; feedback: number | null; question: string; answer: string | null; engine: ChatEngine; answered: boolean; status: ChatLogStatus; createdAt: string };
 export type ChatAnswer = { id: number; question: string; answer: string; keywords: string; active: boolean; updatedAt: string };
 
-/** Masks phone-like digit runs, emails and order numbers' neighbours so logs hold no contact details. */
+/** Logs hold no contact details: same masking as text sent to the AI (emails, phones, pincodes, addresses). */
 export function redact(text: string) {
-  return text
-    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[email]")
-    .replace(/(?:\+?\d[\s-]?){8,}/g, "[number]");
+  return redactPII(text).replace(/(?:\+?\d[\s-]?){8,}/g, "[number]");
+}
+
+/** Chat logs older than 90 days are deleted (run hourly from the housekeeping cron). */
+export async function purgeOldChatLogs(days = 90) {
+  const [r] = await db().execute<import("mysql2").ResultSetHeader>("DELETE FROM chat_logs WHERE created_at < NOW() - INTERVAL ? DAY LIMIT 5000", [days]);
+  return r.affectedRows;
 }
 
 /** Fire-and-forget: logging must never break or slow a chat reply. */
@@ -25,12 +30,13 @@ export function logChat(entry: { sessionId?: string; msgKey?: string; question: 
 }
 
 /** Thumbs up/down from the widget. A thumbs-down puts the question back in the "needs answer" queue. */
-export async function setChatFeedback(msgKey: string, value: 1 | -1) {
+export async function setChatFeedback(msgKey: string, value: 1 | -1, sessionId: string) {
+  // Only the chat session that got the answer can vote on it (keys come from the browser).
   await db().execute(
     value === -1
-      ? "UPDATE chat_logs SET feedback = -1, answered = 0, status = 'new' WHERE msg_key = ? ORDER BY id DESC LIMIT 1"
-      : "UPDATE chat_logs SET feedback = 1 WHERE msg_key = ? ORDER BY id DESC LIMIT 1",
-    [msgKey],
+      ? "UPDATE chat_logs SET feedback = -1, answered = 0, status = 'new' WHERE msg_key = ? AND session_id = ? ORDER BY id DESC LIMIT 1"
+      : "UPDATE chat_logs SET feedback = 1 WHERE msg_key = ? AND session_id = ? ORDER BY id DESC LIMIT 1",
+    [msgKey, sessionId],
   );
 }
 

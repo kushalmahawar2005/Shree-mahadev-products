@@ -2,6 +2,7 @@ import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 import { clientIp, rateLimit } from "./rate-limit";
+import { dedupeScans, scanLine } from "@/lib/tracking-text";
 
 export type TrackingSummary = {
   orderNo: string;
@@ -58,13 +59,20 @@ async function loadTracking(orderId: number): Promise<TrackingSummary | null> {
   );
   const [shipmentRows] = shipment
     ? await db().execute<RowDataPacket[]>(
-      "SELECT status, location, event_at AS at FROM shipment_events WHERE shipment_id=? ORDER BY event_at ASC LIMIT 100", [shipment.id],
+      "SELECT status, location, message, event_at AS at FROM shipment_events WHERE shipment_id=? ORDER BY event_at ASC LIMIT 100", [shipment.id],
     )
     : [[] as RowDataPacket[]];
-  const events = [
-    ...orderRows.map((event) => ({ status: String(event.status), at: String(event.at), location: null as string | null })),
-    ...shipmentRows.map((event) => ({ status: String(event.status), at: String(event.at), location: event.location ? String(event.location) : null })),
-  ].sort((a, b) => a.at.localeCompare(b.at));
+  // Courier scans read like the courier's own tracking ("Left Jaipur hub", "Reached Ajmer"): the place is
+  // already in the line, so `location` stays empty for them. Repeated identical scans show once.
+  const events = dedupeScans([
+    ...orderRows.map((event) => ({ status: String(event.status), at: String(event.at), location: null as string | null, line: labelStatus(String(event.status)) })),
+    ...shipmentRows.map((event) => ({
+      status: String(event.status),
+      at: String(event.at),
+      location: null as string | null,
+      line: scanLine(String(event.status), event.message ? String(event.message) : null, event.location ? String(event.location) : null),
+    })),
+  ].sort((a, b) => a.at.localeCompare(b.at)));
   const pincode = String(order.pincode ?? "");
   return {
     orderNo: String(order.order_no),
@@ -75,7 +83,7 @@ async function loadTracking(orderId: number): Promise<TrackingSummary | null> {
     awb: shipment?.awb ? String(shipment.awb) : null,
     trackingUrl: shipment?.tracking_url ? String(shipment.tracking_url) : null,
     expectedDelivery: shipment?.estimated_delivery ? String(shipment.estimated_delivery).slice(0, 10) : null,
-    events: events.map((event) => ({ ...event, label: labelStatus(event.status) })),
+    events: events.map(({ line, ...event }) => ({ ...event, label: line })),
   };
 }
 

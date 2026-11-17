@@ -111,7 +111,7 @@ export function ArticleShell({
             href={whatsappLink(`Hi, I have a question about "${title}".`)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep hover:bg-white"
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-co-gold px-5 text-sm font-bold text-forest-deep hover:bg-white"
           >
             <MessageCircle className="size-4" /> Ask us
           </a>

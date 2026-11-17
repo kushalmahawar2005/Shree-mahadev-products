@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { EASE } from "@/lib/motion";
 import { AnimatePresence, motion } from "motion/react";
 import { formatMoney } from "@/lib/utils/money";
 
@@ -9,8 +10,8 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 async function burst() {
   const { default: confetti } = await import("canvas-confetti");
-  confetti({ particleCount: 70, angle: 60, spread: 65, origin: { x: 0, y: 0.6 }, colors: COLORS, zIndex: 9999 });
-  confetti({ particleCount: 70, angle: 120, spread: 65, origin: { x: 1, y: 0.6 }, colors: COLORS, zIndex: 9999 });
+  confetti({ particleCount: 70, angle: 60, spread: 65, origin: { x: 0, y: 0.6 }, colors: COLORS, zIndex: 9999, disableForReducedMotion: true });
+  confetti({ particleCount: 70, angle: 120, spread: 65, origin: { x: 1, y: 0.6 }, colors: COLORS, zIndex: 9999, disableForReducedMotion: true });
 }
 
 /** Circle + tick that draws itself. Used in the intro overlay and the page hero. */
@@ -24,7 +25,7 @@ export function SuccessTick({ size = 88, delay = 0, onDark = false }: { size?: n
           className={onDark ? "absolute inset-0 rounded-full bg-mustard/30" : "absolute inset-0 rounded-full bg-forest/15"}
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: [0.6, 1.7], opacity: [0.7, 0] }}
-          transition={{ duration: 1.4, delay: delay + 0.5 + i * 0.35, ease: "easeOut" }}
+          transition={{ duration: 1.4, delay: delay + 0.5 + i * 0.35, ease: EASE.out }}
         />
       ))}
       <motion.svg viewBox="0 0 52 52" width={size} height={size} className="relative" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 260, damping: 18, delay }}>
@@ -47,7 +48,7 @@ export function SuccessTick({ size = 88, delay = 0, onDark = false }: { size?: n
           strokeLinejoin="round"
           initial={{ pathLength: 0 }}
           animate={{ pathLength: 1 }}
-          transition={{ duration: 0.45, delay: delay + 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.45, delay: delay + 0.3, ease: EASE.out }}
         />
       </motion.svg>
     </span>

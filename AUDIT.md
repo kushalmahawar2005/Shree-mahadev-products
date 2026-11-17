@@ -307,3 +307,33 @@ Not committed (waiting for review). No migration.
 Also: sticky Add-to-cart uses the motion token instead of `easeInOut`.
 
 **Tests**: `tsc` ✅ · `eslint src` 0 errors (old CheckoutForm warning) · `pnpm build` ✅ · cart-math 7/7 · money-safety 40/40 · 360px browser checks (overlaps, drawer, search, PDP photo visible, og:image, JSON-LD offers). Not measured: real LCP on a production build / phone network (dev mode numbers aren't meaningful).
+
+---
+
+## 12. Batch 5 status (chatbot + polish), 2026-11-17
+
+Not committed (waiting for review). No migration.
+
+| ID | Status | Fix |
+|---|---|---|
+| P1-13 | **Fixed** | `chat-ai.ts`: one 12 s budget and max 3 provider attempts to the first byte; per-attempt header timeout ≤ 8 s, separate 20 s limit for the streamed body (long replies aren't cut); token caps 500 (Gemini) / 700 (Groq gpt-oss); `export const maxDuration = 30` on `/api/chat` |
+| P1-14 | **Fixed** | New `src/lib/server/chat-guard.ts` `redactPII` (emails, Indian mobiles, pincodes, long digit runs, house/flat/plot/gali… incl. Devanagari) on the message and every history turn before it reaches Gemini/Groq |
+| P1-15 | **Fixed** | Assistant turns are HMAC-signed by the server (`turn` + `sig` on every reply / stream `done`); the widget stores and sends them back; unsigned or tampered assistant turns are dropped (`trustedHistory`). Verified: forged "coupon FREE90" history ignored; signed follow-up keeps context |
+| P2-16 | **Fixed** | Chat logs use the same PII masking; `purgeOldChatLogs()` deletes logs > 90 days hourly (tracking cron) |
+| P2-17 | **Fixed** | `/admin/chat` page requires owner/manager |
+| P2-18 | **Fixed** | Answer cache key keeps word order (`lang:normalized words`) |
+| P2-19 | **Fixed** | Chat auto-adds to cart only when the shopper's own message asks to add and names the size; a model-only marker shows the card to tap |
+| P2-20 | **Fixed** | Feedback votes need the same `sessionId` as the logged answer |
+| P2-21 | **Fixed** | See P1-13 token caps |
+| Language | **Fixed** | Reply language decided once per message (menu choice → else latest message, voice-aware); every fixed reply now exists in English / Hinglish / Hindi (payment-secret warning, medical note — was English-only, reorder, checkout, cart, orders, no-match, error); widget fallback lines follow the shopper's language; 429 message bilingual |
+| P2-26 | **Fixed** | Devanagari line-heights: `leading-none/tight` → `leading-snug`, truncated Hindi gets `leading-normal py-px` (home, account, chat cards) |
+| P2-27 | **Fixed** | Default easings → motion tokens (`EASE.in/out/menuSlide`, new tokens in `lib/motion.ts`); storefront wrapped in `MotionConfig reducedMotion="user"` (`components/motion/MotionRoot.tsx`); confetti `disableForReducedMotion` |
+| P2-28 | **Fixed** | Raw hex → tokens in 24 storefront files (`co-gold`, `co-success`, `khaki-soft`, `ivory`, new `promo-gold`/`promo-deep`); cart-drawer Checkout and checkout secondary button now pill-shaped like the rest |
+| P2-29 | **Fixed** | Tap targets: drawer slider arrows 36px, upsell add 36px, cart size select 36px, remove 40px, stepper 36px, "Clear all" 40px; toasts follow the floating layers (`--toast-bottom`) |
+| P2-30 | **Fixed** | `/policies` index page; sticky-bar thumb has width/height; `/tmp/` in `.gitignore` (files already committed there stay tracked until removed); `test-nimbuspost` runs again (re-execs with `--conditions=react-server`); CheckoutForm lint warning documented + suppressed |
+
+**Chat scroll + tracking (owner requests)**: chat stops at the start of the latest step (the question, or a new assistant step like order list → status) so answers read from the top; small gap above the input. Courier scans now read as clear lines ("Left Jaipur hub", "Reached Ajmer", "Out for delivery in …", "Delivery attempted: Customer not available") with cleaned location codes and repeated scans shown once, on the track page and the account order page (`src/lib/tracking-text.ts`).
+
+**Spotlight photo (owner request)**: `SpotItem.photo` (url, alt, bg, position) renders a lifestyle photo on the right (top on phones) fading into `bg`, which becomes the whole card colour. Waiting for the groundnut photo file to wire it in.
+
+**Tests**: `tsc` ✅ · `eslint src scripts` **0 errors, 0 warnings** · `pnpm build` ✅ · cart-math 7/7 · invoice-math 13/13 · nimbuspost mock ✅ (fixed) · money-safety 40/40 · test-chat 39/40 (the one miss is the test's wording check: a correct Hinglish answer said "tel" not "oil") · live API checks: fixed replies in English/Hindi/Hinglish, card number blocked in both scripts, signed follow-up keeps context, forged coupon history ignored.

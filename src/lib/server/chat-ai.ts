@@ -138,6 +138,26 @@ function remember(key: string, text: string) {
 }
 
 /**
+ * fetch with a time limit on getting the response headers only; the body (the streamed answer) gets its
+ * own, longer limit so a long reply isn't cut off mid-sentence.
+ */
+async function fetchWithHeaderTimeout(url: string, init: RequestInit, headerMs: number, bodyMs = 20_000) {
+  const controller = new AbortController();
+  const headerTimer = setTimeout(() => controller.abort(new Error(`no response in ${headerMs} ms`)), headerMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    clearTimeout(headerTimer);
+    const bodyTimer = setTimeout(() => controller.abort(new Error("answer took too long")), bodyMs);
+    // Don't keep the process alive just for this timer (aborting a finished stream is a no-op).
+    (bodyTimer as unknown as { unref?: () => void }).unref?.();
+    return res;
+  } catch (error) {
+    clearTimeout(headerTimer);
+    throw error;
+  }
+}
+
+/**
  * Streams a grounded Gemini answer as plain text chunks. Throws before the
  * first chunk if Gemini is unavailable, so the caller can fall back to the
  * local answer engine.
@@ -159,9 +179,20 @@ export async function streamGeminiAnswer(input: {
   let response: Response | null = null;
   let provider: "gemini" | "groq" = "gemini";
   let lastError = "no model available";
+  // One budget for the whole answer: at most 3 provider attempts and 12 s to the first byte, so a slow
+  // or rate-limited AI can't keep the shopper (and a server worker) waiting minutes before the local answer.
+  const deadline = Date.now() + 12_000;
+  let attempts = 0;
+  const budget = () => {
+    const left = deadline - Date.now();
+    return attempts < 3 && left > 1_500 ? left : 0;
+  };
   for (const model of process.env.GEMINI_API_KEY ? MODELS() : []) {
     if ((coolingUntil.get(model) ?? 0) > Date.now()) continue;
-    const attempt = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+    const left = budget();
+    if (!left) break;
+    attempts++;
+    const attempt = await fetchWithHeaderTimeout(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" },
       body: JSON.stringify({
@@ -169,12 +200,12 @@ export async function streamGeminiAnswer(input: {
         contents,
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 1200,
+          // Replies are meant to be under ~60 words; this leaves room for markers and Devanagari.
+          maxOutputTokens: 500,
           ...(/gemini-[3-9]/.test(model) ? { thinkingConfig: { thinkingLevel: "minimal" } } : {}),
         },
       }),
-      signal: AbortSignal.timeout(25_000),
-    }).catch((error: unknown) => { lastError = `${model}: ${error instanceof Error ? error.message : "network error"}`; return null; });
+    }, Math.min(left, 8_000)).catch((error: unknown) => { lastError = `${model}: ${error instanceof Error ? error.message : "network error"}`; return null; });
     if (attempt?.ok && attempt.body) { response = attempt; break; }
     if (attempt) {
       lastError = `${model} ${attempt.status}: ${(await attempt.text().catch(() => "")).slice(0, 160)}`;
@@ -192,16 +223,19 @@ export async function streamGeminiAnswer(input: {
     for (const model of GROQ_MODELS()) {
       const key = `groq:${model}`;
       if ((coolingUntil.get(key) ?? 0) > Date.now()) continue;
-      const attempt = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const left = budget();
+      if (!left) break;
+      attempts++;
+      const attempt = await fetchWithHeaderTimeout("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.GROQ_API_KEY}` },
         body: JSON.stringify({
-          model, messages, temperature: 0.3, max_tokens: 1500, stream: true,
+          // gpt-oss spends some tokens reasoning (kept "low"), so a little more headroom than Gemini.
+          model, messages, temperature: 0.3, max_tokens: 700, stream: true,
           // gpt-oss models reason first: keep it short and never stream the reasoning to the shopper.
           ...(model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low", include_reasoning: false } : {}),
         }),
-        signal: AbortSignal.timeout(25_000),
-      }).catch((error: unknown) => { lastError += ` | groq ${model}: ${error instanceof Error ? error.message : "network error"}`; return null; });
+      }, Math.min(left, 8_000)).catch((error: unknown) => { lastError += ` | groq ${model}: ${error instanceof Error ? error.message : "network error"}`; return null; });
       if (attempt?.ok && attempt.body) {
         console.warn("chat: Gemini unavailable, answering with Groq", { model, lastError });
         response = attempt;

@@ -1,5 +1,14 @@
 import assert from "node:assert/strict";
 
+// src/lib/server/nimbuspost.ts imports "server-only", which only resolves under React's server
+// condition: re-run this script with it (plain node would throw "cannot be imported from a Client Component").
+if (!process.execArgv.includes("--conditions=react-server")) {
+  const { spawnSync } = await import("node:child_process");
+  const { fileURLToPath } = await import("node:url");
+  const r = spawnSync(process.execPath, ["--conditions=react-server", "--no-warnings", ...process.execArgv, fileURLToPath(import.meta.url), ...process.argv.slice(2)], { stdio: "inherit" });
+  process.exit(r.status ?? 1);
+}
+
 process.env.NIMBUSPOST_API_KEY = "qa-mock-key";
 process.env.NIMBUSPOST_API_SECRET = "qa-mock-secret";
 process.env.NIMBUSPOST_WAREHOUSE_ID = "qa-warehouse";

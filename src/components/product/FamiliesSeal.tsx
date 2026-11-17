@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils/cn";
 
 /**
@@ -21,7 +22,7 @@ export function FamiliesSeal({ count, className }: { count: string; className?: 
           initial={{ scale: 0.9, opacity: 0 }}
           whileInView={{ scale: [0.9, 1.35], opacity: [0, 0.6, 0] }}
           viewport={{ once: true, amount: 0.6 }}
-          transition={{ delay: 0.42, duration: 0.7, ease: "easeOut" }}
+          transition={{ delay: 0.42, duration: 0.7, ease: EASE.out }}
         />
       )}
       <motion.img
@@ -34,7 +35,7 @@ export function FamiliesSeal({ count, className }: { count: string; className?: 
         initial={reduce ? false : { scale: 2.1, rotate: -28, opacity: 0, y: -18 }}
         whileInView={reduce ? undefined : { scale: [2.1, 0.9, 1.04, 1], rotate: [-28, -6, -8, -8], opacity: [0, 1, 1, 1], y: [-18, 0, 0, 0] }}
         viewport={{ once: true, amount: 0.6 }}
-        transition={{ duration: 0.75, times: [0, 0.55, 0.78, 1], ease: "easeOut" }}
+        transition={{ duration: 0.75, times: [0, 0.55, 0.78, 1], ease: EASE.out }}
       />
     </div>
   );

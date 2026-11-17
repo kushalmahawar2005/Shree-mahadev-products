@@ -51,7 +51,7 @@ function TrackingDetails({ tracking }: { tracking: TrackingSummary }) {
               {tracking.events.at(-1)?.label ?? pretty(tracking.status)}
             </h2>
           </div>
-          <span className="shrink-0 rounded-full bg-[#e8c879] px-3 py-1 text-xs font-bold text-forest-deep capitalize">{current.replace(/[_-]+/g, " ")}</span>
+          <span className="shrink-0 rounded-full bg-co-gold px-3 py-1 text-xs font-bold text-forest-deep capitalize">{current.replace(/[_-]+/g, " ")}</span>
         </div>
       </div>
 

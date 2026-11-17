@@ -1,6 +1,7 @@
 "use client";
 
 import { thumbUrl } from "@/lib/image-loader";
+import { EASE } from "@/lib/motion";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -57,7 +58,7 @@ export function MegaMenu({ open, data, onNavigate }: { open: MenuGroup | null; d
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
+          transition={{ duration: 0.18, ease: EASE.out }}
           className="hidden pt-2 lg:block"
         >
           <div className="mx-auto max-w-[1360px] px-8 pb-4">
@@ -163,13 +164,13 @@ function Tile({ o, onNavigate }: { o: MenuProduct; onNavigate: () => void }) {
 function PromoCard({ p, onNavigate }: { p: Promo; onNavigate: () => void }) {
   return (
     <Link href={p.href} onClick={onNavigate} className="group/p mt-auto flex items-center gap-3 overflow-hidden rounded-2xl bg-forest p-3 text-white">
-      <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-[#f6efe2]">
+      <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-khaki-soft">
         <Image src={p.img} alt="" width={64} height={64} className="size-14 object-contain" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{p.title}</span>
         <span className="block text-xs leading-snug text-white/75">{p.text}</span>
-        <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[#e8c879]">
+        <span className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-co-gold">
           {p.cta} <ArrowRight className="size-3.5 transition-transform group-hover/p:translate-x-0.5" aria-hidden />
         </span>
       </span>

@@ -146,11 +146,11 @@ export function AnnouncementStrip({ items, intervalSec }: { items: Msg[]; interv
           {/* Bulk orders stands out as a thin gold outline pill (fills gold on hover). */}
           <Link
             href="/bulk-orders"
-            className="group/bulk border-animation btn-shine relative inline-flex h-7 items-center gap-1.5 overflow-hidden rounded-full border border-[#e8c879]/40 px-3 text-[13px] font-semibold text-[#f3dc9a] transition-colors hover:border-[#e8c879] hover:bg-[#e8c879] hover:text-forest-deep"
+            className="group/bulk border-animation btn-shine relative inline-flex h-7 items-center gap-1.5 overflow-hidden rounded-full border border-co-gold/40 px-3 text-[13px] font-semibold text-[#f3dc9a] transition-colors hover:border-co-gold hover:bg-co-gold hover:text-forest-deep"
           >
             <Boxes className="size-3.5" />
             Bulk orders
-            <span className="text-[11px] font-medium text-[#e8c879]/80 group-hover/bulk:text-forest-deep/70">5L · 15L</span>
+            <span className="text-[11px] font-medium text-co-gold/80 group-hover/bulk:text-forest-deep/70">5L · 15L</span>
           </Link>
         </nav>
       </div>

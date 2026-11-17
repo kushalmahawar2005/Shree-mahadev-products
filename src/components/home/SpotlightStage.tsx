@@ -22,6 +22,12 @@ export type SpotItem = {
   color: string;
   swatch: string;
   image?: { url: string; alt: string; width: number; height: number };
+  /**
+   * Lifestyle photo for this slide: fills the right side of the card (top on phones) and fades into
+   * `bg`, which becomes the whole card's background (pick the photo's own backdrop colour so the edge
+   * disappears). `position` is the CSS object-position that keeps the subject in frame.
+   */
+  photo?: { url: string; alt: string; bg: string; position?: string };
   rating?: number;
   reviewCount?: number;
   variant?: { id: string; title: string; price: number; mrp?: number };
@@ -62,18 +68,47 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
           <motion.div
             key={s.handle + "-bg"}
             className="absolute inset-0"
-            style={{ background: `linear-gradient(135deg, ${s.color} 0%, ${s.color}e6 55%, #041d10 100%)` }}
+            style={{ background: s.photo ? s.photo.bg : `linear-gradient(135deg, ${s.color} 0%, ${s.color}e6 55%, #041d10 100%)` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
           />
         </AnimatePresence>
+        {/* Lifestyle photo: right side on desktop (fades left into the card colour), top on phones. */}
+        <AnimatePresence initial={false}>
+          {s.photo && (
+            <motion.div
+              key={s.handle + "-photo"}
+              className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3] md:inset-y-0 md:right-0 md:left-auto md:aspect-auto md:w-[62%]"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <SmartImage
+                src={s.photo.url}
+                alt={s.photo.alt}
+                fill
+                sizes="(min-width: 768px) 62vw, 100vw"
+                className="object-cover [mask-image:linear-gradient(to_bottom,black_55%,transparent)] md:[mask-image:linear-gradient(to_right,transparent_0%,black_38%)]"
+                style={{ objectPosition: s.photo.position ?? "70% center" }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <span aria-hidden className="absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
 
-        <div className={cn("relative grid items-center gap-2 p-4 md:gap-10 md:p-12", s.image && "md:grid-cols-[1.05fr_1fr]")}>
+        <div
+          className={cn(
+            "relative grid items-center gap-2 p-4 md:gap-10 md:p-12",
+            s.image && !s.photo && "md:grid-cols-[1.05fr_1fr]",
+            // Photo slides: room for the picture on top (phones) / keep the text on the left half (desktop).
+            s.photo && "pt-[58vw] sm:pt-[52vw] md:min-h-[460px] md:pt-12 md:pr-[50%]",
+          )}
+        >
           {/* Stage (only when the item has a photo) */}
-          {s.image && (
+          {s.image && !s.photo && (
           <div className="relative mx-auto aspect-square w-full max-w-[220px] sm:max-w-[320px] md:max-w-[420px]">
             <motion.span
               key={s.handle + "-glow"}
@@ -122,10 +157,10 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-start"
             >
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[#e8c879] uppercase backdrop-blur max-md:hidden">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-co-gold uppercase backdrop-blur max-md:hidden">
                 <Sparkles className="size-3.5" /> In the spotlight
               </span>
-              <p className="font-hindi text-sm text-[#e8c879] md:mt-4 md:text-lg" lang="hi">
+              <p className="font-hindi text-sm text-co-gold md:mt-4 md:text-lg" lang="hi">
                 {s.titleHi}
               </p>
               <h3 className="text-[22px] leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
@@ -135,7 +170,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                 </p>
               ) : null}
               <p className="mt-2 max-w-md text-[13px] leading-relaxed text-white/85 md:mt-4 md:text-lg">{s.text}</p>
-              <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-[#e8c879]/40 px-2.5 py-1 text-[11px] font-semibold text-[#e8c879] md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm">
+              <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-co-gold/40 px-2.5 py-1 text-[11px] font-semibold text-co-gold md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm">
                 <Check className="size-3.5 md:size-4" /> {s.note}
               </span>
 
@@ -161,7 +196,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                         setBusy(false);
                       }
                     }}
-                    className="btn-shine inline-flex h-10 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-5 text-[13px] font-bold md:h-12 md:flex-none md:px-6 md:text-sm text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
+                    className="btn-shine inline-flex h-10 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-co-gold px-5 text-[13px] font-bold md:h-12 md:flex-none md:px-6 md:text-sm text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
                   >
                     {busy ? <Loader2 className="size-4 animate-spin" /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
                     {added ? "Added" : "Add to cart"}

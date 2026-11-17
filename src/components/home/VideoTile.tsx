@@ -118,7 +118,7 @@ export function VideoTile({
       className={cn("group relative isolate overflow-hidden rounded-3xl bg-forest ring-1 ring-white/10", className)}
     >
       {/* Whole tile opens the sound-on player; the product chip is its own link on top. */}
-      <button type="button" onClick={onOpen} aria-label={`Play with sound: ${title}`} className="absolute inset-0 z-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#e8c879] focus-visible:ring-inset">
+      <button type="button" onClick={onOpen} aria-label={`Play with sound: ${title}`} className="absolute inset-0 z-0 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-co-gold focus-visible:ring-inset">
         {src && !reduce ? (
           <video
             ref={ref}
@@ -178,7 +178,7 @@ export function VideoTile({
               title={chipPrice ? `${product.title} · ${chipPrice}` : product.title}
               className="group/chip pointer-events-auto flex w-fit max-w-full items-center gap-1.5 rounded-full border border-white/10 bg-black/35 p-1 pr-2.5 sm:gap-2 sm:p-1.5 sm:pr-3 text-white backdrop-blur-md transition-colors duration-300 hover:bg-white/15"
             >
-              <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f6efe2] sm:size-8">
+              <span className="grid size-7 shrink-0 place-items-center overflow-hidden rounded-lg bg-khaki-soft sm:size-8">
                 {product.image ? (
                   <Image src={thumbUrl(product.image, 32)} alt="" width={32} height={32} unoptimized className="size-7 object-contain" />
                 ) : (

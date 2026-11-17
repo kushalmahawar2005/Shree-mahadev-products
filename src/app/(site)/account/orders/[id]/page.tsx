@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { RequestCallback } from "@/components/account/help/RequestCallback";
 import { isPaidOnline } from "@/components/account/help/help-lib";
+import { dedupeScans, scanLine } from "@/lib/tracking-text";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -135,11 +136,11 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const timelineTimes = Object.fromEntries(
     timeline.filter((t) => t.at).map((t) => [t.key, formatDateTime(t.at!)]),
   );
-  const tracking = o.tracking.map((t) => ({
-    label: t.message || formatName(t.status.replace(/[_-]+/g, " ")),
-    location: t.location ? formatName(t.location) : null,
-    at: formatDateTime(t.at),
-  }));
+  // Courier scans as clear lines ("Left Jaipur hub", "Out for delivery in Bijainagar"); newest first,
+  // repeated identical scans shown once. The place is part of the line.
+  const tracking = dedupeScans(
+    o.tracking.map((t) => ({ line: scanLine(t.status, t.message, t.location), at: t.at })),
+  ).map((t) => ({ label: t.line, location: null, at: formatDateTime(t.at) }));
 
   const primary = <PrimaryAction kind={ui.primary} o={o} />;
   const addr = addressLines(o.address);

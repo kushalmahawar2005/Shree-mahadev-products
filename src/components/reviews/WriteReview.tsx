@@ -87,7 +87,7 @@ export function WriteReview({ productHandle, productTitle, category = "oil" }: {
       }}
     >
       <DialogTrigger asChild>
-        <button type="button" className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-[#e8c879] px-4 text-sm font-bold text-forest-deep hover:bg-white">
+        <button type="button" className="mt-6 inline-flex h-10 items-center gap-2 rounded-full bg-co-gold px-4 text-sm font-bold text-forest-deep hover:bg-white">
           <PenLine className="size-4" /> Write a review
         </button>
       </DialogTrigger>

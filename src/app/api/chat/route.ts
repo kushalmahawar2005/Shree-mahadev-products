@@ -5,10 +5,15 @@ import { logChat } from "@/lib/server/chat-logs";
 import { blocksFromReply, productBlocks } from "@/lib/server/chat-blocks";
 import { getChatKnowledge, normalizeChatText, searchChatKnowledge, type ChatSource } from "@/lib/server/chat-knowledge";
 import { clientIp, rateLimit } from "@/lib/server/rate-limit";
+import { canonicalTurn, redactPII, say, signTurn, trustedHistory, type ChatLanguage } from "@/lib/server/chat-guard";
+
+/** One AI call has a 12 s budget inside chat-ai; this caps the whole streamed reply. */
+export const maxDuration = 30;
 
 const Input = z.object({
   message: z.string().trim().min(1).max(500),
-  history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(2000) })).max(12).optional(),
+  // Assistant turns carry the server's signature (sig); unsigned / forged ones are dropped.
+  history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(2000), sig: z.string().max(64).optional() })).max(12).optional(),
   sessionId: z.string().regex(/^[\w-]{6,24}$/).optional(),
   msgKey: z.string().regex(/^[\w-]{6,24}$/).optional(),
   language: z.enum(["English", "Hinglish", "Hindi"]).optional(),
@@ -74,12 +79,15 @@ function cartAction(text: string, knowledge: Awaited<ReturnType<typeof getChatKn
   const saidSize = /\d+(\.\d+)?\s*(ml|l|ltr|litre|liter|lit|kg|g|gm|gram|grams)\b|\b(litre|liter|kilo|half)\b|लीटर|किलो|ग्राम/i.test(message);
   const size = saidSize ? add[2].trim() : "?";
   const variant = size && size !== "?" ? product.variants.find((item) => sizeKey(item.title) === sizeKey(size)) : undefined;
-  return { action: "add" as const, product, variantId: variant?.available ? variant.id : null, qty: Math.min(Math.max(Number(add[3]) || 1, 1), 10) };
+  // Auto-add only when the SHOPPER asked to add (and named the size). A marker the model produced on its
+  // own (or was talked into) just shows the card; they tap to add.
+  const autoAdd = variant?.available && addIntent.test(message);
+  return { action: "add" as const, product, variantId: autoAdd ? variant.id : null, qty: Math.min(Math.max(Number(add[3]) || 1, 1), 10) };
 }
 
 export async function POST(request: Request) {
   const limit = await rateLimit("chat_answer", await clientIp(), 40, 10);
-  if (!limit.ok) return NextResponse.json({ error: `Please wait ${limit.retryInMin} min before asking more questions.` }, { status: 429 });
+  if (!limit.ok) return NextResponse.json({ error: `Thoda ruk jaiye 🙏 ${limit.retryInMin} min baad dobara poochiye. (Please wait ${limit.retryInMin} min.)` }, { status: 429 });
 
   let raw: unknown;
   try { raw = await request.json(); } catch { return NextResponse.json({ error: "Please enter a question." }, { status: 400 }); }
@@ -87,53 +95,71 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Please enter a question under 500 characters." }, { status: 400 });
 
   const message = parsed.data.message;
-  const history = parsed.data.history ?? [];
   const { sessionId, msgKey } = parsed.data;
+  const history = trustedHistory(sessionId, parsed.data.history ?? []);
+  // Reply language, decided once: the shopper's menu choice, else their latest message (voice aware).
+  const lastUserText = history.findLast((turn) => turn.role === "user")?.text;
+  const lang: ChatLanguage = parsed.data.language ?? (parsed.data.voice ? voiceLanguage(message) : replyLanguage(message, lastUserText));
   const log = (answer: string, engine: Parameters<typeof logChat>[0]["engine"], answered = true) => logChat({ sessionId, msgKey, question: message, answer, engine, answered });
+  /** JSON reply + the signature the widget sends back with this answer in the next history. */
+  const reply = (body: { answer: string } & Record<string, unknown>, init?: ResponseInit) =>
+    NextResponse.json({ ...body, turn: canonicalTurn(body.answer), sig: signTurn(sessionId, body.answer) }, init);
   if (looksLikePaymentSecret(message)) {
-    return NextResponse.json({
-      answer: "⚠️ Card number, CVV, UPI PIN ya OTP kabhi chat mein mat likhiye. Payment sirf PayU ke secure page par hota hai.",
-      blocks: [{ type: "notice", tone: "warning", text: "Yeh message save nahi kiya gaya." }],
+    return reply({
+      answer: say(lang, {
+        en: "⚠️ Never type a card number, CVV, UPI PIN or OTP in chat. Payment only happens on PayU's secure page.",
+        hinglish: "⚠️ Card number, CVV, UPI PIN ya OTP kabhi chat mein mat likhiye. Payment sirf PayU ke secure page par hota hai.",
+        hi: "⚠️ कार्ड नंबर, CVV, UPI PIN या OTP कभी चैट में न लिखें। पेमेंट सिर्फ़ PayU के सुरक्षित पेज पर होता है।",
+      }),
+      blocks: [{ type: "notice", tone: "warning", text: say(lang, { en: "This message was not saved.", hinglish: "Yeh message save nahi kiya gaya.", hi: "यह मैसेज सेव नहीं किया गया।" }) }],
     });
   }
   if (medicalAdviceWords.test(message) || hindiMedicalAdviceWords.test(message)) {
     log("medical disclaimer", "medical");
-    return NextResponse.json({
-      answer: "Product information on this site is not medical advice. Please ask a qualified doctor about health conditions, medicines, pregnancy or dosage. I can still help with product ingredients and published lab reports.",
-      sources: [{ title: "Terms of service", href: "/policies/terms" }, { title: "Lab reports", href: "/lab-reports" }],
+    return reply({
+      answer: say(lang, {
+        en: "Product information here is not medical advice. For health conditions, medicines, pregnancy or dosage, please ask a qualified doctor. I can still help with ingredients and our lab reports.",
+        hinglish: "Yahan ki product jaankari medical salah nahi hai. Bimari, dawai, pregnancy ya dose ke liye kripya doctor se poochiye. Ingredients aur lab reports mein main madad kar sakta hoon.",
+        hi: "यहाँ की प्रोडक्ट जानकारी मेडिकल सलाह नहीं है। बीमारी, दवा, प्रेग्नेंसी या खुराक के लिए कृपया डॉक्टर से पूछें। सामग्री और लैब रिपोर्ट में मैं मदद कर सकता हूँ।",
+      }),
+      sources: [{ title: say(lang, { en: "Terms of service", hinglish: "Terms of service", hi: "सेवा की शर्तें" }), href: "/policies/terms" }, { title: say(lang, { en: "Lab reports", hinglish: "Lab reports", hi: "लैब रिपोर्ट" }), href: "/lab-reports" }],
     });
   }
   const lastAssistantText = history.findLast((turn) => turn.role === "assistant")?.text ?? "";
   if (reorderWords.test(message)) {
     log("reorder", "orders");
-    return NextResponse.json({ answer: "Pichhla order dobara cart mein daal raha hoon…", action: "reorder" });
+    return reply({ answer: say(lang, { en: "Adding your last order to the cart again…", hinglish: "Pichhla order dobara cart mein daal raha hoon…", hi: "पिछला ऑर्डर फिर से कार्ट में डाल रहा हूँ…" }), action: "reorder" });
   }
   if (yesWords.test(message) && /checkout|confirm|order/i.test(lastAssistantText)) {
     log("checkout card", "local");
-    return NextResponse.json({ answer: "Order neeche se confirm kijiye 👇", blocks: [{ type: "checkout_card" }] });
+    return reply({ answer: say(lang, { en: "Confirm your order below 👇", hinglish: "Order neeche se confirm kijiye 👇", hi: "ऑर्डर नीचे से कन्फ़र्म कीजिए 👇" }), blocks: [{ type: "checkout_card" }] });
   }
   const wantsToAdd = addIntent.test(message);
   if ((cartWords.test(message) && !wantsToAdd) || checkoutWords.test(message)) {
     const checkout = checkoutWords.test(message);
-    const answer = checkout ? "Checkout ke liye taiyaar! 🛒 Address aur payment chun kar confirm kijiye." : "Yeh raha aapka cart 🛒";
+    const answer = checkout
+      ? say(lang, { en: "Ready for checkout 🛒 Pick your address and payment, then confirm.", hinglish: "Checkout ke liye taiyaar! 🛒 Address aur payment chun kar confirm kijiye.", hi: "चेकआउट के लिए तैयार 🛒 पता और पेमेंट चुनकर कन्फ़र्म कीजिए।" })
+      : say(lang, { en: "Here's your cart 🛒", hinglish: "Yeh raha aapka cart 🛒", hi: "यह रहा आपका कार्ट 🛒" });
     log(answer, "local");
-    return NextResponse.json({ answer, blocks: [{ type: checkout ? "checkout_card" : "cart_summary" }] });
+    return reply({ answer, blocks: [{ type: checkout ? "checkout_card" : "cart_summary" }] });
   }
   if (greetingWords.test(message)) {
+    // Greeting language: menu choice wins; else Devanagari → Hindi, "namaste/aap…" → Hinglish, plain "hi" → English.
     const english = /^[\s\w!.?]*$/.test(message) && !/namaste|namaskar|ram ram|aap|tum|jai/i.test(message);
-    const answer = hindiScript.test(message)
-      ? "नमस्ते 🙏 मैं **महादेव सहायक** हूँ, आपका पर्सनल असिस्टेंट। बताइए, कैसे मदद करूँ?"
-      : english
-        ? "Hello 🙏 I am **Mahadev Sahayak**, your Personal Assistant. How can I help you today?"
-        : "Namaste 🙏 Main **Mahadev Sahayak** hoon, aapka Personal Assistant. Bataiye, kaise madad karun?";
+    const greetLang: ChatLanguage = parsed.data.language ?? (hindiScript.test(message) ? "Hindi" : english ? "English" : "Hinglish");
+    const answer = say(greetLang, {
+      hi: "नमस्ते 🙏 मैं **महादेव सहायक** हूँ, आपका पर्सनल असिस्टेंट। बताइए, कैसे मदद करूँ?",
+      en: "Hello 🙏 I am **Mahadev Sahayak**, your Personal Assistant. How can I help you today?",
+      hinglish: "Namaste 🙏 Main **Mahadev Sahayak** hoon, aapka Personal Assistant. Bataiye, kaise madad karun?",
+    });
     log(answer, "local");
-    return NextResponse.json({ answer, sources: [] });
+    return reply({ answer, sources: [] });
   }
   if (orderWords.test(message) || hindiOrderWords.test(message) || orderProblemWords.test(message)) {
     log("opened order flow", "orders");
-    return NextResponse.json({
+    return reply({
       // One short line: the order cards that follow are the real answer.
-      answer: hindiScript.test(message) ? "आपके ऑर्डर देख रहा हूँ… 🔍" : "Aapke orders dekh raha hoon… 🔍",
+      answer: say(lang, { en: "Checking your orders… 🔍", hinglish: "Aapke orders dekh raha hoon… 🔍", hi: "आपके ऑर्डर देख रहा हूँ… 🔍" }),
       sources: [],
       action: "orders",
     });
@@ -151,8 +177,8 @@ export async function POST(request: Request) {
         .filter((entry, index, all) => all.findIndex((other) => other.href === entry.href && other.title === entry.title) === index)
         .slice(0, 9);
       const catalog = knowledge.flatMap((entry) => entry.product ? [`${entry.product.title} [handle: ${entry.product.handle}] (${entry.excerpt.match(/^Sizes and prices: ([^.]*)/)?.[1] ?? `from ₹${entry.product.price}`})`] : []).join("; ");
-      const language = parsed.data.language ?? (parsed.data.voice ? voiceLanguage(message) : undefined);
-      const cacheKey = history.length ? null : `${language ?? replyLanguage(message)}:${normalizeChatText(message).sort().join(" ")}`;
+      // Cache only history-free questions; key keeps word order ("A better than B" ≠ "B better than A").
+      const cacheKey = history.length ? null : `${lang}:${normalizeChatText(message).join(" ")}`;
       // Only strong matches become "read more" links; weak keyword hits looked random under AI answers.
       const strong = results.filter((result) => (result.score ?? 0) >= 5).slice(0, 2);
 
@@ -160,7 +186,7 @@ export async function POST(request: Request) {
       try {
         const answer = cached
           ? new ReadableStream<string>({ start(controller) { controller.enqueue(cached); controller.close(); } })
-          : await streamGeminiAnswer({ message, history, sources: grounding, catalog, cacheKey, language });
+          : await streamGeminiAnswer({ message: redactPII(message), history, sources: grounding, catalog, cacheKey, language: lang });
         let full = "";
         const body = answer.pipeThrough(new TransformStream<string, string>({
           transform(delta, controller) { full += delta; controller.enqueue(ndjson({ type: "text", delta })); },
@@ -171,7 +197,7 @@ export async function POST(request: Request) {
             const unknown = full.includes("[[unknown]]");
             const orders = /\[\[orders:/.test(full);
             log(full.replace(/\[\[[^\]]*\]\]/g, "").trim(), orders ? "orders" : cached ? "cache" : "ai", !unknown && full.trim().length > 0);
-            controller.enqueue(ndjson({ type: "done" }));
+            controller.enqueue(ndjson({ type: "done", turn: canonicalTurn(full), sig: signTurn(sessionId, full) }));
           },
         })).pipeThrough(new TextEncoderStream());
         return new Response(body, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" } });
@@ -182,23 +208,25 @@ export async function POST(request: Request) {
 
     if (!results.length) {
       log("no match", "local", false);
-      return NextResponse.json({
-        answer: "Iska pakka jawab mere paas abhi nahi hai. Hamari team aapki madad kar degi.",
+      return reply({
+        answer: say(lang, { en: "I don't have a sure answer for this right now. Our team will help you.", hinglish: "Iska pakka jawab mere paas abhi nahi hai. Hamari team aapki madad kar degi.", hi: "इसका पक्का जवाब अभी मेरे पास नहीं है। हमारी टीम आपकी मदद करेगी।" }),
         blocks: [{ type: "handoff" }],
       });
     }
     log(results[0].excerpt, "local");
     const top = results[0];
-    return NextResponse.json({
-      answer: top.product ? `**${top.title}** ke baare mein:` : "Yeh jaankari mili:",
+    return reply({
+      answer: top.product
+        ? say(lang, { en: `About **${top.title}**:`, hinglish: `**${top.title}** ke baare mein:`, hi: `**${top.title}** के बारे में:` })
+        : say(lang, { en: "Here's what I found:", hinglish: "Yeh jaankari mili:", hi: "यह जानकारी मिली:" }),
       blocks: top.product
         ? productBlocks(productCards(results))
         : [{ type: "info_card", title: top.title, body: top.excerpt.slice(0, 420), href: top.href, source: "Store info" }, ...(results.length > 1 ? [{ type: "quick_replies", options: results.slice(1, 4).map(({ title }) => title.slice(0, 60)) }] : [])],
     });
   } catch (error) {
     console.error("chat answer", error);
-    return NextResponse.json({
-      answer: "I couldn't load the store information just now. Please try again or contact our team.",
+    return reply({
+      answer: say(lang, { en: "I couldn't load the store information just now. Please try again or contact our team.", hinglish: "Abhi store ki jaankari load nahi ho paayi. Thodi der mein dobara poochiye ya team se baat kijiye.", hi: "अभी स्टोर की जानकारी लोड नहीं हो पाई। थोड़ी देर में फिर पूछें या टीम से बात करें।" }),
       sources: [],
       suggestions: [{ label: "Contact support", href: "/contact" }],
     });

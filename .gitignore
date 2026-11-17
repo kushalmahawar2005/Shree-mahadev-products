@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Raw AI image generations (source art, not served)
 /output/
+
+# Local scratch (reference images, frame sheets)
+/tmp/

@@ -69,7 +69,7 @@ export function NeverDo() {
     <ul className="grid gap-3 sm:grid-cols-2">
       {items.map(({ I, t, d }) => (
         <li key={t} className="flex items-start gap-3 rounded-2xl bg-white/10 p-4">
-          <span className="shrink-0 text-[#e8c879]">
+          <span className="shrink-0 text-co-gold">
             <I className="size-8" />
           </span>
           <span>
@@ -106,14 +106,14 @@ export function StoryCta() {
   return (
     <div className="flex flex-col items-start justify-between gap-5 rounded-3xl bg-forest p-6 text-white md:flex-row md:items-center md:p-10">
       <div>
-        <p className="font-hindi text-lg text-[#e8c879]" lang="hi">
+        <p className="font-hindi text-lg text-co-gold" lang="hi">
           स्वाद जो याद रहे
         </p>
         <h2 className="text-2xl text-white md:text-3xl">Taste the difference yourself</h2>
         <p className="mt-1 text-sm text-white/70">Every batch is lab tested. See the reports before you buy.</p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Link href="/shop" className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-[#e8c879] px-6 text-sm font-bold text-forest-deep hover:bg-white">
+        <Link href="/shop" className="btn-shine inline-flex h-12 items-center gap-2 overflow-hidden rounded-full bg-co-gold px-6 text-sm font-bold text-forest-deep hover:bg-white">
           Shop now <ArrowRight className="size-4" />
         </Link>
         <Link href="/lab-reports" className="inline-flex h-12 items-center gap-2 rounded-full border border-white/30 px-6 text-sm font-semibold text-white hover:bg-white/10">

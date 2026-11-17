@@ -81,12 +81,12 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
     let cancelled = false;
     (async () => {
       if (reduce) {
-        await animate(enter, { opacity: [0, 1] }, { duration: 0.25, ease: "easeInOut" });
+        await animate(enter, { opacity: [0, 1] }, { duration: 0.25, ease: EASE.menuSlide });
       } else {
         const outText = prev === null ? [] : textEls(prev);
         await Promise.all([
           animate(enter, { clipPath: [run.dir === 1 ? FROM_RIGHT : FROM_LEFT, FULL] }, WIPE),
-          outText.length ? animate(outText, { opacity: 0 }, { duration: 0.25, ease: "easeInOut" }) : null,
+          outText.length ? animate(outText, { opacity: 0 }, { duration: 0.25, ease: EASE.menuSlide }) : null,
         ]);
       }
       if (cancelled) return;
@@ -233,7 +233,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                             tabIndex={active ? 0 : -1}
                             className={cn(
                               "inline-flex h-12 items-center rounded-full px-7 text-sm font-bold tracking-wide uppercase transition-colors",
-                              n === 0 ? "bg-mustard text-forest-deep hover:bg-[#e8c879]" : "border border-white/70 text-white hover:bg-white/10",
+                              n === 0 ? "bg-mustard text-forest-deep hover:bg-co-gold" : "border border-white/70 text-white hover:bg-white/10",
                             )}
                           >
                             {c.label}

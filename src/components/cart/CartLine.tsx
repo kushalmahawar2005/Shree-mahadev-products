@@ -1,6 +1,7 @@
 "use client";
 
 import { cutoutUrl, variantImage } from "@/lib/image-loader";
+import { EASE } from "@/lib/motion";
 import Link from "next/link";
 import { useState } from "react";
 import { motion } from "motion/react";
@@ -69,7 +70,7 @@ export function CartLineItem({
           className="pointer-events-none absolute inset-0 bg-mustard/25"
           initial={{ opacity: 1 }}
           animate={{ opacity: 0 }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
+          transition={{ duration: 1.4, ease: EASE.out }}
         />
       )}
       {/* pending update: shimmer on this line only */}
@@ -77,7 +78,7 @@ export function CartLineItem({
       <Link
         href={`/products/${line.product.handle}`}
         onClick={close}
-        className="grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-xl bg-[#f6efe2]"
+        className="grid size-[76px] shrink-0 place-items-center overflow-hidden rounded-xl bg-khaki-soft"
       >
         {img && <SmartImage src={cutoutUrl(img.url)} alt={img.alt} width={80} height={80} sizes="76px" className="!h-[68px] !w-auto max-w-full object-contain" />}
       </Link>
@@ -90,7 +91,7 @@ export function CartLineItem({
             </Link>
             {options.length > 1 ? (
               <Select value={line.variant.id} onValueChange={switchSize} disabled={busy}>
-                <SelectTrigger size="sm" className="mt-1.5 !h-7 w-auto min-w-0 gap-1 rounded-lg border-line bg-white px-2 text-xs font-medium text-forest-text" aria-label={`Size for ${line.product.title}`}>
+                <SelectTrigger size="sm" className="mt-1.5 !h-9 w-auto min-w-0 gap-1 rounded-lg border-line bg-white px-2 text-xs font-medium text-forest-text" aria-label={`Size for ${line.product.title}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -108,7 +109,7 @@ export function CartLineItem({
           <div className="shrink-0 text-right">
             {mrp > 0 && <p className="text-[11px] text-ink-muted line-through tabular-nums">{formatMoney(mrp)}</p>}
             <p className="text-[15px] font-extrabold text-forest-text tabular-nums">{formatMoney(line.variant.price.amount * line.quantity)}</p>
-            {pctOff > 0 && <p className="text-[11px] font-bold text-[#1f7a3d] tabular-nums">{pctOff}% OFF</p>}
+            {pctOff > 0 && <p className="text-[11px] font-bold text-co-success tabular-nums">{pctOff}% OFF</p>}
           </div>
         </div>
 
@@ -131,7 +132,7 @@ export function CartLineItem({
                 onRemoved?.(line);
               })
             }
-            className="grid size-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-alert-soft hover:text-alert disabled:opacity-50"
+            className="grid size-10 place-items-center rounded-full text-ink-muted transition-colors hover:bg-alert-soft hover:text-alert disabled:opacity-50"
             aria-label={`Remove ${line.product.title}`}
           >
             <Trash2 className="size-4" />
@@ -159,9 +160,9 @@ export function QtyStepper({
   min?: number;
   size?: "sm" | "md";
 }) {
-  const btn = size === "sm" ? "size-8" : "size-11";
+  const btn = size === "sm" ? "size-9" : "size-11";
   return (
-    <div className="inline-flex items-center rounded-full border border-line bg-[#fbf8f1]" role="group" aria-label={`Quantity for ${label}`}>
+    <div className="inline-flex items-center rounded-full border border-line bg-ivory" role="group" aria-label={`Quantity for ${label}`}>
       <button
         type="button"
         disabled={disabled || value <= min}

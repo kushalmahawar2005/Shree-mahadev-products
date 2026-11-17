@@ -211,7 +211,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
               {image && (
                 <span className="hidden size-11 shrink-0 place-items-center rounded-xl bg-page md:grid">
                   {/* eslint-disable-next-line @next/next/no-img-element -- tiny decorative thumb */}
-                  <img src={image} alt="" className="size-9 object-contain" />
+                  <img src={image} alt="" width={36} height={36} className="size-9 object-contain" />
                 </span>
               )}
               <div className="min-w-0 flex-1">

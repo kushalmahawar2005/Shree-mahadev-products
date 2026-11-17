@@ -129,7 +129,7 @@ export function ShopCard({ product, index = 0 }: { product: ShopProduct; index?:
         <div className="min-w-0 flex-1">
           <button type="button" onClick={() => setExpanded((value) => !value)} className="block w-full min-w-0 text-left">
             <span className="block truncate text-[15px] font-semibold leading-tight text-ink">{product.title}</span>
-            {product.titleHi && <span className="font-hindi block truncate text-[13px] leading-snug text-ink-muted">{product.titleHi}</span>}
+            {product.titleHi && <span className="font-hindi block truncate py-px text-[13px] leading-normal text-ink-muted">{product.titleHi}</span>}
           </button>
           {product.benefit && <p className="mt-0.5 truncate text-[12.5px] text-ink-muted">{product.benefit}</p>}
 

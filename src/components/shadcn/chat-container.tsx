@@ -1,11 +1,13 @@
 "use client"
 
 import { cn } from "@/lib/utils/cn"
-import { StickToBottom } from "use-stick-to-bottom"
+import { StickToBottom, type GetTargetScrollTop } from "use-stick-to-bottom"
 
 export type ChatContainerRootProps = {
   children: React.ReactNode
   className?: string
+  /** Caps where "stick to bottom" scrolls to (e.g. keep the latest question in view). */
+  targetScrollTop?: GetTargetScrollTop
 } & React.HTMLAttributes<HTMLDivElement>
 
 export type ChatContainerContentProps = {

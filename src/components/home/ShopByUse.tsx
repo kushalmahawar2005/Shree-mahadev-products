@@ -138,12 +138,12 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
                         transition={{ type: "spring", stiffness: 380, damping: 32 }}
                       />
                     )}
-                    <span className={cn("relative shrink-0 transition-colors duration-150", on ? "text-[#e8c879]" : "text-forest")}>
-                      <I strokeWidth={1.75} className={cn("size-4 md:size-6", on ? "fill-[#e8c879]/20" : "fill-[#E9D29A]/60")} />
+                    <span className={cn("relative shrink-0 transition-colors duration-150", on ? "text-co-gold" : "text-forest")}>
+                      <I strokeWidth={1.75} className={cn("size-4 md:size-6", on ? "fill-co-gold/20" : "fill-[#E9D29A]/60")} />
                     </span>
                     <span className="relative leading-tight">
                       <span className={cn("block text-[12px] font-semibold whitespace-nowrap transition-colors md:text-sm md:font-bold", on ? "text-white" : "text-forest-text")}>{t.label}</span>
-                      <span className={cn("font-hindi block text-[13px] whitespace-nowrap transition-colors max-md:hidden", on ? "text-[#e8c879]" : "text-sale")} lang="hi">
+                      <span className={cn("font-hindi block text-[13px] whitespace-nowrap transition-colors max-md:hidden", on ? "text-co-gold" : "text-sale")} lang="hi">
                         {t.labelHi}
                       </span>
                     </span>
@@ -183,11 +183,11 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
               <span aria-hidden className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-[radial-gradient(closest-side,rgba(232,200,121,0.18),transparent)]" />
               {/* Phone: one slim row (icon · name + use · arrow). sm+: the full stacked card. */}
               <div className="relative flex items-center gap-3 lg:block">
-                <span className="shrink-0 text-[#e8c879]">
+                <span className="shrink-0 text-co-gold">
                   <Icon className="size-8 lg:size-9" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="font-hindi text-[15px] leading-tight text-[#e8c879] max-sm:hidden lg:mt-5 lg:text-lg" lang="hi">
+                  <p className="font-hindi text-[15px] leading-snug text-co-gold max-sm:hidden lg:mt-5 lg:text-lg" lang="hi">
                     {tab.labelHi}
                   </p>
                   <h3 className="text-lg leading-tight text-white sm:text-xl md:text-3xl">{tab.label}</h3>
@@ -196,7 +196,7 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
                 <Link
                   href={tab.viewAll}
                   aria-label={`Shop all for ${tab.label.toLowerCase()}`}
-                  className="grid size-10 shrink-0 place-items-center rounded-full bg-[#e8c879] text-forest-deep transition-colors hover:bg-white sm:hidden"
+                  className="grid size-10 shrink-0 place-items-center rounded-full bg-co-gold text-forest-deep transition-colors hover:bg-white sm:hidden"
                 >
                   <ArrowRight className="size-[18px]" />
                 </Link>
@@ -204,7 +204,7 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
               <p className="relative mt-1 text-sm text-white/70 max-sm:hidden">{tab.note}</p>
               {/* Tip sits right under the subtitle; the kadhai below grows to fill the rest of the panel */}
               <p className="relative mt-3 flex gap-2 border-t border-white/10 pt-3 text-[13px] leading-relaxed text-white/80 sm:mt-6 sm:gap-2.5 sm:rounded-2xl sm:border-0 sm:bg-white/10 sm:p-3.5 sm:text-sm sm:text-white/90">
-                <Lightbulb className="mt-0.5 size-4 shrink-0 text-[#e8c879]" aria-hidden />
+                <Lightbulb className="mt-0.5 size-4 shrink-0 text-co-gold" aria-hidden />
                 {tab.tip}
               </p>
               {/* Painted brass kadhai + masala bowls, right above the CTA (desktop) */}
@@ -219,7 +219,7 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
               </div>
               <Link
                 href={tab.viewAll}
-                className="btn-shine relative mt-6 hidden h-11 items-center justify-center gap-2 self-start overflow-hidden rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white sm:inline-flex lg:mt-5"
+                className="btn-shine relative mt-6 hidden h-11 items-center justify-center gap-2 self-start overflow-hidden rounded-full bg-co-gold px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white sm:inline-flex lg:mt-5"
               >
                 Shop all for {tab.label.toLowerCase()} <ArrowRight className="size-4" />
               </Link>

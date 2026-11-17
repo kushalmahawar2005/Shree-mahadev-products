@@ -99,7 +99,7 @@ export function Reels({
       <section className={cn("relative overflow-hidden", hideOnMobile && "hidden md:block", left ? "py-12 md:py-16" : "paper-grain bg-page pt-14 pb-14 md:pt-20 md:pb-20")}>
         <div className={cn("relative mx-auto", left ? "max-w-7xl px-6 md:px-8" : "max-w-[1360px] px-4 md:px-8")}>
           <div className={cn("relative flex flex-col", left ? "items-start text-left md:pr-28" : "items-center text-center")}>
-            <p className={cn("font-hindi flex items-center gap-2 text-base md:text-lg", dark ? "text-[#E8C879]" : left ? "text-co-accent-ink" : "text-sale")} lang="hi">
+            <p className={cn("font-hindi flex items-center gap-2 text-base md:text-lg", dark ? "text-co-gold" : left ? "text-co-accent-ink" : "text-sale")} lang="hi">
               {!left && <span aria-hidden className="h-px w-6 bg-sale/50" />}
               {eyebrow}
               {!left && <span aria-hidden className="h-px w-6 bg-sale/50" />}
@@ -420,7 +420,7 @@ function ViewerBody({ reels, start, onClose }: { reels: ReelItem[]; start: numbe
         </div>
         <div className="absolute inset-x-3 top-6 flex items-center justify-between">
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-white">
-            <span className="grid size-7 place-items-center rounded-full bg-[#e8c879] text-[10px] font-bold text-forest-deep">SM</span>
+            <span className="grid size-7 place-items-center rounded-full bg-co-gold text-[10px] font-bold text-forest-deep">SM</span>
             Mahadev Products
             <span className="text-white/60 tabular-nums">
               {i + 1}/{reels.length}
@@ -487,7 +487,7 @@ function ReelShopCard({ product }: { product: NonNullable<ReelItem["product"]> }
   return (
     // Glass strip inside the video's bottom edge (same glass as the play button), white text.
     <div className="flex items-center gap-2 rounded-2xl border border-white/20 bg-white/15 p-1.5 pr-1.5 text-white shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)] backdrop-blur-md">
-      <Link href={href} tabIndex={-1} aria-hidden className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-[#f6efe2]">
+      <Link href={href} tabIndex={-1} aria-hidden className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-lg bg-khaki-soft">
         {product.image ? (
           <Image src={thumbUrl(product.image, 36)} alt="" width={36} height={36} unoptimized className="size-8 object-contain" />
         ) : (
@@ -500,7 +500,7 @@ function ReelShopCard({ product }: { product: NonNullable<ReelItem["product"]> }
       </Link>
       {variantId &&
         (line ? (
-          <div className="flex h-8 shrink-0 items-center rounded-full bg-[#e8c879] text-forest-deep" aria-label={`${line.quantity} in cart`}>
+          <div className="flex h-8 shrink-0 items-center rounded-full bg-co-gold text-forest-deep" aria-label={`${line.quantity} in cart`}>
             <button type="button" disabled={busy} onClick={() => run(() => update(line.id, line.quantity - 1))} className="grid size-8 place-items-center disabled:opacity-60" aria-label="Remove one">
               <Minus className="size-3.5" />
             </button>
@@ -515,7 +515,7 @@ function ReelShopCard({ product }: { product: NonNullable<ReelItem["product"]> }
             disabled={busy}
             onClick={() => run(() => add(variantId))}
             aria-label={`Add ${title} to cart`}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-[#e8c879] px-3 text-xs font-semibold text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
+            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-co-gold px-3 text-xs font-semibold text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" /> : <ShoppingCart className="size-3.5" />} Add
           </button>
@@ -549,7 +549,7 @@ function ViewerProduct({ product }: { product: NonNullable<ReelItem["product"]> 
   return (
     <div className="space-y-2.5 rounded-2xl border border-white/15 bg-black/40 p-2.5 text-white backdrop-blur-md">
       <div className="flex items-center gap-2.5">
-        <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-[#f6efe2]">
+        <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-khaki-soft">
           {product.image ? <Image src={thumbUrl(product.image, 48)} alt="" width={48} height={48} unoptimized className="size-11 object-contain" /> : <ShoppingBag className="size-5 text-forest" />}
         </span>
         <div className="min-w-0 flex-1">
@@ -572,7 +572,7 @@ function ViewerProduct({ product }: { product: NonNullable<ReelItem["product"]> 
               onClick={() => setSizeId(s.id)}
               className={cn(
                 "h-9 shrink-0 rounded-full border px-3 text-[13px] whitespace-nowrap transition-colors",
-                s.id === size?.id ? "border-[#e8c879] bg-[#e8c879] font-semibold text-forest-deep" : "border-white/25 text-white hover:border-white/60",
+                s.id === size?.id ? "border-co-gold bg-co-gold font-semibold text-forest-deep" : "border-white/25 text-white hover:border-white/60",
               )}
             >
               {s.title}
@@ -583,7 +583,7 @@ function ViewerProduct({ product }: { product: NonNullable<ReelItem["product"]> 
 
       {size &&
         (line ? (
-          <motion.div layout className="flex h-11 items-center gap-1 rounded-full bg-[#e8c879] p-1 text-forest-deep" aria-label={`${line.quantity} in cart`}>
+          <motion.div layout className="flex h-11 items-center gap-1 rounded-full bg-co-gold p-1 text-forest-deep" aria-label={`${line.quantity} in cart`}>
             <button type="button" disabled={busy} onClick={() => run(() => update(line.id, line.quantity - 1))} className="grid size-9 place-items-center rounded-full bg-black/10 disabled:opacity-60" aria-label="Remove one">
               <Minus className="size-4" />
             </button>
@@ -598,7 +598,7 @@ function ViewerProduct({ product }: { product: NonNullable<ReelItem["product"]> 
             type="button"
             disabled={busy}
             onClick={() => run(() => add(size.id))}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#e8c879] text-sm font-medium text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-co-gold text-sm font-medium text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <ShoppingCart className="size-4" />} Add to cart
           </motion.button>

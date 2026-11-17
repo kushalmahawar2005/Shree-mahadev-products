@@ -35,6 +35,9 @@
   --color-co-accent-ink: #8A5E0F; /* gold as TEXT: #C9952B fails AA on white */
   --color-co-accent-soft: #FBF3DD;
   --color-co-gold: #E8C879; /* light gold on the green profile card */
+  /* Promo strip / offer cards (home picks): bright gold on deep green. */
+  --color-promo-gold: #E8B032;
+  --color-promo-deep: #03331C;
   --color-co-danger: #B4412F;
   --shadow-co-card: 0 1px 2px rgba(23, 37, 29, 0.04), 0 8px 24px rgba(23, 37, 29, 0.04);
 
@@ -910,6 +913,10 @@ body:has([data-float="sticky-cta"]) .chat-float {
   body:has([data-float="sticky-cta"]):has([data-float="consent"]) .chat-float {
     bottom: calc(env(safe-area-inset-bottom) + 12.25rem);
   }
+  /* Toasts (sonner reads --toast-bottom) sit above whatever floats at the bottom. */
+  body:has([data-float="consent"]) { --toast-bottom: 8rem; }
+  body:has([data-float="sticky-cta"]) { --toast-bottom: 8.75rem; }
+  body:has([data-float="sticky-cta"]):has([data-float="consent"]) { --toast-bottom: 12.25rem; }
   /* One message at a time: the login nudge waits until the cookie choice is made, and stays out
      of the way of the sticky Add-to-cart. */
   body:has([data-float="consent"]) [data-float="login-nudge"],

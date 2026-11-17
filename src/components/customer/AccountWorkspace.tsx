@@ -27,7 +27,7 @@ const STATUS: Record<string, { label: string; tone: string }> = {
   confirmed: { label: "Confirmed", tone: "bg-forest/10 text-forest" },
   cod_pending: { label: "Placed · COD", tone: "bg-forest/10 text-forest" },
   packed: { label: "Packed", tone: "bg-forest/10 text-forest" },
-  shipped: { label: "On the way", tone: "bg-[#e8c879]/40 text-forest-deep" },
+  shipped: { label: "On the way", tone: "bg-co-gold/40 text-forest-deep" },
   delivered: { label: "Delivered", tone: "bg-forest text-white" },
   pending_payment: { label: "Awaiting payment", tone: "bg-warm text-ink" },
   payment_failed: { label: "Payment failed", tone: "bg-alert-soft text-alert" },
@@ -221,17 +221,17 @@ function Dashboard({ customer, orders, addresses }: { customer: { name: string; 
         <section className="relative overflow-hidden rounded-3xl bg-forest p-5 text-white shadow-[0_24px_48px_-36px_rgba(7,47,27,0.7)]">
           <span aria-hidden className="absolute -top-16 -right-16 size-44 rounded-full bg-white/[0.05]" />
           <div className="relative flex items-center gap-3.5">
-            <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#e8c879] text-xl font-extrabold text-forest-deep ring-4 ring-white/10">
+            <span className="grid size-14 shrink-0 place-items-center rounded-full bg-co-gold text-xl font-extrabold text-forest-deep ring-4 ring-white/10">
               {customer.name.trim()[0]?.toUpperCase() ?? "?"}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="font-hindi text-sm leading-tight text-[#e8c879]" lang="hi">
+              <p className="font-hindi text-sm leading-snug text-co-gold" lang="hi">
                 नमस्ते
               </p>
               <p className="truncate text-xl font-bold text-white">{customer.name || "Welcome"}</p>
               <p className="flex items-center gap-1.5 text-[13px] text-white/70">
                 +91 {customer.phone}
-                <BadgeCheck className="size-4 text-[#e8c879]" aria-label="Verified number" />
+                <BadgeCheck className="size-4 text-co-gold" aria-label="Verified number" />
               </p>
             </div>
             <form action={logoutCustomerAction} className="lg:hidden">
@@ -319,7 +319,7 @@ function Dashboard({ customer, orders, addresses }: { customer: { name: string; 
                 {on && <motion.span layoutId="acct-tab" className="absolute inset-0 rounded-full bg-forest" transition={{ type: "spring", stiffness: 420, damping: 34 }} />}
                 <span className="relative">
                   {t.key === "orders" ? "Orders" : t.label}
-                  {t.count ? <span className={cn("ml-1 tabular-nums", on ? "text-[#e8c879]" : "text-ink-muted")}>{t.count}</span> : null}
+                  {t.count ? <span className={cn("ml-1 tabular-nums", on ? "text-co-gold" : "text-ink-muted")}>{t.count}</span> : null}
                 </span>
               </button>
             );
@@ -433,7 +433,7 @@ function OrdersTab({ orders, card }: { orders: Order[]; card: CardActions }) {
               )}
             >
               {x.label}
-              <span className={cn("tabular-nums", on ? "text-[#e8c879]" : "text-ink-muted")}>{n}</span>
+              <span className={cn("tabular-nums", on ? "text-co-gold" : "text-ink-muted")}>{n}</span>
             </button>
           );
         })}
@@ -478,7 +478,7 @@ function OrderCard({ order: o, featured, pending, busyId, onReorder }: { order: 
       <div className="flex items-center gap-3 px-4 py-4 sm:gap-4 sm:px-5">
         <div className="flex shrink-0 -space-x-3">
           {items.slice(0, 3).map((it, i) => (
-            <span key={i} className="relative grid size-14 place-items-center overflow-hidden rounded-2xl border-2 border-white bg-[#f6efe2] shadow-sm" style={{ zIndex: 3 - i }}>
+            <span key={i} className="relative grid size-14 place-items-center overflow-hidden rounded-2xl border-2 border-white bg-khaki-soft shadow-sm" style={{ zIndex: 3 - i }}>
               {it.image ? <SmartImage src={cutoutUrl(it.image)} alt="" width={56} height={56} className="size-full object-contain p-1" /> : <Package className="size-6 text-forest/60" />}
             </span>
           ))}
@@ -486,7 +486,7 @@ function OrderCard({ order: o, featured, pending, busyId, onReorder }: { order: 
             <span className="relative z-0 grid size-14 place-items-center rounded-2xl border-2 border-white bg-khaki-soft text-xs font-bold text-forest-text">+{items.length - 3}</span>
           )}
           {!items.length && (
-            <span className="grid size-14 place-items-center rounded-2xl bg-[#f6efe2]">
+            <span className="grid size-14 place-items-center rounded-2xl bg-khaki-soft">
               <Package className="size-6 text-forest/60" />
             </span>
           )}

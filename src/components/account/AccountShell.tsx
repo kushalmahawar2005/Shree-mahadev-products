@@ -132,7 +132,7 @@ function ProfileCard({
         </span>
         <div className="min-w-0 flex-1">
           <p
-            className="font-hindi text-sm leading-tight text-co-gold"
+            className="font-hindi text-sm leading-snug text-co-gold"
             lang="hi"
           >
             नमस्ते

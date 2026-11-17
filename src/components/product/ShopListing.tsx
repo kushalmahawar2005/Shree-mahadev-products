@@ -339,7 +339,7 @@ export function ShopListing({
                 {c.label} <X className="size-3" />
               </button>
             ))}
-            <button type="button" onClick={clearAll} className="h-8 px-2 text-xs font-semibold text-ink-muted underline-offset-2 hover:text-ink hover:underline">
+            <button type="button" onClick={clearAll} className="h-10 px-2 text-xs font-semibold text-ink-muted underline-offset-2 hover:text-ink hover:underline">
               Clear all
             </button>
           </div>

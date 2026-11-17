@@ -24,6 +24,7 @@ import {
   organizationJsonLd,
   DEFAULT_OG_IMAGE,
 } from "@/lib/utils/seo";
+import { MotionRoot } from "@/components/motion/MotionRoot";
 import "../globals.css";
 
 /** Clean geometric sans (close to Cowberry's look). Mukta covers Devanagari. */
@@ -107,6 +108,7 @@ export default async function RootLayout({
             __html: jsonLdString([organizationJsonLd(), localBusinessJsonLd()]),
           }}
         />
+        <MotionRoot>
         <StoreSettingsProvider value={await getStoreSettings()}>
           <CartProvider>
             <SmoothScroll>
@@ -131,6 +133,7 @@ export default async function RootLayout({
             </SmoothScroll>
           </CartProvider>
         </StoreSettingsProvider>
+        </MotionRoot>
       </body>
     </html>
   );

@@ -53,13 +53,13 @@ export function LabReportsBrowser({ reports, lab, fssaiNo, fssaiValidTill }: { r
         </span>
         <span className="flex-1">
           <span className="flex items-center gap-2 text-xl font-bold">
-            <BadgeCheck className="size-5 text-[#e8c879]" /> FSSAI licensed
+            <BadgeCheck className="size-5 text-co-gold" /> FSSAI licensed
           </span>
           <span className="mt-1 block text-white/75">
             State licence No. <span className="font-mono text-white">{fssaiNo}</span>, valid till {fssaiValidTill}. The same number is printed on every label.
           </span>
         </span>
-        <span className="inline-flex h-11 items-center gap-2 rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep group-hover:bg-white">
+        <span className="inline-flex h-11 items-center gap-2 rounded-full bg-co-gold px-5 text-sm font-bold text-forest-deep group-hover:bg-white">
           <FileText className="size-4" /> View licence
         </span>
       </button>

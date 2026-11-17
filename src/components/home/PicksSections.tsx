@@ -96,12 +96,12 @@ export function PromoStrip() {
     <section aria-label={promoStrip.tag} className="bg-[#023019] py-1.5">
       <Link
         href={promoStrip.cta.href}
-        className="group relative block h-[300px] overflow-hidden sm:h-[380px] border-y-[3px] border-[#E8B032] bg-[#03331C] md:h-[420px]"
+        className="group relative block h-[300px] overflow-hidden sm:h-[380px] border-y-[3px] border-promo-gold bg-promo-deep md:h-[420px]"
       >
         {/* Real footage: oil pouring from our wooden ghani. Desktop plays the muted loop on the right,
             fading into the green; mobile uses the still frame behind a dark overlay. */}
         <Image src={POUR.poster} alt="" fill sizes="100vw" className="object-cover md:hidden" />
-        <div aria-hidden className="absolute inset-0 bg-[#03331C]/75 md:hidden" />
+        <div aria-hidden className="absolute inset-0 bg-promo-deep/75 md:hidden" />
         <video
           className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[64%] object-cover [mask-image:linear-gradient(90deg,transparent_0%,#000_38%)] md:block"
           src={POUR.src}
@@ -117,23 +117,23 @@ export function PromoStrip() {
         <ReflectionSweep />
 
         <div className="relative z-10 mx-auto flex h-full max-w-[1360px] flex-col items-center justify-center gap-3 px-5 text-center sm:gap-4 sm:px-6 md:items-start md:px-12 md:text-left">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[#E8B032]/40 bg-black/20 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-khaki uppercase sm:text-xs backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-[#E8B032]" />
+          <p className="inline-flex items-center gap-2 rounded-full border border-promo-gold/40 bg-black/20 px-3 py-1 text-[10px] font-semibold tracking-[0.14em] text-khaki uppercase sm:text-xs backdrop-blur-sm">
+            <span className="size-1.5 rounded-full bg-promo-gold" />
             {promoStrip.tag}
           </p>
           <div>
-            <p className="text-[26px] leading-tight font-bold text-balance text-[#E8B032] sm:text-3xl lg:text-[52px]">{promoStrip.line1}</p>
+            <p className="text-[26px] leading-tight font-bold text-balance text-promo-gold sm:text-3xl lg:text-[52px]">{promoStrip.line1}</p>
             <p className="mt-1.5 max-w-md text-[15px] leading-snug font-medium text-khaki-soft sm:mt-2 sm:text-lg lg:text-xl">{promoStrip.line2}</p>
           </div>
           <ul className="flex flex-wrap justify-center gap-1.5 sm:gap-2 md:justify-start">
             {promoStrip.points.map((pt) => (
               <li key={pt} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold sm:px-3 sm:text-xs text-khaki-soft backdrop-blur-sm">
-                <Check className="size-3.5 text-[#E8B032]" strokeWidth={3} aria-hidden />
+                <Check className="size-3.5 text-promo-gold" strokeWidth={3} aria-hidden />
                 {pt}
               </li>
             ))}
           </ul>
-          <span className="btn-shine inline-flex h-11 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-[#E8B032] px-6 text-[13px] sm:h-12 sm:px-7 sm:text-sm font-bold tracking-wide text-forest-deep uppercase transition-colors duration-200 group-hover:bg-khaki">
+          <span className="btn-shine inline-flex h-11 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-promo-gold px-6 text-[13px] sm:h-12 sm:px-7 sm:text-sm font-bold tracking-wide text-forest-deep uppercase transition-colors duration-200 group-hover:bg-khaki">
             {promoStrip.cta.label}
             <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
           </span>
@@ -162,10 +162,10 @@ export function BrandFilmSection({ youtube, reels = [] }: { youtube: string; /**
       />
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
         <Reveal className="flex flex-col items-center text-center">
-          <p className="font-hindi flex items-center gap-2 text-base text-[#e8c879] md:text-lg" lang="hi">
-            <span aria-hidden className="h-px w-6 bg-[#e8c879]/60" />
+          <p className="font-hindi flex items-center gap-2 text-base text-co-gold md:text-lg" lang="hi">
+            <span aria-hidden className="h-px w-6 bg-co-gold/60" />
             हमारी कहानी
-            <span aria-hidden className="h-px w-6 bg-[#e8c879]/60" />
+            <span aria-hidden className="h-px w-6 bg-co-gold/60" />
           </p>
           <h2 className="mt-1.5 max-w-[18ch] text-[24px] leading-[1.1] font-bold tracking-tight text-balance text-[#fbf3df] sm:max-w-none md:text-[44px]">
             {brandFilm.titleRest}

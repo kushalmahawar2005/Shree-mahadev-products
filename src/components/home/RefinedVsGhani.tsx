@@ -57,13 +57,13 @@ export function RefinedVsGhani({ cta }: { cta: { label: string; href: string } }
           </h2>
           {/* Under the heading (same shift as the heading, centred under "vs"). */}
           <p className="w-full text-center text-xs text-ink-muted md:text-base">Same seed, two very different oils.</p>
-          <p lang="hi" className="font-hindi hidden text-xl leading-none text-[#b07a10] sm:block">
+          <p lang="hi" className="font-hindi hidden text-xl leading-snug text-[#b07a10] sm:block">
             पहले फ़र्क देखिए
           </p>
         </Reveal>
         <div className="mt-3 flex items-end justify-between gap-1 sm:mt-0 sm:block">
           {/* Hindi line in front of Dadi's open hand, as if she is saying it. */}
-          <p lang="hi" className="font-hindi mb-14 flex-1 self-end text-right text-lg leading-none text-[#b07a10] sm:hidden">
+          <p lang="hi" className="font-hindi mb-14 flex-1 self-end text-right text-lg leading-snug text-[#b07a10] sm:hidden">
             पहले फ़र्क देखिए
           </p>
           <Image

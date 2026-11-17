@@ -62,7 +62,7 @@ export function RasoiKit({
     >
       <div className="mx-auto grid max-w-6xl overflow-hidden rounded-3xl bg-forest-deep text-white md:grid-cols-2">
         {/* Visual: the three bottles on a warm panel, framed by the hand-painted ghani + kadhai */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-[#03331C] md:aspect-auto md:min-h-[440px]">
+        <div className="relative aspect-[4/3] overflow-hidden bg-promo-deep md:aspect-auto md:min-h-[440px]">
           {/* Hand-painted ghani fills the left; the three bottles sit in front of it on the right. */}
           <Image
             src="https://res.cloudinary.com/bmqxsylj/image/upload/v1793735938/swadeshi-mahadev/static/images/deco/promo-left.webp"
@@ -130,7 +130,7 @@ export function RasoiKit({
 
           {price > 0 ? (
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-3xl font-bold text-[#E8B032]">
+              <span className="text-3xl font-bold text-promo-gold">
                 {formatMoney(price)}
               </span>
               {save > 0 && (
@@ -139,7 +139,7 @@ export function RasoiKit({
                     <span className="sr-only">MRP </span>
                     {formatMoney(mrpTotal)}
                   </s>
-                  <span className="rounded-full bg-[#E8B032] px-3 py-1 text-sm font-semibold text-forest-deep">
+                  <span className="rounded-full bg-promo-gold px-3 py-1 text-sm font-semibold text-forest-deep">
                     Save {formatMoney(save)}
                   </span>
                 </>
@@ -154,7 +154,7 @@ export function RasoiKit({
               type="button"
               onClick={addKit}
               disabled={!allPriced || pending}
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#E8B032] px-8 font-semibold text-forest-deep transition-colors duration-200 hover:bg-khaki disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-promo-gold px-8 font-semibold text-forest-deep transition-colors duration-200 hover:bg-khaki disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {pending ? "Adding…" : "Add kit to cart"}
             </button>
