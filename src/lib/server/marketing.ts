@@ -51,7 +51,8 @@ export async function processMarketingOutbox(limit = 25) {
   let processed = 0;
   for (const row of rows) {
     try {
-      const payload = JSON.parse(row.payload) as Parameters<typeof dispatchMarketingEvent>[0];
+      // JSON column: parsed already by some drivers, text by others.
+      const payload = (typeof row.payload === "string" ? JSON.parse(row.payload) : row.payload) as Parameters<typeof dispatchMarketingEvent>[0];
       await dispatchMarketingEvent(payload, row.order_id, row.event_id);
       processed++;
     } catch (error) {

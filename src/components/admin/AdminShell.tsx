@@ -29,7 +29,7 @@ import {
   Users,
   type LucideIcon,
   LifeBuoy,
-  BookOpenText,
+  BookOpenText, Bot,
 } from "lucide-react";
 import { logoutAction } from "@/lib/admin-login-actions";
 import { Avatar, AvatarFallback } from "@/components/shadcn/avatar";
@@ -81,6 +81,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Abandoned carts", href: "/admin/abandoned-carts", section: "Customers", icon: ShoppingCart },
   { label: "Customers", href: "/admin/customers", section: "Customers", icon: Users },
   { label: "Help desk", href: "/admin/helpdesk", section: "Customers", icon: LifeBuoy },
+  { label: "Chat assistant", href: "/admin/chat", section: "Customers", icon: Bot },
   { label: "Coupons", href: "/admin/discounts", section: "Growth", icon: TicketPercent },
   { label: "Reviews", href: "/admin/reviews", section: "Growth", icon: Star },
   { label: "Bulk inquiries", href: "/admin/inquiries", section: "Growth", icon: Inbox },

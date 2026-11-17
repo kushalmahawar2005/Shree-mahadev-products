@@ -145,8 +145,10 @@ function HeaderBar({
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   const goHomeTop = () => {
     const lenis = getLenis();
-    if (lenis) lenis.scrollTo(0, { immediate: true });
-    else window.scrollTo({ top: 0, behavior: "instant" });
+    // Already on home: glide up; from another page the route change lands at the top.
+    const onHome = window.location.pathname === "/";
+    if (lenis) lenis.scrollTo(0, onHome ? { duration: 0.8 } : { immediate: true });
+    else window.scrollTo({ top: 0, behavior: onHome ? "smooth" : "instant" });
   };
   // ONE indicator: the underline follows the hovered item, else the open menu's item, else the current page.
   const marked = hovered ?? nav.find((n) => n.menu && n.menu === mega)?.href ?? nav.find((n) => isActive(n.href))?.href ?? null;

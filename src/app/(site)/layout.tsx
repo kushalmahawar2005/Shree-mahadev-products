@@ -13,6 +13,7 @@ import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import { ConsentManager } from "@/components/marketing/ConsentManager";
 import { WelcomeOffer } from "@/components/marketing/WelcomeOffer";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { LoadingBar } from "@/components/motion/LoadingBar";
 import { PAGE_OPEN_SCRIPT, PageReady } from "@/components/motion/PageReady";
@@ -76,6 +77,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#D0B17A",
   colorScheme: "only light",
+  // Android Chrome: the on-screen keyboard shrinks the layout viewport, so fixed sheets (chat) stay in view.
+  interactiveWidget: "resizes-content",
 };
 
 export default async function RootLayout({
@@ -103,6 +106,7 @@ export default async function RootLayout({
               <HideOnCheckout>
                 <SiteHeader />
                 <FestiveToran />
+                <ChatWidget />
               </HideOnCheckout>
               <main id="main" className="flex-1">
                 {children}

@@ -14,17 +14,11 @@ import {
   createCustomerSession,
   requireCustomer,
 } from "@/lib/server/customer-auth";
-import { setOrderStatus } from "@/lib/server/orders";
+import { otpConfigured, sendOtpCode } from "@/lib/server/otp-sender";
+import { hasActiveShipment, setOrderStatus } from "@/lib/server/orders";
 
 const Phone = z.string().regex(/^(?:\+?91|0)?[6-9]\d{9}$/);
 const normalized = (value: string) => cleanPhone(Phone.parse(value));
-
-/** OTP gateway settings, or null while the client has not set one up yet. */
-function otpGateway() {
-  const url = process.env.CUSTOMER_OTP_API_URL;
-  const key = process.env.CUSTOMER_OTP_API_KEY;
-  return url && key ? { url, key } : null;
-}
 
 /**
  * Mock OTP for local development only: while no gateway is set and the app is not a production
@@ -32,7 +26,7 @@ function otpGateway() {
  * Never active on a deployed site: a known code would let anyone sign in as any number.
  */
 const MOCK_OTP = "123456";
-const otpMock = () => !otpGateway() && process.env.NODE_ENV !== "production";
+const otpMock = () => !otpConfigured() && process.env.NODE_ENV !== "production";
 
 /**
  * Test numbers for the live site while no OTP gateway is set up: CUSTOMER_OTP_TEST_PHONES is a
@@ -48,38 +42,13 @@ function isTestPhone(phone: string) {
   return list.includes(phone.replace(/\D/g, "").slice(-10));
 }
 
-/** Sends the code. Returns false on any failure, so callers show a message instead of crashing the page. */
-async function sendOtp(phone: string, code: string): Promise<boolean> {
-  const gw = otpGateway();
-  if (!gw) return false;
-  const { url, key } = gw;
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        provider: process.env.CUSTOMER_OTP_PROVIDER,
-        phone,
-        otp: code,
-      }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 export async function requestCustomerOtpAction(raw: unknown) {
   const parsed = z.object({ phone: Phone }).strict().safeParse(raw);
   if (!parsed.success)
     return { ok: false, error: "Enter a valid Indian mobile number." };
   // No gateway yet (and not local dev / a test number): say so plainly, guest checkout still works, and skip writing a code nobody receives.
-  const mock = otpMock() || (!otpGateway() && isTestPhone(cleanPhone(parsed.data.phone)));
-  if (!otpGateway() && !mock)
+  const mock = otpMock() || (!otpConfigured() && isTestPhone(cleanPhone(parsed.data.phone)));
+  if (!otpConfigured() && !mock)
     return {
       ok: false,
       error:
@@ -107,7 +76,7 @@ export async function requestCustomerOtpAction(raw: unknown) {
     [phone, createHash("sha256").update(code).digest("hex")],
   );
   if (mock) return { ok: true, phone, devCode: MOCK_OTP };
-  if (!(await sendOtp(phone, code)))
+  if (!(await sendOtpCode(phone, code)))
     return {
       ok: false,
       error: "Could not send the OTP right now. Please try again in a minute.",
@@ -120,12 +89,14 @@ export async function verifyCustomerOtpAction(raw: unknown) {
     .object({
       phone: Phone,
       code: z.string().regex(/^\d{6}$/),
-      name: z.string().trim().min(2).max(120).optional(),
+      // Optional and may be "" (the name is asked after sign-in, only for new accounts).
+      name: z.string().trim().max(120).optional(),
       email: z.string().email().max(160).optional(),
     })
     .strict()
     .safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Enter the 6-digit OTP." };
+  const givenName = parsed.data.name && parsed.data.name.length >= 2 ? parsed.data.name : null;
   const phone = normalized(parsed.data.phone);
   const [[otp]] = await db().query<RowDataPacket[]>(
     "SELECT id, code_hash, attempts FROM otp_codes WHERE phone=? AND used_at IS NULL AND expires_at > NOW() ORDER BY id DESC LIMIT 1",
@@ -147,13 +118,26 @@ export async function verifyCustomerOtpAction(raw: unknown) {
   await db().execute("UPDATE otp_codes SET used_at=NOW() WHERE id=?", [otp.id]);
   await db().execute(
     "INSERT INTO customers (phone, name, email) VALUES (?,?,?) ON DUPLICATE KEY UPDATE name=COALESCE(NULLIF(VALUES(name),''),name), email=COALESCE(VALUES(email),email), id=LAST_INSERT_ID(id)",
-    [phone, parsed.data.name ?? "Customer", parsed.data.email ?? null],
+    [phone, givenName ?? "Customer", parsed.data.email ?? null],
   );
   const [[customer]] = await db().query<RowDataPacket[]>(
-    "SELECT LAST_INSERT_ID() AS id",
+    // By phone, not LAST_INSERT_ID(): db() is a pool, so a second query may run on another connection.
+    "SELECT id, name FROM customers WHERE phone=? LIMIT 1",
+    [phone],
   );
   await createCustomerSession(Number(customer.id));
-  return { ok: true };
+  // First sign-in (or an account created without a real name): the page asks for the name next.
+  const name = String(customer.name ?? "").trim();
+  return { ok: true, needsName: !name || name === "Customer" };
+}
+
+/** Saves the shopper's name right after their first sign-in. */
+export async function setCustomerNameAction(raw: unknown) {
+  const customer = await requireCustomer();
+  const parsed = z.object({ name: z.string().trim().min(2).max(80) }).strict().safeParse(raw);
+  if (!parsed.success) return { ok: false as const, error: "Please enter your name (at least 2 letters)." };
+  await db().execute("UPDATE customers SET name=? WHERE id=?", [parsed.data.name, customer.id]);
+  return { ok: true as const };
 }
 
 export async function logoutCustomerAction() {
@@ -194,22 +178,36 @@ export async function saveCustomerAddressAction(raw: unknown) {
   return { ok: true };
 }
 
+/**
+ * Adds a past order's items to the cart at today's prices and stock. Returns what was added,
+ * what was skipped (unavailable) and what now costs a different price, so the shopper sees it.
+ */
 export async function reorderAction(orderId: number) {
   const customer = await requireCustomer();
   if (!Number.isInteger(orderId) || orderId <= 0)
     throw new Error("Invalid order.");
   const [items] = await db().query<RowDataPacket[]>(
-    "SELECT oi.variant_key, oi.quantity FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE oi.order_id=? AND o.customer_id=?",
+    "SELECT oi.variant_key, oi.quantity, oi.product_title, oi.variant_title, oi.unit_price FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE oi.order_id=? AND o.customer_id=?",
     [orderId, customer.id],
   );
+  const added: string[] = [];
+  const skipped: string[] = [];
+  const repriced: { item: string; was: number; now: number }[] = [];
   for (const item of items) {
+    const label = `${item.product_title} (${item.variant_title})`;
     try {
-      await addToCartAction(String(item.variant_key), Number(item.quantity));
+      const cart = await addToCartAction(String(item.variant_key), Number(item.quantity));
+      const line = cart?.lines.find((l) => l.variant.id === String(item.variant_key));
+      if (!line) { skipped.push(label); continue; }
+      added.push(label);
+      const now = Number(line.variant.price.amount);
+      if (now !== Number(item.unit_price)) repriced.push({ item: label, was: Number(item.unit_price), now });
     } catch (error) {
       console.error("Could not reorder line", item.variant_key, error);
+      skipped.push(label);
     }
   }
-  return { ok: true, added: items.length };
+  return { ok: true, added: added.length, addedItems: added, skipped, repriced };
 }
 
 const CANCEL_REASONS = [
@@ -227,6 +225,9 @@ export type CancelReason = (typeof CANCEL_REASONS)[number];
  */
 export async function cancelMyOrderAction(raw: unknown) {
   const customer = await requireCustomer();
+  const limit = await rateLimit("cancel_order", String(customer.id), 5, 10);
+  if (!limit.ok)
+    return { ok: false as const, error: `Too many attempts. Try again in ${limit.retryInMin} min.` };
   const parsed = z
     .object({
       orderId: z.number().int().positive(),
@@ -251,6 +252,13 @@ export async function cancelMyOrderAction(raw: unknown) {
       ok: false as const,
       error:
         "This order has already shipped, so it can't be cancelled here. Message us on WhatsApp.",
+    };
+  // Once the courier shipment is created the parcel is with logistics: no self-cancel after that.
+  if (await hasActiveShipment(parsed.data.orderId))
+    return {
+      ok: false as const,
+      error:
+        "This order is already booked with the courier, so it can't be cancelled here. Message us on WhatsApp.",
     };
   // Paid online orders need a refund: the team handles those, so flag instead of cancelling silently.
   if (status === "paid" && String(o.payment_method) === "payu")

@@ -23,9 +23,12 @@ type CartContextValue = {
   lastAdded: { variantId: string; tick: number } | null;
   open: () => void;
   close: () => void;
-  add: (variantId: string, quantity?: number) => Promise<void>;
+  /** `silent`: no drawer/toast (the chat assistant shows its own confirmation). */
+  add: (variantId: string, quantity?: number, options?: { silent?: boolean }) => Promise<void>;
   update: (lineId: string, quantity: number) => Promise<void>;
   remove: (lineId: string) => Promise<void>;
+  /** Re-read the cart after a server-side change (e.g. a reorder from the chat assistant). */
+  refresh: () => Promise<void>;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -88,13 +91,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       lastAdded,
       open: () => setOpen(true),
       close: () => setOpen(false),
-      add: (variantId, quantity = 1) => {
+      add: (variantId, quantity = 1, options) => {
         const wasEmpty = countRef.current === 0;
         return run(
           () => addToCartAction(variantId, quantity),
           (next) => {
             setAddedTick((t) => t + 1);
             setLastAdded((p) => ({ variantId, tick: (p?.tick ?? 0) + 1 }));
+            if (options?.silent) return;
             // First product into an empty cart: open the drawer once (after the fly-to-cart lands) so
             // the shopper sees the cart. Every later add: a small toast instead, so shopping isn't
             // interrupted; "View cart" opens the drawer. Nothing while the drawer is already open.
@@ -118,6 +122,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       },
       update: (lineId, quantity) => run(() => updateCartLineAction(lineId, quantity)),
       remove: (lineId) => run(() => removeCartLineAction(lineId)),
+      refresh: () => getCartAction().then((next) => setCart(next)).catch(() => undefined),
     }),
     [cart, isOpen, pending, error, addedTick, lastAdded, run],
   );

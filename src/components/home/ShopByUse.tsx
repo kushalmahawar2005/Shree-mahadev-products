@@ -65,13 +65,19 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
 
   // Phones: keep the active tab in view in the scrolling tab row (not on first paint).
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const firstRender = useRef(true);
+  // Scrolls only the tab row sideways. scrollIntoView would also scroll the page, and it
+  // re-ran after mount when `reduce` resolved, dragging the home page down to this section.
+  const shownTab = useRef(active);
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
-    tabRefs.current[active]?.scrollIntoView({ inline: "center", block: "nearest", behavior: reduce ? "auto" : "smooth" });
+    if (shownTab.current === active) return;
+    shownTab.current = active;
+    const tab = tabRefs.current[active];
+    const row = tab?.closest<HTMLElement>(".overflow-x-auto");
+    if (!tab || !row) return;
+    const tabBox = tab.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    const left = row.scrollLeft + (tabBox.left - rowBox.left) - (row.clientWidth - tabBox.width) / 2;
+    row.scrollTo({ left: Math.max(0, left), behavior: reduce ? "auto" : "smooth" });
   }, [active, reduce]);
 
   const swap = reduce

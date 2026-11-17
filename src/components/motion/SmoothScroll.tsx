@@ -14,6 +14,13 @@ export function SmoothScroll({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const firstPath = useRef(true);
 
+  // Opening or reloading the site always starts at the top (the browser would otherwise
+  // restore the last scroll position, e.g. halfway down the home page).
+  useEffect(() => {
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+    if (!window.location.hash) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
+
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     const coarse = window.matchMedia("(pointer: coarse)");

@@ -21,7 +21,7 @@ const WIPE = [
   "email_outbox", "whatsapp_outbox", "marketing_outbox", "webhook_logs",
   "support_ticket_photos", "support_tickets", "orders",
   "cart_items", "carts",
-  "addresses", "customer_sessions", "customer_consents", "account_otps", "otp_codes", "back_in_stock", "customers",
+  "addresses", "customer_sessions", "customer_consents", "account_otps", "chat_guest_otps", "otp_codes", "back_in_stock", "customers",
   "leads", "inquiry_notes", "inquiries", "faq_feedback", "rate_limits", "inventory_log", "activity_log",
   "invoice_sequences", "credit_note_sequences", "whatsapp_optouts",
 ];

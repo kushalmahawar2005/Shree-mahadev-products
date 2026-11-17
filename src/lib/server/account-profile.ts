@@ -5,6 +5,8 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { site } from "@/data/site";
 import { db } from "./db";
 import { kickOutbox } from "./mail";
+import { otpConfigured, sendOtpCode } from "@/lib/server/otp-sender";
+
 
 /*
  * Profile & security data for /account/profile. Every function takes the customer id from
@@ -178,31 +180,9 @@ export async function confirmEmailVerification(customerId: number, rawToken: str
 
 export type OtpPurpose = "change_phone" | "delete";
 const MOCK_OTP = "123456";
-const otpGateway = () => {
-  const url = process.env.CUSTOMER_OTP_API_URL;
-  const key = process.env.CUSTOMER_OTP_API_KEY;
-  return url && key ? { url, key } : null;
-};
 /** Same rule as login: fixed code only in non-production builds with no gateway configured. */
-export const otpMock = () => !otpGateway() && process.env.NODE_ENV !== "production";
-export const otpAvailable = () => Boolean(otpGateway()) || otpMock();
-
-/** Mirrors sendOtp() in customer-account-actions.ts (same gateway + payload). */
-async function sendOtp(phone: string, code: string): Promise<boolean> {
-  const gw = otpGateway();
-  if (!gw) return false;
-  try {
-    const response = await fetch(gw.url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${gw.key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: process.env.CUSTOMER_OTP_PROVIDER, phone, otp: code }),
-      signal: AbortSignal.timeout(10_000),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
+export const otpMock = () => !otpConfigured() && process.env.NODE_ENV !== "production";
+export const otpAvailable = () => otpConfigured() || otpMock();
 
 export const RESEND_SECONDS = 30;
 export const MAX_SENDS = 4; // first send + 3 resends per 15 minutes
@@ -223,7 +203,7 @@ export async function issueAccountOtp(customerId: number, purpose: OtpPurpose, p
       error: `Please wait ${RESEND_SECONDS - Number(stats.since)}s before asking for a new code.`,
     };
   const mock = otpMock();
-  if (!mock && !otpGateway())
+  if (!mock && !otpConfigured())
     return { ok: false as const, error: "OTP service is not set up yet. Please message us on WhatsApp." };
   const code = mock ? MOCK_OTP : String(randomInt(100000, 1000000));
   await db().execute(
@@ -234,7 +214,7 @@ export async function issueAccountOtp(customerId: number, purpose: OtpPurpose, p
     "INSERT INTO account_otps (customer_id, purpose, phone, code_hash, expires_at) VALUES (?,?,?,?,DATE_ADD(NOW(), INTERVAL 5 MINUTE))",
     [customerId, purpose, phone, sha(code)],
   );
-  if (!mock && !(await sendOtp(phone, code)))
+  if (!mock && !(await sendOtpCode(phone, code)))
     return { ok: false as const, error: "Could not send the OTP right now. Please try again in a minute." };
   return {
     ok: true as const,

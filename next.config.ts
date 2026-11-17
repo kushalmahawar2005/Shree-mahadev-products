@@ -5,7 +5,7 @@ import { securityHeaders } from "./src/lib/security-headers";
 
 const nextConfig: NextConfig = {
   // Dev-only badge: keep it off the admin sidebar (bottom-left).
-  devIndicators: { position: "bottom-right" },
+  devIndicators: false,
   // Let phones/clients open the dev server through an ngrok tunnel (HMR + dev chunks).
   allowedDevOrigins: ["*.ngrok-free.dev", "*.ngrok-free.app", "*.ngrok.app"],
   // A separate QA runtime can coexist with the user's normal local dev server.

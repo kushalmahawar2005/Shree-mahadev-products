@@ -190,8 +190,12 @@ function metaParams(template: string, p: Record<string, unknown>): string[] {
 
 const GRAPH = "https://graph.facebook.com/v23.0";
 
+/** The outbox `payload` is a JSON column: some MySQL/MariaDB drivers return it parsed, others as text. */
+const payloadOf = (row: RowDataPacket): Record<string, unknown> =>
+  typeof row.payload === "string" ? JSON.parse(row.payload) : ((row.payload ?? {}) as Record<string, unknown>);
+
 async function sendMeta(row: RowDataPacket) {
-  const payload = JSON.parse(String(row.payload)) as Record<string, unknown>;
+  const payload = payloadOf(row);
   const response = await fetch(`${GRAPH}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${process.env.WHATSAPP_API_KEY}`, "Content-Type": "application/json" },
@@ -221,8 +225,8 @@ async function send(row: RowDataPacket) {
       provider: process.env.WHATSAPP_PROVIDER,
       to: row.to_phone,
       template: row.template,
-      text: message(row.template, JSON.parse(String(row.payload))),
-      payload: JSON.parse(String(row.payload)),
+      text: message(row.template, payloadOf(row)),
+      payload: payloadOf(row),
     }),
     signal: AbortSignal.timeout(15_000),
   });

@@ -2,6 +2,7 @@
 
 import type { RowDataPacket } from "mysql2/promise";
 import { z } from "zod";
+import { hasActiveShipment } from "@/lib/server/orders";
 import {
   ISSUES,
   ISSUE_KEYS,
@@ -50,7 +51,7 @@ export async function getHelpOrderAction(raw: unknown) {
     lastScan: scan ? { status: scan.status, location: scan.location, at: scan.at } : null,
     refunds: o.refunds,
     cancelReason: o.status === "cancelled" ? cancelReason(o) : null,
-    canCancel: cancelRule(o.status, o.method),
+    canCancel: cancelRule(o.status, o.method, await hasActiveShipment(o.id)),
     returnDaysLeft: o.returnDaysLeft,
     returnRequested: Boolean(o.returnRequest),
   };

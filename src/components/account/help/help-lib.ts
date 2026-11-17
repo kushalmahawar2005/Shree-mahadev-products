@@ -57,12 +57,15 @@ export function issuesFor(status: string | null): IssueKey[] {
 }
 
 /**
- * Same rules as cancelMyOrderAction: unpaid / COD / confirmed / packed orders before shipping;
- * paid online orders go to the team (refund needed).
+ * Same rules as cancelMyOrderAction. A shopper can cancel by themselves only before the shipment is
+ * created (courier booked): COD orders, or unpaid online orders. Paid online orders go to the team
+ * (refund needed). `booked` = an active shipment exists for the order.
  */
-export function cancelRule(status: string, method: string): { ok: true } | { ok: false; reason: string } {
+export function cancelRule(status: string, method: string, booked = false): { ok: true } | { ok: false; reason: string } {
   if (!["pending_payment", "cod_pending", "confirmed", "packed", "paid"].includes(status))
     return { ok: false, reason: "This order has already shipped, so it can't be cancelled here. Tell us below and we'll help." };
+  if (booked)
+    return { ok: false, reason: "This order is already booked with the courier, so it can't be cancelled here. Tell us below and we'll help." };
   if (status === "paid" && method === "payu")
     return { ok: false, reason: "This order is paid, so our team cancels it and refunds you in full. Send the request below." };
   return { ok: true };

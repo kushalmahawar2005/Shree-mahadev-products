@@ -10,7 +10,7 @@ import { SmartImage } from "@/components/ui/SmartImage";
 import { whatsappLink } from "@/data/site";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
-import { logoutCustomerAction, reorderAction, requestCustomerOtpAction, saveCustomerAddressAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
+import { logoutCustomerAction, reorderAction, requestCustomerOtpAction, saveCustomerAddressAction, setCustomerNameAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
 import { INDIAN_STATES } from "@/lib/checkout";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
@@ -50,6 +50,8 @@ export function SignIn({ next }: { next?: string } = {}) {
   const [pending, start] = useTransition();
   const [phone, setPhone] = useState("");
   const [sent, setSent] = useState(false);
+  // After the OTP: new accounts are asked for their name once, returning shoppers go straight in.
+  const [askName, setAskName] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -70,11 +72,19 @@ export function SignIn({ next }: { next?: string } = {}) {
   const verify = () =>
     start(async () => {
       setError("");
-      const r = await verifyCustomerOtpAction({ phone, code, name });
+      const r = await verifyCustomerOtpAction({ phone, code });
       if (!r.ok) return setError(r.error ?? "That code didn't work.");
-      // Full load so the header (account + cart) reflects the new session.
-      if (next) window.location.assign(next);
-      else window.location.reload();
+      if ("needsName" in r && r.needsName) return setAskName(true);
+      done();
+    });
+  // Full load so the header (account + cart) reflects the new session.
+  const done = () => (next ? window.location.assign(next) : window.location.reload());
+  const saveName = () =>
+    start(async () => {
+      setError("");
+      const r = await setCustomerNameAction({ name });
+      if (!r.ok) return setError(r.error);
+      done();
     });
 
   return (
@@ -82,9 +92,11 @@ export function SignIn({ next }: { next?: string } = {}) {
       <span className="shrink-0 text-forest">
         <UserRound className="size-10" />
       </span>
-      <h2 className="mt-4 text-2xl">{sent ? "Enter the OTP" : "Sign in with your phone"}</h2>
+      <h2 className="mt-4 text-2xl">{askName ? "Welcome! What's your name?" : sent ? "Enter the OTP" : "Sign in with your phone"}</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        {sent ? (
+        {askName ? (
+          "Your number is verified. We'll use your name on orders and delivery updates."
+        ) : sent ? (
           <>
             We sent a 6-digit code to <span className="font-semibold text-ink">+91 {phone}</span>.{" "}
             <button type="button" onClick={() => (setSent(false), setCode(""))} className="font-semibold text-forest underline-offset-2 hover:underline">
@@ -100,11 +112,14 @@ export function SignIn({ next }: { next?: string } = {}) {
         className="mt-6 space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          if (sent) verify();
+          if (askName) saveName();
+          else if (sent) verify();
           else send();
         }}
       >
-        {!sent ? (
+        {askName ? (
+          <input value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={80} autoFocus placeholder="Your full name" autoComplete="name" className={field} />
+        ) : !sent ? (
           <label className="relative block">
             <span className="sr-only">Mobile number</span>
             <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[15px] font-semibold text-ink-muted">+91</span>
@@ -127,10 +142,9 @@ export function SignIn({ next }: { next?: string } = {}) {
                 ))}
               </InputOTPGroup>
             </InputOTP>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name (first time only)" autoComplete="name" className={field} />
             {devCode && (
               <p className="rounded-xl border border-dashed border-warm-line bg-warm px-3 py-2 text-center text-xs text-ink-muted">
-                Test mode: no SMS is sent. Your OTP is <span className="font-bold tracking-widest text-ink">{devCode}</span> (filled in for you).
+                Test mode: no WhatsApp message is sent. Your OTP is <span className="font-bold tracking-widest text-ink">{devCode}</span> (filled in for you).
               </p>
             )}
           </>
@@ -142,11 +156,11 @@ export function SignIn({ next }: { next?: string } = {}) {
         )}
         <button
           type="submit"
-          disabled={pending || (!sent ? phone.length !== 10 : code.length !== 6)}
+          disabled={pending || (askName ? name.trim().length < 2 : !sent ? phone.length !== 10 : code.length !== 6)}
           className="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-forest text-sm font-bold text-white hover:bg-forest-mid disabled:opacity-50"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
-          {sent ? "Verify & sign in" : "Send OTP"}
+          {askName ? "Continue" : sent ? "Verify & sign in" : "Send OTP"}
         </button>
       </form>
       <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-ink-muted">

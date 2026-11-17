@@ -161,7 +161,7 @@ async function inTx<T>(fn: (c: PoolConnection) => Promise<T>): Promise<T> {
 
 export async function createOrder(input: {
   method: PaymentMethod;
-  source?: "web" | "admin";
+  source?: "web" | "admin" | "chat";
   address: OrderAddress;
   items: OrderItemInput[];
   priceOverrides?: Record<string, number>;
@@ -841,4 +841,13 @@ export async function refundableFor(orderId: number) {
     refunded: Number(r.done),
     left: (pay.amount as number) - Number(r.done),
   };
+}
+
+/** True once a (not cancelled) courier shipment exists: after this the shopper can no longer self-cancel. */
+export async function hasActiveShipment(orderId: number): Promise<boolean> {
+  const [rows] = await db().query<RowDataPacket[]>(
+    "SELECT 1 FROM shipments WHERE order_id=? AND status<>'cancelled' LIMIT 1",
+    [orderId],
+  );
+  return rows.length > 0;
 }
