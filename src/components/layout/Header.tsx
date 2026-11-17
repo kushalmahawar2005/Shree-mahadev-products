@@ -1,7 +1,6 @@
 "use client";
 
-import { useSignedIn } from "@/hooks/use-signed-in";
-import { LOGIN_PERKS } from "./LoginNudge";
+import { AccountMenu } from "./AccountMenu";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -15,7 +14,7 @@ import { getLenis } from "@/components/motion/scroll-lock";
 import { useCart } from "@/components/cart/CartProvider";
 import type { MenuGroup, NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
-import { BagIcon, ChevronDown, MenuIcon, UserIcon } from "./icons";
+import { BagIcon, ChevronDown, MenuIcon } from "./icons";
 import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
 import { SearchBox } from "./SearchBox";
 import { SearchCommand } from "./SearchCommand";
@@ -198,7 +197,7 @@ function HeaderBar({
             <HeaderAction href="/track-order" label="Track" className="hidden xl:flex">
               <Truck className="size-[22px]" strokeWidth={1.6} aria-hidden />
             </HeaderAction>
-            <AccountAction />
+            <div className="hidden xl:block"><AccountMenu /></div>
             <CartButton />
           </div>
         </div>
@@ -290,9 +289,7 @@ function HeaderBar({
             <button type="button" onClick={onSearch} tabIndex={compact ? 0 : -1} className="grid size-10 place-items-center rounded-xl text-forest hover:bg-forest/5" aria-label="Search">
               <Search className="size-[22px]" strokeWidth={1.6} />
             </button>
-            <Link href="/account" prefetch={false} tabIndex={compact ? 0 : -1} className="grid size-10 place-items-center rounded-xl text-forest hover:bg-forest/5" aria-label="Account">
-              <UserIcon className="size-[22px]" />
-            </Link>
+            <AccountMenu compact tabIndex={compact ? 0 : -1} />
             <CartButton compact tabIndex={compact ? 0 : -1} />
           </div>
         </div>
@@ -317,46 +314,6 @@ function Collapse({ open, desktopOnly, children }: { open: boolean; desktopOnly?
     >
       {/* Clip only while collapsed: when open, dropdowns (search suggestions) must spill out below. */}
       <div className={cn("min-h-0", open ? "overflow-visible" : desktopOnly ? "overflow-visible xl:overflow-hidden" : "overflow-hidden")}>{children}</div>
-    </div>
-  );
-}
-
-/** Account (desktop). Signed out: a mustard "Login" chip with a live dot and a hover card of the perks. */
-function AccountAction() {
-  const signedIn = useSignedIn();
-  if (signedIn !== false)
-    return (
-      <HeaderAction href="/account" label="Account" className="hidden xl:flex">
-        <UserIcon className="size-[22px]" />
-      </HeaderAction>
-    );
-  return (
-    <div className="group/login relative hidden xl:block">
-      <Link
-        href="/login"
-        prefetch={false}
-        className="group/act flex min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 text-forest transition-colors hover:bg-forest/5"
-      >
-        <span className="relative grid size-7 place-items-center transition-transform duration-200 group-hover/act:-translate-y-0.5">
-          <UserIcon className="size-[22px]" />
-          <span aria-hidden className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-co-accent ring-2 ring-white" />
-        </span>
-        <span className="text-[11px] leading-none font-bold text-forest-text">Login</span>
-      </Link>
-      <div className="pointer-events-none absolute top-full right-0 z-50 mt-2 w-64 translate-y-1 rounded-2xl border border-line bg-white p-4 text-left opacity-0 shadow-[0_18px_40px_-20px_rgba(7,47,27,0.45)] transition-all group-hover/login:pointer-events-auto group-hover/login:translate-y-0 group-hover/login:opacity-100">
-        <p className="font-semibold text-ink">Login with your phone</p>
-        <ul className="mt-2 space-y-1.5 text-[13px] text-ink-muted">
-          {LOGIN_PERKS.map((p) => (
-            <li key={p} className="flex gap-2">
-              <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-forest" aria-hidden />
-              {p}
-            </li>
-          ))}
-        </ul>
-        <Link href="/login" prefetch={false} className="mt-3 flex h-10 items-center justify-center rounded-full bg-forest text-sm font-semibold text-white hover:bg-forest-mid">
-          Login / Sign up
-        </Link>
-      </div>
     </div>
   );
 }

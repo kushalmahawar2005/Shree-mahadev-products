@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Mail, MessageCircle, Phone } from "lucide-react";
 import { CopyButton } from "./order/CopyButton";
+import { maskPhone } from "@/lib/utils/format";
 
 const pill =
   "inline-flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-sm font-semibold text-forest-fg transition-colors hover:bg-khaki-soft";
@@ -13,7 +14,7 @@ export function CustomerPhone({ phone, email }: { phone: string; email?: string 
   return (
     <div className="flex flex-wrap items-center gap-2">
       <span className="inline-flex items-center gap-1 pr-1 font-semibold text-ink tabular-nums">
-        {masked ? `${phone.slice(0, 2)}••••••${phone.slice(-2)}` : `+91 ${phone}`}
+        {masked ? maskPhone(phone) || "••••••" : `+91 ${phone}`}
         {!masked && <CopyButton value={phone} label="phone" />}
       </span>
       {!masked && (

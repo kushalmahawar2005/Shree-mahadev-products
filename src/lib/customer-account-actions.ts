@@ -117,7 +117,13 @@ export async function verifyCustomerOtpAction(raw: unknown) {
   }
   await db().execute("UPDATE otp_codes SET used_at=NOW() WHERE id=?", [otp.id]);
   await db().execute(
-    "INSERT INTO customers (phone, name, email) VALUES (?,?,?) ON DUPLICATE KEY UPDATE name=COALESCE(NULLIF(VALUES(name),''),name), email=COALESCE(VALUES(email),email), id=LAST_INSERT_ID(id)",
+    // Existing account: keep its real name. Only a name typed on this sign-in replaces it, or fills a blank /
+    // "Customer" placeholder. (Previously the "Customer" default overwrote real names on every login.)
+    `INSERT INTO customers (phone, name, email) VALUES (?,?,?)
+     ON DUPLICATE KEY UPDATE
+       name = IF(VALUES(name) <> 'Customer' AND VALUES(name) <> '', VALUES(name), name),
+       email = COALESCE(VALUES(email), email),
+       id = LAST_INSERT_ID(id)`,
     [phone, givenName ?? "Customer", parsed.data.email ?? null],
   );
   const [[customer]] = await db().query<RowDataPacket[]>(
@@ -128,7 +134,7 @@ export async function verifyCustomerOtpAction(raw: unknown) {
   await createCustomerSession(Number(customer.id));
   // First sign-in (or an account created without a real name): the page asks for the name next.
   const name = String(customer.name ?? "").trim();
-  return { ok: true, needsName: !name || name === "Customer" };
+  return { ok: true, needsName: !name || /^customer$/i.test(name) };
 }
 
 /** Saves the shopper's name right after their first sign-in. */
@@ -274,4 +280,17 @@ export async function cancelMyOrderAction(raw: unknown) {
     `Cancelled by customer: ${parsed.data.reason}`,
   );
   return { ok: true as const };
+}
+
+/** Header account menu: first name, masked phone and live active-order count for the signed-in shopper. */
+export async function getAccountMenuAction(): Promise<{ name: string; phone: string; activeOrders: number } | null> {
+  const { getAccountShell } = await import("@/lib/server/account");
+  const data = await getAccountShell();
+  if (!data) return null;
+  const { hasRealName, maskPhone } = await import("@/lib/utils/format");
+  return {
+    name: hasRealName(data.customer.name) ? data.customer.name.trim() : "",
+    phone: maskPhone(data.customer.phone),
+    activeOrders: data.activeOrders,
+  };
 }

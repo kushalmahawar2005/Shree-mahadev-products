@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { BadgeCheck, Cake, Loader2, Mail, Pencil, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -46,8 +46,12 @@ export function PersonalCard({
   today: string; // YYYY-MM-DD, IST, from the server
 }) {
   const router = useRouter();
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState(initial);
+  // "/account/profile?edit=name" (header menu "Naam jodein") opens the form with the name field focused.
+  const nameFirst = useSearchParams().get("edit") === "name";
+  const [editing, setEditing] = useState(nameFirst);
+  const [form, setForm] = useState(() =>
+    nameFirst && /^customer$/i.test(initial.name.trim()) ? { ...initial, name: "" } : initial,
+  );
   const [error, setError] = useState("");
   const [saving, startSave] = useTransition();
   const [sending, startSend] = useTransition();
@@ -204,6 +208,7 @@ export function PersonalCard({
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
               autoComplete="name"
+              autoFocus={nameFirst}
               maxLength={60}
               aria-invalid={Boolean(error && nameError) || undefined}
               required

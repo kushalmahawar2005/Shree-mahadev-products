@@ -148,7 +148,7 @@ export function OrdersBrowser({
         <div
           role="tablist"
           aria-label="Order status"
-          className="-mx-1 flex snap-x gap-1 overflow-x-auto px-1 [scrollbar-width:none]"
+          className="flex w-full snap-x gap-0.5 overflow-x-auto rounded-full border border-line bg-ivory p-1 [scrollbar-width:none] sm:w-fit"
         >
           {TABS.map((t) => {
             const on = filters.tab === t.id;
@@ -160,22 +160,22 @@ export function OrdersBrowser({
                 aria-selected={on}
                 onClick={() => setFilters((f) => ({ ...f, tab: t.id }))}
                 className={cn(
-                  "relative inline-flex h-11 shrink-0 snap-start items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors",
-                  on ? "text-ink" : "text-ink-muted hover:text-ink",
+                  "relative inline-flex h-9 flex-1 shrink-0 snap-start items-center justify-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-semibold whitespace-nowrap transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-forest/30 sm:flex-none sm:px-4",
+                  on ? "text-forest-text" : "text-ink-muted hover:text-ink",
                 )}
               >
                 {on && (
                   <motion.span
                     layoutId="orders-tab"
                     transition={reduce ? { duration: 0 } : { type: "spring", bounce: 0.15, duration: 0.4 }}
-                    className="absolute inset-0 rounded-full bg-co-brand-soft ring-1 ring-forest/15"
+                    className="absolute inset-0 rounded-full bg-white shadow-[0_1px_2px_rgba(7,47,27,0.08),0_2px_8px_-2px_rgba(7,47,27,0.10)] ring-1 ring-line"
                   />
                 )}
                 <span className="relative">{t.label}</span>
                 <span
                   className={cn(
-                    "relative min-w-6 rounded-full px-1.5 text-center text-xs tabular-nums",
-                    on ? "bg-forest text-white" : "bg-page text-ink-muted",
+                    "relative grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] leading-none font-bold tabular-nums transition-colors duration-200",
+                    on ? "bg-forest text-white" : data.counts[t.id] ? "bg-forest/10 text-forest-text" : "bg-black/[0.04] text-ink-muted/70",
                   )}
                 >
                   {data.counts[t.id]}

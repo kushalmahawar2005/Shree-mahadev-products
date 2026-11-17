@@ -93,3 +93,15 @@ export const initials = (name: string) =>
     .map((w) => w[0])
     .join("")
     .toUpperCase() || "?";
+
+/** Masked Indian mobile for display: "+91 ••••• •8788" (last 4 digits only). Empty if not a 10-digit number. */
+export function maskPhone(raw: string | null | undefined): string {
+  const d = (raw ?? "").replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+  return d.length === 10 ? `+91 ••••• •${d.slice(6)}` : "";
+}
+
+/** True when the stored name is a real name (not empty / the "Customer" placeholder set at sign-up). */
+export const hasRealName = (name: string | null | undefined) => {
+  const t = (name ?? "").trim();
+  return t.length > 0 && !/^customer$/i.test(t);
+};
