@@ -1,6 +1,7 @@
 import "server-only";
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
+import { releaseCouponForOrder } from "./coupons";
 
 /** How long a PayU order holds stock while the customer pays. */
 export const HOLD_MINUTES = 30;
@@ -44,10 +45,14 @@ export async function takeStock(
     [keys],
   );
   const stock = new Map(rows.map((r) => [r.variant_key as string, r.stock_qty as number | null]));
+  // Check the total per variant: the same variant on two lines must not pass two separate checks.
+  const wanted = new Map<string, number>();
+  for (const l of lines) wanted.set(l.variantKey, (wanted.get(l.variantKey) ?? 0) + l.quantity);
   const short = lines
+    .filter((l, i) => lines.findIndex((x) => x.variantKey === l.variantKey) === i)
     .filter((l) => {
       const s = stock.get(l.variantKey);
-      return s !== null && s !== undefined && s < l.quantity;
+      return s !== null && s !== undefined && s < (wanted.get(l.variantKey) ?? 0);
     })
     .map((l) => ({ title: l.title, available: Math.max(0, stock.get(l.variantKey) ?? 0) }));
   if (short.length) throw new OutOfStockError(short);
@@ -162,6 +167,7 @@ export async function releaseExpiredHolds(): Promise<number> {
         await returnStock(c, order_id, "held", "release", "system");
         if (o.status === "pending_payment") {
           await c.execute("UPDATE orders SET status = 'payment_failed' WHERE id = ?", [order_id]);
+          await releaseCouponForOrder(c, order_id);
           await c.execute(
             "INSERT INTO order_events (order_id, from_status, to_status, actor, note) VALUES (?, 'pending_payment', 'payment_failed', 'system', ?)",
             [order_id, `Payment not completed within ${HOLD_MINUTES} minutes; stock released`],

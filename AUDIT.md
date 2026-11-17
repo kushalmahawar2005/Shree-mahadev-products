@@ -244,3 +244,39 @@ Not committed (waiting for review). Hostinger env checked by name only (values n
 - Staff can no longer change store settings, run manifests/NDR, or bulk-delete products.
 
 **Tests** (after Next 16.4.6): `tsc` ✅ · `eslint src` ✅ 0 errors (1 old warning, `CheckoutForm.tsx:374`) · `pnpm build` ✅ exit 0, **no `SecurityFatalError`** · `test-cart-math` 7/7 · `test-invoice-math` 13/13 · `test-money-safety` 26/26 · `test-chat` 40/40 (an earlier run gave 38/40 without saved details; the re-run with full output passed all) · dev server restarted on 16.4.6 (stale browser tabs need a hard refresh)
+
+---
+
+## 10. Batch 3 status (order rules + checkout), 2026-11-17
+
+Not committed (waiting for review). No new migration.
+
+| ID | Status | Fix |
+|---|---|---|
+| P1-7 | **Fixed** | `src/lib/server/orders.ts:851` `ALLOWED_FROM` map checked under the order lock in `setOrderStatus`. Illegal moves throw `IllegalStatusChangeError` for people (admin/customer); courier, PayU and cron updates are ignored quietly with a timeline note (WhatsApp YES/NO replies use `quiet`) |
+| P1-8 | **Fixed** | `cancelled` only from pre-dispatch statuses, and never while a courier shipment is live (`orders.ts:903`, checked under the lock): cancel the shipment first. RTO stock still comes back via `markRtoReceived` |
+| P1-11 | **Fixed** | Coupon use reserved inside `createOrder` for every method (`orders.ts:256-…`, coupon row locked); first-order check counts `pending_payment` (`coupons.ts:67`). Released on payment failure, hold expiry (`inventory.ts`) and cancel via `releaseCouponForOrder` (`coupons.ts`). Retrying payment re-takes the use under the coupon lock (`reserveCouponForRetry`, called in `startPaymentAttempt`); if it ran out meanwhile, the pay page says so and sends the shopper back to the cart. (Only a payment that PayU confirms for an already-failed attempt still re-redeems, because the money was taken.) |
+| P1-12 | **Fixed** | Server free-shipping quote uses the pre-coupon cart value, same as cart, banner and pincode quote (`checkout-actions.ts:329`). The COD cap still uses the discounted amount |
+| P1-16 | **Fixed** | `purgeDeletedAccounts()` (`account-profile.ts:466`) runs hourly inside the tracking cron: deletes customers past the 7-day grace (FKs remove addresses, sessions, consents, tickets, OTPs; orders keep their snapshot with `customer_id` NULL) + login codes for the phone |
+| P2-7 | **Fixed** | Cart cookie lines merged per variant (`commerce/providers/db.ts:24`); `takeStock` checks the summed quantity per variant (`inventory.ts:48`) |
+| P2-8 | **Fixed** | NimbusPost error → COD not serviceable (prepaid still allowed at the flat rate) (`shipping.ts:76`) |
+| P2-9 | **Fixed** | `createOrder` locks the cart row; a repeat submit (same cart, method, subtotal, within 10 min, still pending) returns the same order with `reused`, and no second email/WhatsApp/invoice (`orders.ts:256`, `checkout-actions.ts`) |
+| P2-10 | **Fixed** | Cancel releases the coupon use (see P1-11) |
+| P2-11 | **Fixed** | Self-cancel: status (`onlyFrom`) and live-shipment checks both under the order lock; a booking landing in between gives the "already booked" message (`order-cancel.ts`) |
+| P2-13 | **Fixed** | Return window falls back to the "delivered" order-event time when `delivered_at` is empty; no date at all → no return (`account/order-actions.ts:45`, display in `server/account.ts`) |
+| P2-14 | **Fixed** | Second partial refund writes a timeline note (`refunds.ts:83`) |
+| P2-15 | **Fixed in Batch 1** | Unclear PayU refund answer keeps the row `requested` and flags the order |
+
+**Behaviour changes to know**
+- Admin can no longer "un-cancel" an order or cancel a delivered/shipped one. A packed order with a booked shipment needs "Cancel shipment" first.
+- When NimbusPost's quote API is down, checkout offers only online payment.
+- Free shipping is judged on the cart value before the coupon (customers see and pay the same).
+
+**Extra gaps found in a use-case pass and fixed**
+- Coupon retry gap (above).
+- Abandoned PayU order + new checkout from the same cart (cart changed): the old unpaid order no longer blocks a per-phone / first-order coupon. It is cancelled right after the new order is created, silently (no "cancelled" email/WhatsApp, new `silent` option on `setOrderStatus`); a late payment on it is flagged as an extra payment.
+- Chat: paid online orders in confirmed/packed now get the "team will cancel + refund" reply and button (it wrongly said "shipment booked"); the chat cancel request now uses the same path as the order page (ticket + team alert + admin flag).
+- Admin can't manually "Cancel" a paid online order with money left (it restocked and told the customer "cancelled" with no refund): the Refund panel's full refund does refund + close + restock.
+- Flagged orders show an "⚠ Attention" badge in the admin orders list, count in the dashboard task bar ("Orders flagged"), and appear under the "Needs action" filter.
+
+**Tests**: `test-money-safety` **40/40** (14 new for Batch 3) · `tsc` ✅ · eslint on changed files ✅ · cart-math 7/7 · invoice-math 13/13.

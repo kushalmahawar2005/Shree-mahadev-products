@@ -72,6 +72,9 @@ export async function quoteShipping(input: {
     return q;
   } catch (e) {
     console.error("NimbusPost quote failed, using flat rate", e);
+    // We can't confirm the courier delivers COD to this pincode: allow prepaid at the flat rate,
+    // refuse COD until a real quote works (better than accepting a COD order we can't ship).
+    if (input.method === "cod") return { ...flat, serviceable: false };
     return flat;
   }
 }

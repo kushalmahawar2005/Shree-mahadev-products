@@ -21,6 +21,14 @@ function decode(id: string): Encoded {
     return raw
       .filter((x): x is [string, number] => Array.isArray(x) && typeof x[0] === "string" && Number.isInteger(x[1]) && x[1] > 0)
       .slice(0, 50)
+      // Merge repeated variants (a hand-edited cookie could split one item into many lines to slip
+      // past the per-line stock check), then cap each item at 99.
+      .reduce<Encoded>((out, [v, q]) => {
+        const hit = out.find((l) => l[0] === v);
+        if (hit) hit[1] += q;
+        else out.push([v, q]);
+        return out;
+      }, [])
       .map(([v, q]) => [v, Math.min(q, 99)]);
   } catch {
     return [];

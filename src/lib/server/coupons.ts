@@ -64,8 +64,9 @@ export async function calculateCoupon(
   // Cart preview passes no phone: phone-based rules are checked at checkout (order creation always has one).
   if (coupon.first_order_only && phone) {
     const [orders] = await executor.execute<RowDataPacket[]>(
+      // pending_payment counts too: otherwise one phone could open several "first order" PayU orders.
       `SELECT COUNT(*) AS n FROM orders WHERE phone=? AND status IN
-       ('paid','cod_pending','confirmed','packed','shipped','delivered','partially_refunded')`,
+       ('pending_payment','paid','cod_pending','confirmed','packed','shipped','delivered','partially_refunded')`,
       [phone],
     );
     if (Number(orders[0]?.n) > 0) fail("This code is for first orders only.");
@@ -178,4 +179,48 @@ export async function listCoupons() {
     active: Boolean(row.active),
     targets: byId.get(Number(row.id)) ?? [],
   }));
+}
+
+/**
+ * Give back the coupon use(s) reserved by an order (order cancelled, or its payment failed / expired)
+ * and recount `used_count`. Safe to call twice. Run inside the caller's transaction.
+ */
+export async function releaseCouponForOrder(conn: PoolConnection, orderId: number) {
+  const [rows] = await conn.execute<RowDataPacket[]>("SELECT DISTINCT coupon_id FROM coupon_redemptions WHERE order_id=?", [orderId]);
+  if (!rows.length) return;
+  await conn.execute("DELETE FROM coupon_redemptions WHERE order_id=?", [orderId]);
+  for (const r of rows)
+    await conn.execute("UPDATE coupons SET used_count=(SELECT COUNT(*) FROM coupon_redemptions WHERE coupon_id=?) WHERE id=?", [r.coupon_id, r.coupon_id]);
+}
+
+export class CouponUnavailableError extends Error {}
+
+/**
+ * Before retrying payment on an order whose coupon use was released (payment failed / hold expired):
+ * take the use again under the coupon lock, re-checking it is still active, in date and within its
+ * total and per-phone limits. Throws CouponUnavailableError if not (the order total includes that
+ * discount, so the shopper must check out again). No-op if the order still holds its use.
+ */
+export async function reserveCouponForRetry(conn: PoolConnection, orderId: number) {
+  const [[o]] = await conn.execute<RowDataPacket[]>("SELECT coupon_code, discount, phone FROM orders WHERE id=? FOR UPDATE", [orderId]);
+  if (!o?.coupon_code) return;
+  const [held] = await conn.execute<RowDataPacket[]>("SELECT 1 FROM coupon_redemptions WHERE order_id=? LIMIT 1", [orderId]);
+  if (held.length) return;
+  const [[c]] = await conn.execute<RowDataPacket[]>(
+    `SELECT id, usage_limit, per_phone_limit FROM coupons
+      WHERE code=? AND active=1 AND (starts_at IS NULL OR starts_at<=NOW()) AND (ends_at IS NULL OR ends_at>=NOW()) FOR UPDATE`,
+    [o.coupon_code],
+  );
+  const unavailable = () => {
+    throw new CouponUnavailableError(`The coupon ${o.coupon_code} on this order is no longer available.`);
+  };
+  if (!c) unavailable();
+  const [[total]] = await conn.execute<RowDataPacket[]>("SELECT COUNT(*) AS n FROM coupon_redemptions WHERE coupon_id=?", [c.id]);
+  if (c.usage_limit !== null && Number(total.n) >= Number(c.usage_limit)) unavailable();
+  if (c.per_phone_limit !== null) {
+    const [[mine]] = await conn.execute<RowDataPacket[]>("SELECT COUNT(*) AS n FROM coupon_redemptions WHERE coupon_id=? AND phone=?", [c.id, o.phone]);
+    if (Number(mine.n) >= Number(c.per_phone_limit)) unavailable();
+  }
+  await conn.execute("INSERT INTO coupon_redemptions (coupon_id, order_id, phone, amount) VALUES (?,?,?,?)", [c.id, orderId, o.phone, o.discount]);
+  await conn.execute("UPDATE coupons SET used_count=(SELECT COUNT(*) FROM coupon_redemptions WHERE coupon_id=?) WHERE id=?", [c.id, c.id]);
 }

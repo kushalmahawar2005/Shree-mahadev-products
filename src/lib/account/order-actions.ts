@@ -32,7 +32,9 @@ export async function requestReturnAction(raw: unknown) {
   const { orderId, items, reason, note } = parsed.data;
 
   const [[o]] = await db().query<RowDataPacket[]>(
-    `SELECT o.status, DATEDIFF(NOW(), s.delivered_at) AS days
+    // Delivery date: courier's delivered_at, else when the order was marked delivered (admin / no shipment).
+    `SELECT o.status, DATEDIFF(NOW(), COALESCE(s.delivered_at,
+         (SELECT MAX(e.created_at) FROM order_events e WHERE e.order_id=o.id AND e.to_status='delivered'))) AS days
        FROM orders o LEFT JOIN shipments s ON s.id = (SELECT MAX(id) FROM shipments WHERE order_id=o.id)
       WHERE o.id=? AND o.customer_id=?`,
     [orderId, customer.id],
@@ -40,7 +42,7 @@ export async function requestReturnAction(raw: unknown) {
   if (!o) return { ok: false as const, error: "Order not found." };
   if (String(o.status) !== "delivered")
     return { ok: false as const, error: "Returns open once the order is delivered." };
-  if (o.days != null && Number(o.days) > accountConfig.returnWindowDays)
+  if (o.days == null || Number(o.days) > accountConfig.returnWindowDays)
     return {
       ok: false as const,
       error: `The ${accountConfig.returnWindowDays}-day return window has closed. Message us on WhatsApp and we'll help.`,

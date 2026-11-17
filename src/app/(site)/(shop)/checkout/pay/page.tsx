@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { CouponUnavailableError } from "@/lib/server/coupons";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -45,6 +47,18 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
   try {
     txnid = await startPaymentAttempt(order);
   } catch (e) {
+    if (e instanceof CouponUnavailableError)
+      return (
+        <div>
+          <h1 className="text-2xl">This order&apos;s coupon has run out</h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            {e.message} The order price included that discount, so please check out again from your cart (you can try another code).
+          </p>
+          <Link href="/cart" className="mt-4 inline-flex h-11 items-center rounded-full bg-forest px-6 text-sm font-semibold text-white hover:bg-forest-mid">
+            Back to cart
+          </Link>
+        </div>
+      );
     if (!(e instanceof OutOfStockError)) throw e;
     return (
       <div>

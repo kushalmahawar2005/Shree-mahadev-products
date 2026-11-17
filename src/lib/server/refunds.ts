@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
-import { flagOrder, inTx, setOrderStatus, type OrderStatus } from "./orders";
+import { addOrderNote, flagOrder, inTx, setOrderStatus, type OrderStatus } from "./orders";
 import { requestPayuRefund } from "./payu";
 
 /** Statuses where nothing has left the warehouse yet: a full refund here also cancels + restocks. */
@@ -78,7 +78,9 @@ export async function refundOrder(orderId: number, amount: number, reason: strin
   const note = `Refund ₹${amount}${reason ? `: ${reason}` : ""} (PayU ${res.ref ?? ""})`.trim();
   // A full refund of an order that never left the warehouse also puts its stock back.
   const restock = claim.full && NOT_DISPATCHED.includes(claim.orderStatus) && !(await hasLiveShipment(orderId));
-  await setOrderStatus(orderId, claim.full ? "refunded" : "partially_refunded", "admin", note, { restock });
+  const moved = await setOrderStatus(orderId, claim.full ? "refunded" : "partially_refunded", "admin", note, { restock });
+  // A second partial refund leaves the status as it is: still record it in the order timeline.
+  if (!moved) await addOrderNote(orderId, "admin", note);
   await notifyOrder(orderId, "refund", { refundAmount: amount });
   return { amount, full: claim.full };
 }

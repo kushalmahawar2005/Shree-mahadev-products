@@ -12,9 +12,10 @@ import { AddToCartCard, CartCard, ShopCards, type CartIntent, type ShopProduct }
 import { ChatHeader, type ChatLanguage } from "@/components/chat/ChatHeader";
 import { ChatTabBar, type ChatTab } from "@/components/chat/ChatTabBar";
 import { CHIP_ICONS, ChatWelcome, ChipRow, type Chip, type WelcomeContext } from "@/components/chat/ChatWelcome";
-import { ease, enter, rise, small, spring, staggerParent, tabSwap, tap } from "@/components/chat/motion";
+import { ease, rise, small, spring, staggerParent, tabSwap, tap } from "@/components/chat/motion";
 import type { OrderRow } from "@/components/chat/tabs/OrdersTab";
 import { useCart } from "@/components/cart/CartProvider";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatContainerContent, ChatContainerRoot, ChatContainerScrollAnchor } from "@/components/shadcn/chat-container";
 import { PromptInput, PromptInputAction, PromptInputActions, PromptInputTextarea } from "@/components/shadcn/prompt-input";
 import { ScrollButton } from "@/components/shadcn/scroll-button";
@@ -26,7 +27,7 @@ import { requestReturnAction } from "@/lib/account/order-actions";
 import { submitSupportTicketAction } from "@/lib/account/support-actions";
 import { PAY_RESUME_KEY } from "@/components/chat/CheckoutCard";
 import { RETURN_CHOICES } from "@/components/chat/ChatBlocks";
-import { cancelMyOrderAction } from "@/lib/customer-account-actions";
+import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
 
 type ChatMessage = { role: "assistant" | "user"; text: string; key?: string; blocks?: ChatBlock[]; login?: Intent; sources?: Source[]; suggestions?: Suggestion[]; products?: ShopProduct[]; cart?: CartIntent; options?: string[]; streaming?: boolean; feedback?: 1 | -1 };
 type Intent = "track" | "cancel" | "refund" | "return";
@@ -37,8 +38,8 @@ type OrderDetail = {
   courier?: string | null; awb?: string | null; trackingUrl?: string | null;
   tracking?: { status: string; expectedDelivery?: string | null; courier?: string | null; awb?: string | null; trackingUrl?: string | null; events?: { status: string; label: string; at: string; location: string | null }[] } | null;
   refunds?: { amount: number; status: string; at: string; ref?: string | null }[];
-  canCancel?: { ok: true } | { ok: false; reason: string };
-  cancelRule?: { ok: true } | { ok: false; reason: string };
+  canCancel?: { ok: true } | { ok: false; reason: string; canRequest?: boolean };
+  cancelRule?: { ok: true } | { ok: false; reason: string; canRequest?: boolean };
   returnDaysLeft?: number | null; returnRequested?: boolean; guest?: boolean;
 };
 
@@ -98,7 +99,7 @@ function orderSummary(order: OrderDetail, intent: Intent) {
   const rule = order.canCancel ?? order.cancelRule;
   if (intent === "cancel") {
     if (rule?.ok) parts.push("Yeh order abhi cancel ho sakta hai. Neeche reason chun ke confirm kar dijiye.");
-    else if (order.status === "paid") parts.push("Aapne online payment kiya hai, isliye cancel hamari team karegi aur **poora refund** milega. Neeche se request bhej dijiye. 🙏");
+    else if (order.status === "paid" || (rule && !rule.ok && rule.canRequest)) parts.push("Aapne online payment kiya hai, isliye cancel hamari team karegi aur **poora refund** milega. Neeche se request bhej dijiye. 🙏");
     else if (order.status === "cancelled") parts.push("Yeh order pehle hi cancel ho chuka hai.");
     else if (["cod_pending", "confirmed", "packed", "pending_payment"].includes(order.status)) parts.push("Is order ki **shipment ban chuki hai** (courier book ho gaya hai), isliye ab yahan se cancel nahi ho sakta. Zarurat ho toh neeche se hamari team se baat kar lijiye. 🙏");
     else parts.push("Order dispatch ho chuka hai, isliye ab cancel nahi ho sakta. Delivery ke baad zarurat ho toh return request kar sakte hain.");
@@ -147,6 +148,8 @@ async function readJson<T>(response: Response): Promise<T> {
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
+  // Phones get a full-screen sheet (max-sm), so it slides up instead of scaling from the corner.
+  const phone = useIsMobile();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadSaved()?.messages ?? [greeting]);
   const [tab, setTab] = useState<ChatTab>(() => loadSaved()?.tab ?? "chat");
   const [language, setLanguage] = useState<ChatLanguage>(() => loadSaved()?.language ?? "auto");
@@ -286,7 +289,7 @@ export function ChatWidget() {
       }];
       if (intent === "cancel" && rule?.ok && !detail.guest) {
         blocks.push({ type: "action_confirm", kind: "cancel", orderId: detail.id, orderNo: detail.orderNo, summary: `Order ${detail.orderNo} abhi cancel ho jayega.`, consequences: ["Yeh wapas nahi hoga", detail.method === "cod" ? "COD order hai, koi payment nahi kata" : "Payment ka poora refund original method mein aayega"] });
-      } else if (intent === "cancel" && detail.status === "paid") {
+      } else if (intent === "cancel" && (detail.status === "paid" || (rule && !rule.ok && rule.canRequest))) {
         blocks.push({ type: "action_confirm", kind: "cancel_request", orderId: detail.id, orderNo: detail.orderNo, summary: "Online payment wala order hamari team cancel karti hai.", consequences: ["Team request dekh ke order cancel karegi", "Poora refund original payment method mein 5–7 working days mein"] });
       } else if (intent === "cancel" && !rule?.ok && detail.status !== "cancelled") {
         blocks.push({ type: "quick_replies", options: ["Return kaise karein?", "Team se baat karni hai"] });
@@ -602,10 +605,11 @@ export function ChatWidget() {
         return;
       }
       if (block.kind === "cancel_request") {
-        const result = await submitSupportTicketAction({ orderId: block.orderId, issue: "cancel", message: "Cancel request from the chat assistant (prepaid order).", contactPref: "whatsapp", photos: [] });
+        // Same path as the order page: help ticket + team alert + "needs attention" flag on the admin order.
+        const result = await requestCancelOrderAction({ orderId: block.orderId, reason: "Other" });
         if (!result.ok) { say(result.error, { blocks: [{ type: "notice", tone: "error", text: result.error }] }); throw new Error(result.error); }
         resolveAction(block, "confirmed");
-        say(`Cancel request bhej di. Reference: **${result.ticket.ticketNo}**`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Team order cancel karke poora refund karegi. Jaldi chahiye toh WhatsApp karein." }, { type: "handoff", reason: "Turant baat karni ho toh:" }] });
+        say(`Cancel request bhej di. Reference: **${result.ticketNo}**`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Team order cancel karke poora refund karegi. Jaldi chahiye toh WhatsApp karein." }, { type: "handoff", reason: "Turant baat karni ho toh:" }] });
         return;
       }
       // Return: the existing return request (all items), plus a photo ticket when photos were added.
@@ -753,18 +757,20 @@ export function ChatWidget() {
               <motion.section
                 key="chat"
                 ref={panelRef}
-                layoutId="chat-shell"
                 role="dialog"
                 aria-modal="false"
                 aria-label="Mahadev Sahayak, shopping assistant"
                 data-lenis-prevent
-                transition={spring.panel}
-                exit={{ opacity: 0, transition: { duration: 0.2, ease: ease.inQuart } }}
-                style={{ borderRadius: 20, transformOrigin: "bottom right", ...(viewportBox ? { height: viewportBox.height, top: viewportBox.top } : {}) }}
-                className="relative flex h-[min(680px,calc(100vh-96px))] w-[420px] flex-col overflow-hidden border border-line bg-ivory shadow-[0_24px_80px_rgba(7,47,27,.28)] max-sm:fixed max-sm:inset-x-0 max-sm:top-0 max-sm:h-dvh max-sm:w-full max-sm:!rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)]"
+                // Transform + opacity only (GPU-cheap). No shared-layout morph with the launcher: on phones
+                // the panel is full screen, and morphing the 56px photo up to that size was janky.
+                initial={phone ? { opacity: 0, y: 40 } : { opacity: 0, scale: 0.94, y: 12 }}
+                animate={phone ? { opacity: 1, y: 0, transition: { duration: 0.28, ease: ease.outExpo } } : { opacity: 1, scale: 1, y: 0, transition: { duration: 0.26, ease: ease.outExpo } }}
+                exit={phone ? { opacity: 0, y: 32, transition: { duration: 0.18, ease: ease.inQuart } } : { opacity: 0, scale: 0.96, y: 8, transition: { duration: 0.16, ease: ease.inQuart } }}
+                style={{ borderRadius: 20, transformOrigin: "bottom right", willChange: "transform, opacity", ...(viewportBox ? { height: viewportBox.height, top: viewportBox.top } : {}) }}
+                className="relative flex h-[min(680px,calc(100vh-96px))] w-[420px] flex-col overflow-hidden border border-line bg-ivory shadow-[0_24px_80px_rgba(7,47,27,.28)] max-sm:shadow-none max-sm:fixed max-sm:inset-x-0 max-sm:top-0 max-sm:h-dvh max-sm:w-full max-sm:!rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)]"
               >
                 <div ref={setSheetRoot} className="pointer-events-none absolute inset-0 z-30 [&>*]:pointer-events-auto" />
-                <motion.div className="flex h-full min-h-0 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { ...enter(0.08) } }}>
+                <div className="flex h-full min-h-0 flex-col">
                   <ChatHeader
                     cartCount={cartCount}
                     language={language}
@@ -817,7 +823,7 @@ export function ChatWidget() {
                       </PromptInputActions>
                     </PromptInput>
                   </div>
-                </motion.div>
+                </div>
               </motion.section>
             )}
           </AnimatePresence>
@@ -879,13 +885,14 @@ export function ChatWidget() {
               </AnimatePresence>
               <motion.button
                 ref={launcherRef}
-                layoutId="chat-shell"
                 type="button"
                 onClick={() => toggle(true)}
                 aria-label="Open shopping assistant"
                 aria-haspopup="dialog"
                 {...tap}
-                transition={spring.panel}
+                // Small pop back in once the panel has slid away (no scaling the photo up to panel size).
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1, transition: { ...spring.press, delay: 0.08 } }}
                 style={{ borderRadius: 999 }}
                 onHoverStart={() => setLabelPeek(true)}
                 onHoverEnd={() => setLabelPeek(false)}

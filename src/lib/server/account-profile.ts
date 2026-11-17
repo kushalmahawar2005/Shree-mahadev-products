@@ -457,6 +457,32 @@ export async function requestDeletion(customerId: number) {
   await db().execute("DELETE FROM customer_sessions WHERE customer_id = ?", [customerId]);
 }
 
+/**
+ * Deletes accounts whose 7-day grace period has passed (run hourly from the tracking cron).
+ * Foreign keys remove addresses, sessions, consents, help tickets and OTPs; orders and carts keep
+ * their own address/phone snapshot for tax records with `customer_id` set to NULL. Login codes for
+ * the phone are removed too. Returns how many accounts were deleted.
+ */
+export async function purgeDeletedAccounts(limit = 50): Promise<number> {
+  const [rows] = await db().query<Rows>(
+    "SELECT id, phone FROM customers WHERE delete_requested_at IS NOT NULL AND delete_requested_at < NOW() - INTERVAL 7 DAY ORDER BY id LIMIT ?",
+    [limit],
+  );
+  let n = 0;
+  for (const r of rows) {
+    // Re-check the grace period in the DELETE itself: a login in between cancels the deletion.
+    const [del] = await db().execute<ResultSetHeader>(
+      "DELETE FROM customers WHERE id = ? AND delete_requested_at IS NOT NULL AND delete_requested_at < NOW() - INTERVAL 7 DAY",
+      [r.id],
+    );
+    if (!del.affectedRows) continue;
+    await db().execute("DELETE FROM otp_codes WHERE phone = ?", [r.phone]).catch(() => {});
+    await db().execute("DELETE FROM chat_guest_otps WHERE phone = ?", [r.phone]).catch(() => {});
+    n++;
+  }
+  return n;
+}
+
 export async function cancelDeletion(customerId: number) {
   await db().execute("UPDATE customers SET delete_requested_at = NULL WHERE id = ?", [customerId]);
 }

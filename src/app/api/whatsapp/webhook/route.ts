@@ -52,7 +52,7 @@ async function handleReply(fromRaw: string | undefined, textRaw: string | undefi
     "SELECT id FROM orders WHERE phone = ? AND status = 'cod_pending' ORDER BY id DESC LIMIT 1",
     [from],
   );
-  if (order) await setOrderStatus(Number(order.id), reply === "YES" ? "confirmed" : "cancelled", "customer", `WhatsApp replied ${reply}`);
+  if (order) await setOrderStatus(Number(order.id), reply === "YES" ? "confirmed" : "cancelled", "customer", `WhatsApp replied ${reply}`, { quiet: true });
 }
 
 export async function POST(request: Request) {

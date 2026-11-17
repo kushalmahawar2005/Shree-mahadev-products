@@ -132,6 +132,13 @@ const SUPPORT = ${JSON.stringify(pathToFileURL(supportFile).href)};
 const isFile = (f) => existsSync(f) && statSync(f).isFile();
 export async function resolve(spec, ctx, next) {
   if (spec === "server-only" || spec === "client-only") return { url: "data:text/javascript,export{}", shortCircuit: true };
+  // Request-scoped Next APIs don't exist outside a request: tiny stand-ins.
+  if (spec === "next/headers")
+    return { url: "data:text/javascript," + encodeURIComponent("const jar={get(){},set(){},delete(){},getAll(){return[]}};export async function cookies(){return jar}export async function headers(){return new Headers()}"), shortCircuit: true };
+  if (spec === "next/navigation")
+    return { url: "data:text/javascript," + encodeURIComponent("export function redirect(u){throw new Error('redirect '+u)}export function notFound(){throw new Error('notFound')}"), shortCircuit: true };
+  if (spec === "next/cache")
+    return { url: "data:text/javascript," + encodeURIComponent("export function updateTag(){}export function revalidateTag(){}export function revalidatePath(){}export function unstable_cache(f){return f}"), shortCircuit: true };
   let target = null;
   if (spec.startsWith("@/")) target = path.join(ROOT, "src", spec.slice(2));
   else if ((spec.startsWith("./") || spec.startsWith("../")) && ctx.parentURL?.startsWith("file:"))
@@ -174,6 +181,7 @@ const { refundOrder } = await imp("src/lib/server/refunds.ts");
 const { bookShipment, cancelOrderShipment } = await imp("src/lib/server/shipments.ts");
 const { handlePayuResult } = await imp("src/lib/server/payu-process.ts");
 const { customerCancelOrder, requestOrderCancel } = await imp("src/lib/server/order-cancel.ts");
+const { purgeDeletedAccounts } = await imp("src/lib/server/account-profile.ts");
 
 // Apply pending migrations to the TEST database (same rules as scripts/db-setup.mjs).
 {
@@ -192,12 +200,14 @@ const { customerCancelOrder, requestOrderCancel } = await imp("src/lib/server/or
 }
 
 // ───────────── Fixtures ─────────────
-const created = { orders: [], customers: [] };
+const created = { orders: [], customers: [], coupons: [] };
 const q = async (sql, params = []) => (await db().query(sql, params))[0];
 const [variant] = await q("SELECT variant_key, stock_qty FROM product_variants WHERE stock_qty IS NOT NULL ORDER BY id LIMIT 1");
 if (!variant) throw new Error("Test DB has no stock-tracked product variant; seed the QA catalog first (scripts/seed-qa-catalog.mjs).");
 const VK = variant.variant_key;
 const stockStart = Number(variant.stock_qty);
+// Plenty of stock for the run (restored to stockStart in the cleanup).
+await q("UPDATE product_variants SET stock_qty = 100 WHERE variant_key=?", [VK]);
 const stock = async () => Number((await q("SELECT stock_qty FROM product_variants WHERE variant_key=?", [VK]))[0].stock_qty);
 
 const phone = `9${String(Date.now()).slice(-9)}`;
@@ -393,6 +403,143 @@ try {
     const r = await cancelOrderShipment(o2.id).then(() => "ok", () => "refused");
     check(r === "refused" && count("npCancel") === 1, "in-transit shipment can't be cancelled");
   }
+
+  // ───────────── Batch 3: order rules + checkout ─────────────
+  // Status rules: people get an error, automated sources are ignored quietly.
+  {
+    reset();
+    const o = await makeOrder({ status: "delivered", method: "cod" });
+    const r = await orders.setOrderStatus(o.id, "cancelled", "admin", "test").then(() => "moved", (e) => e.constructor.name);
+    check(r === "IllegalStatusChangeError" && (await orderRow(o.id)).status === "delivered", "admin can't move delivered → cancelled");
+    const c = await makeOrder({ status: "cancelled", method: "cod" });
+    const moved = await orders.setOrderStatus(c.id, "shipped", "nimbuspost", "late courier event");
+    check(moved === false && (await orderRow(c.id)).status === "cancelled", "late courier update can't reopen a cancelled order");
+    const back = await orders.setOrderStatus(c.id, "confirmed", "admin").then(() => "moved", () => "refused");
+    check(back === "refused", "cancelled → confirmed refused");
+  }
+  // Cancel is refused while a courier shipment is live (no restock of goods with the courier).
+  {
+    reset();
+    const o = await makeOrder({ status: "packed", method: "cod", qty: 1, reservation: "committed" });
+    await q("INSERT INTO shipments (order_id, awb, courier, status, weight_grams) VALUES (?,?,?, 'booked', 500)", [o.id, `TAWBC${o.id}`, "TestCourier"]);
+    const before = await stock();
+    const r = await orders.setOrderStatus(o.id, "cancelled", "admin").then(() => "moved", () => "refused");
+    check(r === "refused" && (await stock()) === before && (await orderRow(o.id)).status === "packed", "can't cancel an order with a live shipment; stock untouched");
+    const s2 = await makeOrder({ status: "shipped", method: "cod" });
+    const r2 = await orders.setOrderStatus(s2.id, "cancelled", "admin").then(() => "moved", () => "refused");
+    check(r2 === "refused", "can't cancel a shipped order");
+  }
+  // Coupons: reserved at order creation for PayU too, released on payment failure / cancel.
+  {
+    reset();
+    const code = `MST${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const cr = await q("INSERT INTO coupons (code, kind, value, usage_limit, active) VALUES (?, 'flat', 50, 1, 1)", [code]);
+    created.coupons.push(cr.insertId);
+    const [prod] = await q("SELECT p.handle, p.title, v.title AS vtitle, v.price FROM product_variants v JOIN products p ON p.id = v.product_id WHERE v.variant_key = ?", [VK]);
+    const base = (ph) => ({
+      method: "payu",
+      address: { name: "Money Test", phone: ph, email: "money-test@example.test", line1: "1 Test Road", city: "Jaipur", state: "Rajasthan", pincode: "302001" },
+      items: [{ variantKey: VK, productHandle: prod.handle, productTitle: prod.title, variantTitle: prod.vtitle ?? "", unitPrice: 500, quantity: 1 }],
+      couponCode: code, subtotal: 500, shipping: 0, codFee: 0, courierId: null, courierName: null,
+    });
+    const a = await orders.createOrder(base(phone));
+    created.orders.push(a.id);
+    const second = await orders.createOrder(base(`8${String(Date.now()).slice(-9)}`)).then((x) => (created.orders.push(x.id), "created"), (e) => e.message);
+    check(/usage limit/i.test(second), "1-use coupon on a pending PayU order blocks a second order");
+    const pa = await addPayment(a.id, { amount: 450 });
+    await orders.markPaymentFailed(pa.id, a.id, "test failure");
+    const [{ used }] = await q("SELECT used_count AS used FROM coupons WHERE id=?", [cr.insertId]);
+    check(Number(used) === 0, "failed payment gives the coupon use back");
+    // Cancel releases too (COD order).
+    const b = await orders.createOrder({ ...base(phone), method: "cod" });
+    created.orders.push(b.id);
+    const [{ used: u1 }] = await q("SELECT used_count AS used FROM coupons WHERE id=?", [cr.insertId]);
+    await orders.setOrderStatus(b.id, "cancelled", "admin", "test");
+    const [{ used: u2 }] = await q("SELECT used_count AS used FROM coupons WHERE id=?", [cr.insertId]);
+    check(Number(u1) === 1 && Number(u2) === 0, "cancelled COD order gives the coupon use back");
+  }
+  // Double submit with the same cart → the same order comes back, no second order.
+  {
+    reset();
+    const token = randomBytes(16).toString("hex");
+    await q("INSERT INTO carts (token) VALUES (?)", [token]);
+    const [prod] = await q("SELECT p.handle, p.title, v.title AS vtitle FROM product_variants v JOIN products p ON p.id = v.product_id WHERE v.variant_key = ?", [VK]);
+    const input = {
+      method: "cod", cartToken: token,
+      address: { name: "Money Test", phone, email: "money-test@example.test", line1: "1 Test Road", city: "Jaipur", state: "Rajasthan", pincode: "302001" },
+      items: [{ variantKey: VK, productHandle: prod.handle, productTitle: prod.title, variantTitle: prod.vtitle ?? "", unitPrice: 300, quantity: 1 }],
+      subtotal: 300, shipping: 0, codFee: 0, courierId: null, courierName: null,
+    };
+    const before = await stock();
+    const [x, y] = await Promise.all([orders.createOrder(input), orders.createOrder(input)]);
+    created.orders.push(x.id, y.id);
+    check(x.id === y.id && (x.reused || y.reused) && (await stock()) === before - 1, "two submits of one cart → one order, stock taken once");
+    await q("DELETE FROM carts WHERE token=?", [token]);
+  }
+  // Account deletion is carried out after the 7-day grace period.
+  {
+    const ph = `7${String(Date.now()).slice(-9)}`;
+    const c = await q("INSERT INTO customers (phone, name, delete_requested_at) VALUES (?, 'Delete Me', NOW() - INTERVAL 8 DAY)", [ph]);
+    const keep = await q("INSERT INTO customers (phone, name, delete_requested_at) VALUES (?, 'Grace', NOW() - INTERVAL 2 DAY)", [`6${String(Date.now()).slice(-9)}`]);
+    created.customers.push(keep.insertId);
+    await purgeDeletedAccounts();
+    const [gone] = await q("SELECT COUNT(*) n FROM customers WHERE id=?", [c.insertId]);
+    const [still] = await q("SELECT COUNT(*) n FROM customers WHERE id=?", [keep.insertId]);
+    check(Number(gone.n) === 0 && Number(still.n) === 1, "accounts past the 7-day grace are deleted, newer requests kept");
+  }
+
+  // Retry after a failed payment re-takes the coupon, or refuses if someone else used it up meanwhile.
+  {
+    reset();
+    const code = `MSR${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const cr = await q("INSERT INTO coupons (code, kind, value, usage_limit, active) VALUES (?, 'flat', 50, 1, 1)", [code]);
+    created.coupons.push(cr.insertId);
+    const [prod] = await q("SELECT p.handle, p.title, v.title AS vtitle FROM product_variants v JOIN products p ON p.id = v.product_id WHERE v.variant_key = ?", [VK]);
+    const mk = (ph, method = "payu", cartToken) => ({
+      method, cartToken,
+      address: { name: "Money Test", phone: ph, email: "money-test@example.test", line1: "1 Test Road", city: "Jaipur", state: "Rajasthan", pincode: "302001" },
+      items: [{ variantKey: VK, productHandle: prod.handle, productTitle: prod.title, variantTitle: prod.vtitle ?? "", unitPrice: 400, quantity: 1 }],
+      couponCode: code, subtotal: 400, shipping: 0, codFee: 0, courierId: null, courierName: null,
+    });
+    const a = await orders.createOrder(mk(phone));
+    created.orders.push(a.id);
+    const pa = await addPayment(a.id, { amount: 350 });
+    await orders.markPaymentFailed(pa.id, a.id, "failed");
+    // Someone else takes the last use while A is failed.
+    const b = await orders.createOrder(mk(`8${String(Date.now()).slice(-9)}`, "cod"));
+    created.orders.push(b.id);
+    const orderA = await orders.getOrderById(a.id);
+    const retry = await orders.startPaymentAttempt(orderA).then(() => "started", (e) => e.constructor.name);
+    check(retry === "CouponUnavailableError", "retry after the coupon ran out is refused (no free discount)");
+    // Once the other order is cancelled, the retry can take the use again.
+    await orders.setOrderStatus(b.id, "cancelled", "admin", "test");
+    const retry2 = await orders.startPaymentAttempt(await orders.getOrderById(a.id)).then(() => "started", (e) => e.message);
+    const [{ used }] = await q("SELECT used_count AS used FROM coupons WHERE id=?", [cr.insertId]);
+    check(retry2 === "started" && Number(used) === 1, "retry re-takes the coupon use when it is free again");
+  }
+  // Abandoned PayU order + new checkout from the same cart: old order cancelled silently, coupon freed.
+  {
+    reset();
+    const code = `MSS${Date.now().toString(36).toUpperCase()}`.slice(0, 20);
+    const cr = await q("INSERT INTO coupons (code, kind, value, per_phone_limit, active) VALUES (?, 'flat', 30, 1, 1)", [code]);
+    created.coupons.push(cr.insertId);
+    const token = randomBytes(16).toString("hex");
+    await q("INSERT INTO carts (token) VALUES (?)", [token]);
+    const [prod] = await q("SELECT p.handle, p.title, v.title AS vtitle FROM product_variants v JOIN products p ON p.id = v.product_id WHERE v.variant_key = ?", [VK]);
+    const mk = (qty) => ({
+      method: "payu", cartToken: token,
+      address: { name: "Money Test", phone, email: "money-test@example.test", line1: "1 Test Road", city: "Jaipur", state: "Rajasthan", pincode: "302001" },
+      items: [{ variantKey: VK, productHandle: prod.handle, productTitle: prod.title, variantTitle: prod.vtitle ?? "", unitPrice: 200, quantity: qty }],
+      couponCode: code, subtotal: 200 * qty, shipping: 0, codFee: 0, courierId: null, courierName: null,
+    });
+    const first = await orders.createOrder(mk(1));
+    created.orders.push(first.id);
+    const second = await orders.createOrder(mk(2)).then((x) => (created.orders.push(x.id), x), (e) => e.message);
+    const ok = typeof second === "object";
+    check(ok && (await orderRow(first.id)).status === "cancelled", "new checkout from the same cart replaces the unpaid order (per-phone coupon not blocked)");
+    check(count("notifyOrder") === 0 && count("queueOrderWhatsApp") === 0, "…and the replaced order sends no 'cancelled' message");
+    await q("DELETE FROM carts WHERE token=?", [token]);
+  }
 } finally {
   // Clean up everything this run created and put the variant's stock back.
   if (created.orders.length) {
@@ -401,7 +548,13 @@ try {
     await q("DELETE FROM support_tickets WHERE order_id IN (?)", [created.orders]).catch(() => {});
     await q("DELETE FROM orders WHERE id IN (?)", [created.orders]).catch((e) => console.error("cleanup orders", e.message));
   }
+  if (created.coupons.length) {
+    await q("DELETE FROM coupon_redemptions WHERE coupon_id IN (?)", [created.coupons]).catch(() => {});
+    await q("DELETE FROM coupons WHERE id IN (?)", [created.coupons]).catch(() => {});
+  }
+  if (created.orders.length) await q("DELETE FROM orders WHERE id IN (?)", [created.orders]).catch(() => {});
   if (created.customers.length) await q("DELETE FROM customers WHERE id IN (?)", [created.customers]).catch(() => {});
+  await q("DELETE FROM customers WHERE phone=?", [phone]).catch(() => {});
   await q("UPDATE product_variants SET stock_qty=? WHERE variant_key=?", [stockStart, VK]);
   await db().end();
 }

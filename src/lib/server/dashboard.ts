@@ -295,6 +295,7 @@ export async function getAttention(): Promise<Attention[]> {
     waiting,
     failedMail,
     abandoned,
+    flagged,
   ] = await Promise.all([
     q(
       `SELECT COUNT(*) n FROM orders o WHERE o.status IN ('paid','confirmed') AND NOT EXISTS (SELECT 1 FROM shipments s WHERE s.order_id=o.id AND s.status<>'cancelled')`,
@@ -321,8 +322,17 @@ export async function getAttention(): Promise<Attention[]> {
     q(
       "SELECT COUNT(*) n FROM carts WHERE status='active' AND item_count>0 AND phone IS NOT NULL AND reminder_count=0 AND last_activity_at < NOW() - INTERVAL 30 MINUTE AND created_at > NOW() - INTERVAL 7 DAY",
     ),
+    q("SELECT COUNT(*) n FROM orders WHERE attention IS NOT NULL"),
   ]);
   const list: Attention[] = [
+    {
+      key: "flagged",
+      label: "Orders flagged (money / shipment)",
+      count: flagged,
+      href: "/admin/orders?f=needs_action",
+      tone: "red",
+      note: "Extra payment, unclear refund or shipment, or a cancel request: open the order and resolve",
+    },
     {
       key: "ship",
       label: "Orders to ship",

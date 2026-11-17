@@ -2,7 +2,7 @@ import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { cancelRule, PAID_CANCEL_MESSAGE } from "@/components/account/help/help-lib";
 import { db } from "./db";
-import { flagOrder, hasActiveShipment, setOrderStatus } from "./orders";
+import { flagOrder, hasActiveShipment, IllegalStatusChangeError, setOrderStatus } from "./orders";
 import { createSupportTicket, queueSupportAlert } from "./support-tickets";
 
 export type CancelResult =
@@ -27,9 +27,17 @@ export async function customerCancelOrder(customerId: number, orderId: number, r
   if (!o) return { ok: false, error: "Order not found." };
   const rule = cancelRule(o.status, o.method, await hasActiveShipment(orderId));
   if (!rule.ok) return { ok: false, error: rule.reason, canRequest: rule.canRequest };
-  const changed = await setOrderStatus(orderId, "cancelled", "customer", `Cancelled by customer: ${reason}`, {
-    onlyFrom: o.method === "payu" ? ["pending_payment", "payment_failed"] : ["cod_pending", "confirmed", "packed", "pending_payment"],
-  });
+  let changed = false;
+  try {
+    changed = await setOrderStatus(orderId, "cancelled", "customer", `Cancelled by customer: ${reason}`, {
+      onlyFrom: o.method === "payu" ? ["pending_payment", "payment_failed"] : ["cod_pending", "confirmed", "packed", "pending_payment"],
+    });
+  } catch (e) {
+    // A courier booking or status change landed while we were checking (re-checked under the lock).
+    if (e instanceof IllegalStatusChangeError)
+      return { ok: false, error: "This order is already booked with the courier, so it can't be cancelled here. Message us on WhatsApp." };
+    throw e;
+  }
   if (!changed) return { ok: false, error: "This order changed just now. Refresh the page and try again." };
   return { ok: true };
 }

@@ -12,7 +12,7 @@ import { queueOrderWhatsApp } from "./whatsapp";
 import { ensureCreditNotesForOrder } from "./credit-notes";
 import { ensureInvoiceForOrder, ensureInvoiceIfApplicable } from "./invoices";
 import { queueMarketingEvent } from "./marketing";
-import { calculateCoupon } from "./coupons";
+import { calculateCoupon, releaseCouponForOrder, reserveCouponForRetry } from "./coupons";
 import {
   commitStock,
   releaseExpiredHolds,
@@ -220,7 +220,7 @@ export async function createOrder(input: {
   userAgent?: string | null;
   /** Optional buyer GSTIN for a business (B2B) invoice; validated by the caller. */
   customerGstin?: string | null;
-}): Promise<{ id: number; orderNo: string; token: string }> {
+}): Promise<{ id: number; orderNo: string; token: string; reused?: boolean }> {
   if (input.method === "offline" && input.source !== "admin") {
     throw new Error("Offline payment orders can only be created by an admin.");
   }
@@ -252,7 +252,33 @@ export async function createOrder(input: {
   await releaseExpiredHolds().catch((e) =>
     console.error("releaseExpiredHolds", e),
   );
-  const created = await inTx(async (conn) => {
+  let superseded: number | null = null;
+  const created = await inTx(async (conn): Promise<{ id: number; orderNo: string; token: string; reused?: boolean }> => {
+    // Double submit / two tabs / network retry: lock this cart; if it already became an order moments
+    // ago with the same method and amount, hand that order back instead of creating a second one.
+    if (input.cartToken) {
+      const [[cart]] = await conn.execute<RowDataPacket[]>("SELECT id, order_id FROM carts WHERE token = ? FOR UPDATE", [input.cartToken]);
+      if (cart?.order_id) {
+        const [[dup]] = await conn.execute<RowDataPacket[]>(
+          `SELECT id, order_no, token FROM orders WHERE id = ? AND payment_method = ? AND subtotal = ?
+             AND status IN ('pending_payment','cod_pending') AND created_at > NOW() - INTERVAL 10 MINUTE`,
+          [cart.order_id, input.method, input.subtotal],
+        );
+        if (dup) return { id: Number(dup.id), orderNo: String(dup.order_no), token: String(dup.token), reused: true };
+        // The shopper left an unpaid online order from this cart and is checking out again (cart changed):
+        // free that order's coupon use now so it doesn't block this one; the old order itself is
+        // cancelled right after this commit (its stock hold released). A payment that still lands on it
+        // later is flagged as an extra payment for refund.
+        const [[old]] = await conn.execute<RowDataPacket[]>(
+          "SELECT id FROM orders WHERE id = ? AND payment_method = 'payu' AND status IN ('pending_payment','payment_failed') FOR UPDATE",
+          [cart.order_id],
+        );
+        if (old) {
+          superseded = Number(old.id);
+          await releaseCouponForOrder(conn, superseded);
+        }
+      }
+    }
     const a = input.address;
     let discount = 0;
     let couponCode: string | null = null;
@@ -419,7 +445,10 @@ export async function createOrder(input: {
       })),
       input.method === "payu" ? "hold" : "commit",
     );
-    if (couponCode && input.method === "cod") {
+    // Reserve the coupon use now for every payment method (the coupon row is locked by calculateCoupon),
+    // so pending PayU orders count against usage / per-phone limits. Released again if the payment
+    // fails or the order is cancelled (releaseCouponForOrder).
+    if (couponCode) {
       const [[coupon]] = await conn.execute<RowDataPacket[]>(
         "SELECT id FROM coupons WHERE code=?",
         [couponCode],
@@ -429,8 +458,8 @@ export async function createOrder(input: {
         [coupon.id, id, a.phone, discount],
       );
       await conn.execute(
-        "UPDATE coupons SET used_count=used_count+1 WHERE id=?",
-        [coupon.id],
+        "UPDATE coupons SET used_count=(SELECT COUNT(*) FROM coupon_redemptions WHERE coupon_id=?) WHERE id=?",
+        [coupon.id, coupon.id],
       );
     }
     await logEvent(
@@ -457,7 +486,13 @@ export async function createOrder(input: {
     }
     return { id, orderNo, token };
   });
-  if (input.method === "cod" || input.method === "offline") {
+  if (superseded && !created.reused && superseded !== created.id)
+    await setOrderStatus(superseded, "cancelled", "system", `Replaced by a new checkout (${created.orderNo})`, {
+      onlyFrom: ["pending_payment", "payment_failed"],
+      quiet: true,
+      silent: true,
+    }).catch((e) => console.error("Could not cancel superseded order", superseded, e));
+  if (!created.reused && (input.method === "cod" || input.method === "offline")) {
     await ensureInvoiceIfApplicable(created.id).catch((error) => console.error("Invoice could not be created", created.orderNo, error));
     void queueMarketingEvent("Purchase", created.orderNo, created.id);
   }
@@ -493,6 +528,8 @@ export const getOrderByToken = (token: string) =>
 export async function startPaymentAttempt(order: Order): Promise<string> {
   const txnid = `${order.orderNo}T${Date.now().toString(36)}`.slice(0, 25);
   await inTx(async (conn) => {
+    // Retrying after a failed / expired attempt: the coupon use was given back, take it again (or refuse).
+    await reserveCouponForRetry(conn, order.id);
     await reholdStock(
       conn,
       order.id,
@@ -688,6 +725,7 @@ export async function markPaymentFailed(
         error,
       );
       await returnStock(conn, orderId, "held", "release", "payu");
+      await releaseCouponForOrder(conn, orderId);
     }
   });
 }
@@ -704,7 +742,8 @@ export type OrderFilter =
   | "cancelled";
 
 const FILTER_SQL: Record<OrderFilter, string> = {
-  needs_action: "o.status IN ('paid','cod_pending','confirmed','packed','pending_payment','payment_failed','rto')",
+  // Flagged orders (extra payment, unclear refund/shipment, cancel request) always need action, whatever the status.
+  needs_action: "(o.status IN ('paid','cod_pending','confirmed','packed','pending_payment','payment_failed','rto') OR o.attention IS NOT NULL)",
   all: "1=1",
   to_ship: "o.status IN ('paid','cod_pending','confirmed','packed')",
   awaiting_payment: "o.status IN ('pending_payment','payment_failed')",
@@ -824,17 +863,49 @@ export async function getOrderEvents(orderId: number) {
 }
 
 /**
+ * Which statuses an order may move INTO from where. Anything else is an illegal jump (e.g.
+ * delivered → cancelled, cancelled → confirmed, pending_payment → delivered) and is refused.
+ * - cancelled only before dispatch, so a cancel never restocks goods that are with the courier (RTO
+ *   handles returns, and its stock comes back via markRtoReceived).
+ * - courier updates can move forward (packed → shipped → delivered, shipped/delivered → rto) but never
+ *   reopen a cancelled / refunded order.
+ */
+const ALLOWED_FROM: Record<OrderStatus, readonly OrderStatus[]> = {
+  pending_payment: ["payment_failed"],
+  payment_failed: ["pending_payment"],
+  paid: ["pending_payment", "payment_failed", "packed"],
+  cod_pending: ["packed"],
+  confirmed: ["paid", "cod_pending"],
+  packed: ["paid", "cod_pending", "confirmed"],
+  shipped: ["paid", "cod_pending", "confirmed", "packed"],
+  delivered: ["packed", "shipped"],
+  rto: ["packed", "shipped", "delivered"],
+  cancelled: ["pending_payment", "payment_failed", "paid", "cod_pending", "confirmed", "packed"],
+  refunded: ["paid", "confirmed", "packed", "shipped", "delivered", "rto", "cancelled", "partially_refunded"],
+  partially_refunded: ["paid", "confirmed", "packed", "shipped", "delivered", "rto", "cancelled"],
+};
+
+export class IllegalStatusChangeError extends Error {}
+
+/** Automated sources (courier tracking, PayU, cron) skip illegal moves quietly instead of failing. */
+const QUIET_ACTORS: readonly Actor[] = ["nimbuspost", "payu", "system"];
+
+/**
  * Move an order to `to` (locked, logged once). Returns true only when the status actually changed,
  * so callers can gate customer messages on it.
  * - `onlyFrom`: change only if the current status is one of these (checked under the row lock).
  * - `restock`: also return held/taken stock (used by a full refund of an order that never shipped).
+ * - `quiet`: an illegal move returns false instead of throwing (webhooks, tracking).
+ * - `silent`: no customer email / WhatsApp for this change (e.g. an abandoned order replaced by a new checkout).
+ * Illegal moves (see ALLOWED_FROM) throw IllegalStatusChangeError for people, or return false for
+ * automated actors.
  */
 export async function setOrderStatus(
   orderId: number,
   to: OrderStatus,
   actor: Actor,
   note?: string,
-  opts: { onlyFrom?: readonly OrderStatus[]; restock?: boolean } = {},
+  opts: { onlyFrom?: readonly OrderStatus[]; restock?: boolean; quiet?: boolean; silent?: boolean } = {},
 ): Promise<boolean> {
   let changed = false;
   await inTx(async (conn) => {
@@ -845,6 +916,28 @@ export async function setOrderStatus(
     const from = r[0]?.status as string | undefined;
     if (!from || from === to) return;
     if (opts.onlyFrom && !opts.onlyFrom.includes(from as OrderStatus)) return;
+    if (!ALLOWED_FROM[to]?.includes(from as OrderStatus)) {
+      if (opts.quiet || QUIET_ACTORS.includes(actor)) {
+        await logEvent(conn, orderId, from, from, actor, `Ignored status update to "${to}" (not allowed from "${from}")${note ? `: ${note}` : ""}`);
+        return;
+      }
+      throw new IllegalStatusChangeError(`An order that is "${from.replace(/_/g, " ")}" can't be moved to "${to.replace(/_/g, " ")}".`);
+    }
+    // Never cancel an order that has a live courier shipment (checked under the same lock as booking):
+    // the parcel would still go out. Cancel the shipment first.
+    if (to === "cancelled") {
+      const [live] = await conn.execute<Row[]>(
+        "SELECT awb FROM shipments WHERE order_id = ? AND status <> 'cancelled' LIMIT 1 FOR UPDATE",
+        [orderId],
+      );
+      if (live.length) {
+        if (opts.quiet || QUIET_ACTORS.includes(actor)) {
+          await logEvent(conn, orderId, from, from, actor, `Ignored cancel: a courier shipment exists${note ? ` (${note})` : ""}`);
+          return;
+        }
+        throw new IllegalStatusChangeError("This order has a courier shipment. Cancel the shipment first, then cancel the order.");
+      }
+    }
     await conn.execute(
       `UPDATE orders SET status = ?, cancelled_at = IF(? = 'cancelled', NOW(), cancelled_at) WHERE id = ?`,
       [to, to, orderId],
@@ -854,15 +947,17 @@ export async function setOrderStatus(
     // Cancelled before delivery: whatever this order holds or took goes back (once).
     if (to === "cancelled" || opts.restock)
       await returnStock(conn, orderId, "any", "restock", actor);
+    // A cancelled order gives its coupon use back (per-phone / first-order / total limits).
+    if (to === "cancelled") await releaseCouponForOrder(conn, orderId);
   });
   // Customer emails go out after the change is committed.
   if (changed && (to === "paid" || to === "shipped" || to === "delivered"))
     await ensureInvoiceIfApplicable(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
   if (to === "cancelled" || to === "rto" || to === "refunded" || to === "partially_refunded")
     await ensureCreditNotesForOrder(orderId).catch((error) => console.error("Credit note could not be created", orderId, error));
-  if (changed && (to === "delivered" || to === "cancelled"))
+  if (changed && !opts.silent && (to === "delivered" || to === "cancelled"))
     await notifyOrder(orderId, to);
-  if (changed && (to === "delivered" || to === "cancelled"))
+  if (changed && !opts.silent && (to === "delivered" || to === "cancelled"))
     await queueOrderWhatsApp(orderId, to).catch((error) => console.error("WhatsApp status notification", error));
   return changed;
 }

@@ -118,6 +118,12 @@ export async function setOrderStatusAction(orderId: number, status: OrderStatus,
     const text = String(note ?? "").trim().slice(0, 300);
     // "Refunded" set by hand moves no money: PayU money must go through the Refund panel, and an
     // offline refund (COD / bank transfer) must say how it was paid back.
+    // Cancelling a paid online order by hand would restock and tell the customer "cancelled" with no
+    // money back. Full refund from the Refund panel does it properly (refund + cancel stock + message).
+    if (status === "cancelled") {
+      const left = (await refundableFor(orderId))?.left ?? 0;
+      if (left > 0) throw new Error(`This order is paid online (₹${left}). Use the Refund panel: a full refund also closes the order and puts the stock back.`);
+    }
     if (status === "refunded") {
       const left = (await refundableFor(orderId))?.left ?? 0;
       if (left > 0) throw new Error(`₹${left} is still refundable on PayU. Use the Refund panel so the money actually goes back.`);

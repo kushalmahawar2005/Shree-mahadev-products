@@ -365,7 +365,9 @@ export async function getAccountOrder(customerId: number, orderId: number): Prom
   const [rows] = await db().query<RowDataPacket[]>(
     `SELECT ${ORDER_COLUMNS}, o.customer_name, o.phone, o.address_line1, o.address_line2, o.city, o.state, o.pincode,
             o.subtotal, o.discount, o.coupon_code, o.shipping, o.cod_fee, o.paid_at, o.cancelled_at, s.delivered_at, s.id AS shipment_id,
-            DATEDIFF(DATE_ADD(s.delivered_at, INTERVAL ? DAY), NOW()) AS return_days_left
+            DATEDIFF(DATE_ADD(COALESCE(s.delivered_at,
+              (SELECT MAX(e.created_at) FROM order_events e WHERE e.order_id = o.id AND e.to_status = 'delivered')),
+              INTERVAL ? DAY), NOW()) AS return_days_left
        FROM orders o ${SHIPMENT_JOIN}
       WHERE o.id=? AND o.customer_id=? LIMIT 1`,
     [accountConfig.returnWindowDays, orderId, customerId],

@@ -326,9 +326,11 @@ async function placeOrderCore(fd: FormData, source: "web" | "chat"): Promise<Pla
   }
 
   // Re-quote on the server: the price shown in the browser is never trusted.
+  // Free-shipping threshold uses the cart value before the coupon, the same base the cart, the
+  // checkout banner and quoteShippingAction show (otherwise a coupon could add shipping at pay time).
   const q = await quoteShipping({
     pincode: address.pincode,
-    subtotal: discountedSubtotal,
+    subtotal: c.subtotal,
     weightGrams: c.weight,
     method,
   });
@@ -345,9 +347,10 @@ async function placeOrderCore(fd: FormData, source: "web" | "chat"): Promise<Pla
 
   let token: string;
   let orderId: number;
+  let reused: boolean | undefined;
   try {
     const requestHeaders = await headers();
-    ({ token, id: orderId } = await createOrder({
+    ({ token, id: orderId, reused } = await createOrder({
       method,
       address,
       items: c.items,
@@ -373,9 +376,12 @@ async function placeOrderCore(fd: FormData, source: "web" | "chat"): Promise<Pla
     };
   }
 
+  // A repeated submit got the same order back: don't send the order messages twice.
   if (method === "cod") {
-    await notifyOrder(orderId, "order_placed");
-    await queueOrderWhatsApp(orderId, "cod_confirmation").catch((error) => console.error("WhatsApp order notification", error));
+    if (!reused) {
+      await notifyOrder(orderId, "order_placed");
+      await queueOrderWhatsApp(orderId, "cod_confirmation").catch((error) => console.error("WhatsApp order notification", error));
+    }
     await clearCartCookies();
   }
   return { placed: { method, token, orderId } };
