@@ -67,7 +67,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
           <p className="max-w-xl text-sm text-ink-muted md:text-base">Everything we make, slow and honest. Pick where you want to start.</p>
         </div>
 
-        <ul className="grid auto-rows-[168px] grid-cols-2 gap-2.5 sm:auto-rows-[240px] sm:gap-3 md:gap-4 lg:auto-rows-[250px] lg:grid-cols-4">
+        <ul className="grid grid-cols-2 gap-2 sm:auto-rows-[240px] sm:gap-3 md:gap-4 lg:auto-rows-[250px] lg:grid-cols-4">
           {tiles.map((t, i) => {
             const light = t.tone.ink === "light";
             // Phones: oils (hero) full width, the other four as a 2×2 grid. Tablet keeps the old rule.
@@ -76,6 +76,8 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
             const half = !fullOnTablet; // half-width tile on tablet
             // Sweeteners photo is square: keep it whole on the right instead of cropping it wide.
             const widePhoto = t.span === "wide" && t.key !== "jaggery";
+            // On phones, artwork gets its own row below the labels and actions.
+            const phoneArtwork = phoneHalf && "max-sm:relative max-sm:order-last max-sm:min-h-[clamp(90px,24vw,140px)] max-sm:w-full max-sm:flex-1";
             const body = (
               <>
                 {/* colour mood + soft light */}
@@ -99,8 +101,9 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                       (t.key === "honey" || t.key === "cake") && "max-lg:aspect-[5/2] max-lg:h-auto",
                       // square sweeteners photo in a wide tile: enlarge it (anchored bottom-right, tile clips the rest)
                       t.key === "jaggery" && "h-[150%]",
-                      t.key === "oils" && "max-lg:h-auto max-lg:w-full max-lg:[mask-image:linear-gradient(to_bottom,transparent,black_12%,black)]",
-                      phoneHalf && "max-sm:aspect-auto max-sm:h-[64%] max-sm:w-full max-sm:[mask-image:linear-gradient(to_bottom,transparent,black_22%,black)]",
+                      t.key === "oils" && "max-lg:h-auto max-lg:w-full max-lg:[mask-image:linear-gradient(to_bottom,transparent,black_12%,black)] max-sm:h-full max-sm:w-auto max-sm:[mask-image:linear-gradient(to_right,transparent,black_22%)]",
+                      phoneArtwork,
+                      phoneHalf && "max-sm:aspect-auto max-sm:h-auto max-sm:origin-bottom max-sm:[mask-image:linear-gradient(to_bottom,transparent,black_15%,black)]",
                     )}
                   >
                     <Image src={t.cover} alt="" fill sizes="(min-width: 1360px) 640px, (min-width: 1024px) 50vw, 100vw" className={cn("object-right-bottom", widePhoto ? "object-cover" : "object-contain", phoneHalf && "max-sm:object-cover max-sm:object-[92%_100%]")} />
@@ -114,7 +117,8 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     className={cn(
                       "absolute inset-y-0 right-0 w-[62%] mask-l-from-45% transition-transform duration-700 ease-[var(--ease-premium)] group-hover:scale-[1.04]",
                       half && "max-lg:w-[80%]",
-                      phoneHalf && "max-sm:inset-y-auto max-sm:bottom-0 max-sm:h-[58%] max-sm:w-full max-sm:mask-t-from-60%",
+                      phoneArtwork,
+                      phoneHalf && "max-sm:inset-y-auto max-sm:origin-bottom max-sm:mask-t-from-60%",
                       !t.href && "opacity-80",
                     )}
                   >
@@ -145,19 +149,20 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     "relative z-10 flex h-full flex-col p-4 md:p-6",
                     t.cover ? "max-w-full" : "max-w-[60%]",
                     half && "max-lg:max-w-full max-lg:p-3.5",
-                    phoneHalf && "max-sm:max-w-full max-sm:p-3",
+                    "max-sm:p-2.5",
+                    phoneHalf && "max-sm:h-auto max-sm:max-w-full max-sm:pt-2 max-sm:pb-1.5",
                   )}
                 >
-                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-snug md:text-lg", half && "max-lg:text-sm", phoneHalf && "max-sm:gap-1.5 max-sm:text-[12px]", light ? "text-co-gold" : "text-sale")} lang="hi">
+                  <span className={cn("font-hindi flex items-center gap-2 text-base leading-snug md:text-lg max-sm:gap-1.5 max-sm:text-xs", half && "max-lg:text-sm", light ? "text-co-gold" : "text-sale")} lang="hi">
                     <span aria-hidden className={cn("h-px w-5", half && "max-lg:w-3", light ? "bg-co-gold/70" : "bg-sale/60")} />
                     {t.titleHi}
                   </span>
                   <span
                     className={cn(
                       "mt-1 font-bold leading-tight",
-                      t.span === "hero" ? "max-w-[85%] text-[22px] sm:text-[26px] md:max-w-[70%] md:text-[32px]" : "text-xl md:text-2xl",
+                      t.span === "hero" ? "max-w-[85%] text-[20px] sm:text-[26px] md:max-w-[70%] md:text-[32px]" : "text-xl md:text-2xl",
                       half && "max-lg:text-lg",
-                      phoneHalf && "max-sm:text-[15px]",
+                      phoneHalf && "max-sm:mt-0.5 max-sm:text-sm",
                       t.key === "jaggery" && "max-w-[190px]",
                       light ? "text-white" : "text-forest-text",
                     )}
@@ -184,28 +189,28 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
                     {t.blurb}
                   </span>
 
-                  <span className={cn("mt-auto flex items-center gap-2", phoneHalf && "max-sm:mt-2")}>
+                  <span className={cn("mt-auto flex items-center gap-2 max-sm:gap-1.5", phoneHalf && "max-sm:mt-1.5 max-sm:gap-1")}>
                     {t.href ? (
                       <>
                         <span
                           className={cn(
                             "grid size-10 place-items-center rounded-full transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5",
                             half && "max-lg:size-9",
-                            "max-sm:size-8",
+                            "max-sm:size-6",
                             light ? "bg-white text-forest" : "bg-forest text-white",
                           )}
                         >
-                          <ArrowUpRight className="size-5 max-sm:size-4" />
+                          <ArrowUpRight className="size-5 max-sm:size-3.5" />
                         </span>
                         {t.count ? (
-                          <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm max-sm:px-2 max-sm:py-1 max-sm:text-[10px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
+                          <span className={cn("rounded-full px-3 py-1.5 text-xs font-semibold backdrop-blur-sm max-sm:px-1.5 max-sm:py-0.5 max-sm:text-[10px]/4", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
                             {t.count} {t.unit}
                           </span>
                         ) : null}
                       </>
                     ) : (
-                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold", half && "max-lg:px-2.5 max-lg:text-[11px]", phoneHalf && "max-sm:px-2 max-sm:py-1 max-sm:text-[10px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
-                        <Clock className="size-3.5" /> Coming soon
+                      <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold max-sm:gap-1 max-sm:px-1.5 max-sm:py-0.5 max-sm:text-[10px]/4", half && "max-lg:px-2.5 max-lg:text-[11px]", light ? "bg-white/15 text-white" : "bg-white/70 text-forest-text")}>
+                        <Clock className="size-3.5 max-sm:size-3" /> Coming soon
                       </span>
                     )}
                   </span>
@@ -213,13 +218,18 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
               </>
             );
             const cls = cn(
-              "group relative block h-full overflow-hidden rounded-3xl ring-1 ring-black/5 transition-shadow duration-500",
+              "group relative block h-full overflow-hidden rounded-3xl ring-1 ring-black/5 transition-shadow duration-500 max-sm:rounded-2xl",
+              phoneHalf && "max-sm:flex max-sm:flex-col",
               t.href ? "hover:shadow-[0_30px_50px_-30px_rgba(7,47,27,0.6)]" : "cursor-default",
             );
             return (
               <motion.li
                 key={t.key}
-                className={cn(SPAN[t.span], fullOnTablet && "sm:max-lg:col-span-2", t.span === "hero" && "col-span-2 max-lg:row-span-2")}
+                className={cn(
+                  SPAN[t.span],
+                  fullOnTablet && "sm:max-lg:col-span-2",
+                  !phoneHalf && "col-span-2 sm:max-lg:row-span-2 max-sm:min-h-[clamp(210px,62vw,280px)]",
+                )}
                 initial={reduce ? false : { opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}

@@ -27,11 +27,22 @@ type Props = Pick<Product, "handle" | "title" | "variants" | "defaultSize"> & {
   offers?: React.ReactNode;
   /** Shown under the pincode check (PDP: the one trust strip). */
   footer?: React.ReactNode;
-  /** Oils: show the pack under each size (15 L comes in a tin, the rest in food-grade PET bottles). */
+  /** Oils: show the pack under each size (small almond/walnut bottles are glass). */
   isOil?: boolean;
   /** "Only N left" below this many units (admin low-stock threshold). */
   lowStock?: number;
 };
+
+function packagingLabel(handle: string, variant: ProductVariant) {
+  const isSmallNutOilBottle =
+    (handle === "almond-oil" || handle === "walnut-oil") &&
+    variant.sizeUnit === "ml" &&
+    (variant.sizeValue === 30 || variant.sizeValue === 50);
+
+  if (isSmallNutOilBottle) return "Glass Bottle (Food Grade)";
+  if (variant.sizeUnit === "ml" && variant.sizeValue >= 15000) return "Tin Can";
+  return "PET Bottle (Food Grade)";
+}
 
 /** Price + size cards + qty / Add to cart + Buy now + pincode check, with a sticky bar once the CTA scrolls away. */
 export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10, isOil = false }: Props) {
@@ -140,7 +151,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
                 {on && <motion.span layoutId={`size-check-${handle}`} className="absolute -top-2 -right-2 grid size-5 place-items-center rounded-full bg-forest text-white"><Check className="size-3" strokeWidth={3} /></motion.span>}
                 <span className={cn("font-display text-[19px] leading-tight font-bold text-forest sm:text-[22px]", v.outOfStock && "line-through")}>{v.title}</span>
                 {isOil && (
-                  <span className="mt-0.5 text-[11px] leading-tight text-ink-muted">{v.sizeUnit === "ml" && v.sizeValue >= 15000 ? "Tin Can" : "PET Bottle (Food Grade)"}</span>
+                  <span className="mt-0.5 text-[11px] leading-tight text-ink-muted">{packagingLabel(handle, v)}</span>
                 )}
                 <span className="mt-1 text-[18px] font-bold text-[#3d7d58] tabular-nums sm:text-[21px]">{v.outOfStock ? "Sold out" : v.price.amount ? formatMoney(v.price) : "Soon"}</span>
                 {badge && (
