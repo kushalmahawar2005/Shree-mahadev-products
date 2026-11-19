@@ -5,6 +5,7 @@ import { notifyOrder } from "./mail";
 import { queueOrderWhatsApp } from "./whatsapp";
 import { getPayment, logWebhook, markPaid, markPaymentFailed } from "./orders";
 import { verifyPaymentWithPayu, verifyPayuResponse } from "./payu";
+import { confirmOrderFromCashfree, syncCashfreeAttempt } from "./cashfree-process";
 
 async function notifyPaid(orderId: number) {
   await notifyOrder(orderId, "payment_received");
@@ -54,19 +55,21 @@ export async function handlePayuResult(p: Record<string, string>, source: "callb
 }
 
 /**
- * Reconcile payments still initiated/pending after `olderThanMin` using PayU verify_payment.
+ * Reconcile payments still initiated/pending after `olderThanMin` (PayU verify_payment, or Cashfree's order API).
  * Safe to run any time (cron every 15 min, or `pnpm payu:reconcile`).
  */
 export async function reconcilePayments(olderThanMin = 15, limit = 50) {
   const [rows] = await db().query<RowDataPacket[]>(
-    `SELECT p.id, p.order_id, p.txnid, p.amount FROM payments p JOIN orders o ON o.id = p.order_id
+    `SELECT p.id, p.order_id, p.txnid, p.amount, p.provider FROM payments p JOIN orders o ON o.id = p.order_id
      WHERE p.status IN ('initiated','pending') AND p.created_at < NOW() - INTERVAL ? MINUTE
        AND p.created_at > NOW() - INTERVAL 7 DAY ORDER BY p.id LIMIT ?`,
     [olderThanMin, limit],
   );
   const result = { checked: rows.length, paid: 0, failed: 0, still: 0 };
   for (const r of rows) {
-    const outcome = await reconcileOne({ id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount });
+    const attempt = { id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount };
+    const res = r.provider === "cashfree" ? await syncCashfreeAttempt(attempt, { final: true }) : await reconcileOne(attempt);
+    const outcome = res === "unpaid" ? "pending" : res;
     result[outcome === "pending" ? "still" : outcome]++;
   }
   return result;
@@ -92,17 +95,22 @@ async function reconcileOne(r: { id: number; orderId: number; txnid: string; amo
 }
 
 /**
- * Admin "Check with PayU" on one order: verifies its latest open attempt right now
+ * Admin "Check payment" on one order (PayU or Cashfree, by the attempt's provider): verifies its latest open attempt right now
  * (no age limit), using the same rules as the scheduled reconcile.
  */
 export async function verifyOrderPayment(orderId: number): Promise<"paid" | "failed" | "pending" | "none"> {
   const [rows] = await db().query<RowDataPacket[]>(
-    "SELECT id, order_id, txnid, amount FROM payments WHERE order_id = ? AND status IN ('initiated','pending') ORDER BY id DESC LIMIT 1",
+    "SELECT id, order_id, txnid, amount, provider FROM payments WHERE order_id = ? AND status IN ('initiated','pending') ORDER BY id DESC LIMIT 1",
     [orderId],
   );
   const r = rows[0];
   if (!r) return "none";
-  return reconcileOne({ id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount });
+  const attempt = { id: r.id, orderId: r.order_id, txnid: r.txnid, amount: r.amount };
+  if (r.provider !== "cashfree") return reconcileOne(attempt);
+  // Cashfree: check every open attempt of the order, not just the newest.
+  const [[o]] = await db().query<RowDataPacket[]>("SELECT token FROM orders WHERE id = ?", [orderId]);
+  const res = o ? await confirmOrderFromCashfree(String(o.token)) : await syncCashfreeAttempt(attempt);
+  return res === "unpaid" || res === "none" ? "pending" : res;
 }
 
 /**
@@ -114,7 +122,7 @@ export async function verifyOrderPayment(orderId: number): Promise<"paid" | "fai
 export async function confirmOrderFromPayu(orderToken: string): Promise<"paid" | "pending" | "none"> {
   const [rows] = await db().query<RowDataPacket[]>(
     `SELECT p.id, p.order_id, p.txnid, p.amount FROM payments p JOIN orders o ON o.id = p.order_id
-     WHERE o.token = ? AND p.status IN ('initiated','pending') ORDER BY p.id DESC LIMIT 5`,
+     WHERE o.token = ? AND p.provider = 'payu' AND p.status IN ('initiated','pending') ORDER BY p.id DESC LIMIT 5`,
     [orderToken],
   );
   if (!rows.length) return "none";

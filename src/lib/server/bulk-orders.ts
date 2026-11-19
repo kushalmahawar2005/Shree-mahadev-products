@@ -3,33 +3,34 @@ import type { RowDataPacket } from "mysql2";
 import { db } from "@/lib/server/db";
 import { getOrderById, setOrderStatus, listOrders, type OrderFilter } from "@/lib/server/orders";
 import { bookShipment, cancelOrderShipment, labelForOrder, quoteForOrder } from "@/lib/server/shipments";
-import { estimateWeightGrams } from "@/lib/server/shipping";
+import { parcelFor, type PackLine } from "@/lib/packaging";
 
 export type BulkResult = { id: number; orderNo: string; ok: boolean; message: string };
 
-/** Packed weight from the catalog (variant weight, else estimated from the size) + a box that fits. */
-async function parcelFor(orderId: number) {
+/** Weight + box from the packaging sheet (a variant weight set in admin wins for the weight). */
+async function orderParcel(orderId: number) {
   const [rows] = await db().query<RowDataPacket[]>(
-    `SELECT oi.quantity, v.weight_grams, v.size_value, v.size_unit
+    `SELECT oi.quantity, oi.product_handle, v.weight_grams, v.size_value, v.size_unit
        FROM order_items oi LEFT JOIN product_variants v ON v.variant_key = oi.variant_key
       WHERE oi.order_id = ?`,
     [orderId],
   );
-  let weightGrams = 0;
+  let fixed = 0;
+  const all: PackLine[] = [];
+  const sheet: PackLine[] = [];
   for (const r of rows) {
     const qty = Number(r.quantity);
-    weightGrams += r.weight_grams
-      ? Number(r.weight_grams) * qty
-      : r.size_value
-        ? estimateWeightGrams(Number(r.size_value), r.size_unit === "g" ? "g" : "ml", qty)
-        : 500 * qty;
+    if (!r.size_value) {
+      fixed += 500 * qty; // variant deleted since: rough guess, admin can fix in the order
+      continue;
+    }
+    const line: PackLine = { handle: String(r.product_handle), sizeValue: Number(r.size_value), sizeUnit: r.size_unit === "g" ? "g" : "ml", qty };
+    all.push(line);
+    if (r.weight_grams) fixed += Number(r.weight_grams) * qty;
+    else sheet.push(line);
   }
-  weightGrams = Math.max(100, Math.round(weightGrams));
-  const dims =
-    weightGrams <= 1500 ? { length: 20, breadth: 15, height: 15 }
-    : weightGrams <= 5000 ? { length: 25, breadth: 20, height: 20 }
-    : weightGrams <= 10000 ? { length: 30, breadth: 25, height: 25 }
-    : { length: 35, breadth: 30, height: 30 };
+  const weightGrams = Math.max(100, Math.round(fixed + (sheet.length ? parcelFor(sheet).grams : 0)));
+  const dims = all.length ? parcelFor(all).box : { length: 20, breadth: 15, height: 15 };
   return { weightGrams, dims };
 }
 
@@ -45,7 +46,7 @@ export async function bulkBookShipments(ids: number[]): Promise<BulkResult[]> {
       continue;
     }
     try {
-      const parcel = await parcelFor(id);
+      const parcel = await orderParcel(id);
       const quotes = await quoteForOrder(order, parcel.weightGrams, parcel.dims);
       const cheapest = [...quotes].sort((a, b) => a.total - b.total)[0];
       if (!cheapest) throw new Error("No courier serves this pincode");

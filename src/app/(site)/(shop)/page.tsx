@@ -11,7 +11,7 @@ import {
   TopPicks,
 } from "@/components/home/PicksSections";
 import { RasoiKit, type KitItem } from "@/components/home/RasoiKit";
-import { categoryTiles, promoStrip, proof, topPicks } from "@/data/home";
+import { categoryTiles, promoStrip, proof, shopByUseScenes, topPicks } from "@/data/home";
 import { RefinedVsGhani } from "@/components/home/RefinedVsGhani";
 import { AppBanner } from "@/components/pwa/AppBanner";
 import { ProofSection } from "@/components/home/ProofSection";
@@ -66,17 +66,26 @@ export default async function HomePage() {
         Number(a.variants.some((v) => v.availableForSale)),
     );
 
-  const useTabs = shopByUse.map((u) => ({
-    key: u.tag,
-    label: u.label,
-    labelHi: u.labelHi,
-    note: u.note,
-    tip: u.tip,
-    viewAll: `/shop?use=${u.tag}`,
-    products: buyableFirst(all.filter((p) => p.tags.includes(u.tag))).map(
-      toPickProduct,
-    ),
-  }));
+  const useTabs = shopByUse.map((u) => {
+    const { firstProduct, ...scene } = shopByUseScenes[u.tag];
+    const products = buyableFirst(all.filter((p) => p.tags.includes(u.tag)));
+    const firstIndex = products.findIndex((p) => p.handle === firstProduct);
+    if (firstIndex > 0) {
+      const [featured] = products.splice(firstIndex, 1);
+      products.unshift(featured);
+    }
+
+    return {
+      key: u.tag,
+      label: u.label,
+      labelHi: u.labelHi,
+      note: u.note,
+      tip: u.tip,
+      scene,
+      viewAll: `/shop?use=${u.tag}`,
+      products: products.map(toPickProduct),
+    };
+  });
 
   // Rasoi Starter Kit (AGENTS.md §5 combos). TODO(client): confirm contents + bundle price.
   const kitSpec = [

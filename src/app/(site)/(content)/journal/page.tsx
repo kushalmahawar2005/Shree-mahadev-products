@@ -18,7 +18,7 @@ export default function JournalPage() {
     <div className="bg-page">
       <div className="mx-auto max-w-[1200px] px-4 pt-8 pb-10 md:px-8 md:pt-12 md:pb-24">
         <p className="font-hindi text-lg text-sale" lang="hi">
-          घानी की बातें
+          घाणी की बातें
         </p>
         <h1 className="text-3xl md:text-5xl">Journal</h1>
         <p className="mt-3 max-w-2xl text-ink-muted md:text-lg">

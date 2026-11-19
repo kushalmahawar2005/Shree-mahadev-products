@@ -161,9 +161,8 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         { I: LuAward, t: "FSSAI licensed", s: `Lic. ${site.fssai}` },
         { I: LuMapPin, t: "Packed in Bijainagar", s: "By our family" },
       ];
-  // Highlights come only from the admin product form: "Best for" as the first line, then every "Benefit".
-  const bestForLine = product.bestFor.length ? `Best for ${listJoin(product.bestFor.map((b) => b.toLowerCase()))}` : null;
-  const highlights = [...new Set([bestForLine, ...product.benefits].filter((x): x is string => !!x?.trim()))];
+  // Highlights come only from the admin "Highlights" list. Usage (what it's best for) lives in How to use, not here.
+  const highlights = [...new Set(product.benefits.filter((x) => !!x?.trim()))];
   // Desktop title: two lines for oils ("<Name>, Wood-Pressed," / "Gravity-Filtered"); the longer first line sets the size.
   const titleLineLength = (shortTitle(product.title) + (isOil ? ", Wood-Pressed," : "")).length;
   const tagPill = isOil ? "Traditional method · Lakdi kachi ghani" : isHoney ? (product.tags.includes("bestseller") ? "Bestseller" : "Raw honey") : "Naturally Sweet, Traditionally Made";
@@ -497,13 +496,13 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
       {/* Zone 2: full-width story bands, each on its own tint. */}
       {[
         reels.length > 0 ? band("forest", undefined,
-          <Reels key="reels" align="left" dark eyebrow="घानी से सीधा" title="Our ghani, in action" subtitle="Real clips from our ghani in Bijainagar. Tap any reel to watch." reels={reels} />,
+          <Reels key="reels" align="left" dark eyebrow="घाणी से सीधा" title="Our ghani, in action" subtitle="Real clips from our ghani in Bijainagar. Tap any reel to watch." reels={reels} />,
         ) : null,
         story.method ? band("ivory", pdpArt.method, <MethodSteps key="method" {...story.method} />) : null,
         isOil ? band("green", pdpArt.compare,
           <section key="cmp" className={sectionClass} aria-labelledby="cmp-h">
             <Reveal>
-              <SectionHeader id="cmp-h" eyebrow="कच्ची घानी क्यों" title="Kachi ghani vs refined" subtitle="Same seed, two very different oils." />
+              <SectionHeader id="cmp-h" eyebrow="कच्ची घाणी क्यों" title="Kachi ghani vs refined" subtitle="Same seed, two very different oils." />
               <GhaniVsRefined />
             </Reveal>
           </section>,
@@ -563,11 +562,6 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
 /** One PDP band: its tint, its own corner ornament and the section inside. */
 const band = (tone: keyof typeof BAND, art: Art | undefined, ...rest: [React.ReactNode] | [string, React.ReactNode]) =>
   rest.length === 2 ? { tone, art, artClass: rest[0], node: rest[1] } : { tone, art, artClass: undefined, node: rest[0] };
-
-/** "a, b and c" */
-function listJoin(items: string[]) {
-  return items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
-}
 
 /** No reviews for this product yet: one invite strip, then real reviews from our other products (labelled). */
 function EmptyReviews({ others, productTitle, write }: { others: PublicReview[]; productTitle: string; write: React.ReactNode }) {

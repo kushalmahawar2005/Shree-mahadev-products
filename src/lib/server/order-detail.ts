@@ -12,6 +12,7 @@ export type PaymentAttempt = {
   status: string; // initiated | success | failed | pending | refunded
   mode: string | null;
   mihpayid: string | null;
+  provider: "payu" | "cashfree";
   error: string | null;
   createdAt: string;
   updatedAt: string;
@@ -31,7 +32,7 @@ export type CustomerSummary = {
 export async function getOrderExtras(order: { id: number; address: { phone: string } }) {
   const [[payments], [invoices], [history]] = await Promise.all([
     db().query<Rows>(
-      "SELECT id, txnid, amount, status, mode, mihpayid, error, created_at, updated_at FROM payments WHERE order_id = ? ORDER BY id DESC",
+      "SELECT id, txnid, amount, status, mode, mihpayid, provider, error, created_at, updated_at FROM payments WHERE order_id = ? ORDER BY id DESC",
       [order.id],
     ),
     db().query<Rows>("SELECT invoice_no, created_at FROM invoices WHERE order_id = ? LIMIT 1", [order.id]),
@@ -62,6 +63,7 @@ export async function getOrderExtras(order: { id: number; address: { phone: stri
         status: String(r.status),
         mode: (r.mode as string | null) ?? null,
         mihpayid: (r.mihpayid as string | null) ?? null,
+        provider: r.provider === "cashfree" ? "cashfree" : "payu",
         error: (r.error as string | null) ?? null,
         createdAt: String(r.created_at),
         updatedAt: String(r.updated_at),

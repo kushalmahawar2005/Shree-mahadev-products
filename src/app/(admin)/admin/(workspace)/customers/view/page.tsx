@@ -16,7 +16,7 @@ export const metadata = { title: "Customer" };
 const card = "rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0,0,0,.04)]";
 const date = (d: string) =>
   new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" }).format(new Date(String(d).replace(" ", "T") + "+05:30"));
-const payLabel = (m: string) => (m === "cod" ? "COD" : m === "offline" ? "Offline paid" : "PayU");
+const payLabel = (m: string) => (m === "cod" ? "COD" : m === "offline" ? "Offline paid" : "Online");
 
 export default function CustomerViewPage({ searchParams }: PageProps<"/admin/customers">) {
   return (

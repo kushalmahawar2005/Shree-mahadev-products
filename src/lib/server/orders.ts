@@ -36,7 +36,7 @@ export type OrderStatus =
   | "partially_refunded";
 
 export type PaymentMethod = "payu" | "cod" | "offline";
-type Actor = "system" | "customer" | "admin" | "payu" | "nimbuspost";
+type Actor = "system" | "customer" | "admin" | "payu" | "cashfree" | "nimbuspost";
 
 export type OrderAddress = {
   name: string;
@@ -524,10 +524,27 @@ export const getOrderByToken = (token: string) =>
 
 // ───────────── Payments ─────────────
 
-/** New PayU txnid per attempt (PayU rejects reused txnids). */
-export async function startPaymentAttempt(order: Order): Promise<string> {
-  const txnid = `${order.orderNo}T${Date.now().toString(36)}`.slice(0, 25);
+/**
+ * Payment attempt for this visit to the pay page. PayU: always a new txnid (PayU rejects reused ones).
+ * Cashfree: reuses an open attempt from the last 10 minutes, because the pay page can render more than
+ * once per visit (dev double renders, reloads) and each new attempt would be a new Cashfree order.
+ * The order row is locked first, so renders arriving together still end up with one attempt.
+ */
+export async function startPaymentAttempt(order: Order, provider: "payu" | "cashfree" = "payu"): Promise<string> {
+  let txnid = `${order.orderNo}T${Date.now().toString(36)}`.slice(0, 25);
   await inTx(async (conn) => {
+    await conn.execute("SELECT id FROM orders WHERE id = ? FOR UPDATE", [order.id]);
+    if (provider === "cashfree") {
+      const [open] = await conn.execute<Row[]>(
+        `SELECT txnid FROM payments WHERE order_id = ? AND provider = 'cashfree' AND status = 'initiated'
+           AND created_at > NOW() - INTERVAL 10 MINUTE ORDER BY id DESC LIMIT 1`,
+        [order.id],
+      );
+      if (open[0]) {
+        txnid = String(open[0].txnid);
+        return; // stock and coupon are already held for this attempt
+      }
+    }
     // Retrying after a failed / expired attempt: the coupon use was given back, take it again (or refuse).
     await reserveCouponForRetry(conn, order.id);
     await reholdStock(
@@ -541,8 +558,8 @@ export async function startPaymentAttempt(order: Order): Promise<string> {
       ),
     );
     await conn.execute(
-      "INSERT INTO payments (order_id, txnid, amount) VALUES (?,?,?)",
-      [order.id, txnid, order.total],
+      "INSERT INTO payments (order_id, provider, txnid, amount) VALUES (?,?,?,?)",
+      [order.id, provider, txnid, order.total],
     );
     if (order.status === "payment_failed") {
       await conn.execute(
@@ -564,7 +581,7 @@ export async function startPaymentAttempt(order: Order): Promise<string> {
 
 export async function getPayment(txnid: string) {
   const [rows] = await db().execute<Row[]>(
-    "SELECT id, order_id, amount, status FROM payments WHERE txnid = ?",
+    "SELECT id, order_id, amount, status, provider FROM payments WHERE txnid = ?",
     [txnid],
   );
   const p = rows[0];
@@ -578,12 +595,13 @@ export async function getPayment(txnid: string) {
     orderId: p.order_id as number,
     amount: p.amount as number,
     status: p.status as string,
+    provider: (p.provider as string) === "cashfree" ? ("cashfree" as const) : ("payu" as const),
     orderToken: o[0]?.token as string,
   };
 }
 
 export async function logWebhook(
-  source: "payu",
+  source: "payu" | "cashfree",
   ref: string | null,
   payload: unknown,
   event?: string,
@@ -614,6 +632,8 @@ export async function markPaid(
       "SELECT status FROM orders WHERE id = ? FOR UPDATE",
       [orderId],
     );
+    const [[gwRow]] = await conn.execute<Row[]>("SELECT provider FROM payments WHERE id = ?", [paymentId]);
+    const actor: Actor = gwRow?.provider === "cashfree" ? "cashfree" : "payu";
     const [pr] = await conn.execute<ResultSetHeader>(
       "UPDATE payments SET status = 'success', mihpayid = ?, mode = ?, error = NULL WHERE id = ? AND status <> 'success'",
       [p.mihpayid ?? null, p.mode ?? null, paymentId],
@@ -624,12 +644,13 @@ export async function markPaid(
       [orderId],
     );
     if (!r.affectedRows) {
-      const [[pay]] = await conn.execute<Row[]>("SELECT amount, txnid FROM payments WHERE id = ?", [paymentId]);
+      const [[pay]] = await conn.execute<Row[]>("SELECT amount, txnid, provider FROM payments WHERE id = ?", [paymentId]);
+      const gw = pay?.provider === "cashfree" ? "Cashfree" : "PayU";
       await flagOrder(
         conn,
         orderId,
-        `Extra payment ₹${pay?.amount ?? "?"} received (PayU ${pay?.txnid ?? paymentId}${p.mihpayid ? ` / ${p.mihpayid}` : ""}) while the order was "${o?.status ?? "unknown"}". Refund it from the PayU dashboard.`,
-        "payu",
+        `Extra payment ₹${pay?.amount ?? "?"} received (${gw} ${pay?.txnid ?? paymentId}${p.mihpayid ? ` / ${p.mihpayid}` : ""}) while the order was "${o?.status ?? "unknown"}". Refund it from the order's Refund panel or the ${gw} dashboard.`,
+        actor,
       );
       return "extra";
     }
@@ -639,8 +660,8 @@ export async function markPaid(
         orderId,
         String(o?.status ?? "pending_payment"),
         "paid",
-        "payu",
-        `PayU ${p.mode ?? ""} ${p.mihpayid ?? ""}`.trim(),
+        actor,
+        `${actor === "cashfree" ? "Cashfree" : "PayU"} ${p.mode ?? ""} ${p.mihpayid ?? ""}`.trim(),
       );
       const { oversold } = await commitStock(conn, orderId);
       if (oversold)
@@ -701,6 +722,8 @@ export async function markPaymentFailed(
 ) {
   await inTx(async (conn) => {
     await conn.execute("SELECT id FROM orders WHERE id = ? FOR UPDATE", [orderId]);
+    const [[gwRow]] = await conn.execute<Row[]>("SELECT provider FROM payments WHERE id = ?", [paymentId]);
+    const actor: Actor = gwRow?.provider === "cashfree" ? "cashfree" : "payu";
     const [pr] = await conn.execute<ResultSetHeader>(
       "UPDATE payments SET status = ?, error = ? WHERE id = ? AND status <> 'success'",
       [status, error.slice(0, 255), paymentId],
@@ -721,10 +744,10 @@ export async function markPaymentFailed(
         orderId,
         "pending_payment",
         "payment_failed",
-        "payu",
+        actor,
         error,
       );
-      await returnStock(conn, orderId, "held", "release", "payu");
+      await returnStock(conn, orderId, "held", "release", actor);
       await releaseCouponForOrder(conn, orderId);
     }
   });

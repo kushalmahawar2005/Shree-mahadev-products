@@ -15,7 +15,8 @@ import { createOrder, type OrderItemInput } from "@/lib/server/orders";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { notifyOrder } from "@/lib/server/mail";
 import { queueOrderWhatsApp } from "@/lib/server/whatsapp";
-import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
+import { quoteShipping } from "@/lib/server/shipping";
+import { parcelFor, type PackLine } from "@/lib/packaging";
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { calculateCoupon, CouponError } from "@/lib/server/coupons";
 import { headers } from "next/headers";
@@ -49,7 +50,9 @@ async function pricedCart() {
   const cart = await getCartAction();
   if (!cart?.lines.length) return { error: "Your cart is empty." } as const;
   const items: OrderItemInput[] = [];
-  let weight = 0;
+  let fixedWeight = 0; // variants with a packed weight set in admin
+  const packs: PackLine[] = []; // every line: decides the box
+  const sheetOnly: PackLine[] = []; // lines without an admin weight: weight from the packaging sheet
   for (const l of cart.lines) {
     const product = await getProduct(l.product.handle);
     const v = product?.variants.find((x) => x.id === l.variant.id);
@@ -69,13 +72,16 @@ async function pricedCart() {
       quantity: l.quantity,
     });
     const packed = (v as { weightGrams?: number | null }).weightGrams;
-    weight += packed
-      ? packed * l.quantity
-      : estimateWeightGrams(v.sizeValue, v.sizeUnit, l.quantity);
+    const pack = { handle: product.handle, sizeValue: v.sizeValue, sizeUnit: v.sizeUnit, qty: l.quantity };
+    packs.push(pack);
+    if (packed) fixedWeight += packed * l.quantity;
+    else sheetOnly.push(pack);
   }
+  const parcel = parcelFor(packs);
   return {
     items,
-    weight,
+    weight: fixedWeight + (sheetOnly.length ? parcelFor(sheetOnly).grams : 0),
+    box: parcel.box,
     subtotal: items.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0),
   } as const;
 }
@@ -87,7 +93,7 @@ export async function quoteShippingAction(
   if (!z.string().regex(PIN).safeParse(pincode).success) return { ok: false };
   const c = await pricedCart();
   if ("error" in c) return { ok: false };
-  const base = { pincode, subtotal: c.subtotal, weightGrams: c.weight };
+  const base = { pincode, subtotal: c.subtotal, weightGrams: c.weight, dims: c.box };
   const [payu, cod] = await Promise.all([
     quoteShipping({ ...base, method: "payu" }),
     (await getStoreSettings()).shipping.codEnabled
@@ -332,6 +338,7 @@ async function placeOrderCore(fd: FormData, source: "web" | "chat"): Promise<Pla
     pincode: address.pincode,
     subtotal: c.subtotal,
     weightGrams: c.weight,
+    dims: c.box,
     method,
   });
   if (!q.serviceable) {
@@ -429,7 +436,7 @@ export async function chatCheckoutAction(raw: unknown): Promise<ChatCheckoutSumm
   let quote: Extract<ChatCheckoutSummary, { ok: true }>["quote"] = null;
   if (chosen) {
     const ship = (await getStoreSettings()).shipping;
-    const base = { pincode: chosen.pincode, subtotal: c.subtotal, weightGrams: c.weight };
+    const base = { pincode: chosen.pincode, subtotal: c.subtotal, weightGrams: c.weight, dims: c.box };
     const [payu, cod] = await Promise.all([
       quoteShipping({ ...base, method: "payu" }),
       ship.codEnabled ? quoteShipping({ ...base, method: "cod" }) : null,

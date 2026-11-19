@@ -34,7 +34,7 @@ import { AttentionBanner } from "@/components/admin/order/AttentionBanner";
 import { getOrderById, getOrderEvents, listRefunds, refundableFor, type Order, type OrderStatus } from "@/lib/server/orders";
 import { getOrderExtras } from "@/lib/server/order-detail";
 import { returnForOrder } from "@/lib/server/helpdesk";
-import { estimateWeightGrams } from "@/lib/server/shipping";
+import { parcelFor } from "@/lib/packaging";
 import { listShipments } from "@/lib/server/shipments";
 import { listOrderEmails, mailConfigured } from "@/lib/server/mail";
 import { formatMoney } from "@/lib/utils/money";
@@ -103,20 +103,32 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
     returnForOrder(order.id),
   ]);
 
-  // Prefill packed weight from the catalog (admin can edit before booking).
-  let weight = 0;
+  // Prefill weight + box from the packaging sheet (admin can edit before booking).
+  // A variant weight set in admin wins for the weight; unknown items count 500 g.
+  let fixedWeight = 0;
+  const parcelLines: { handle: string; sizeValue: number; sizeUnit: "ml" | "g"; qty: number }[] = [];
+  const sheetLines: typeof parcelLines = [];
   order.items.forEach((i, idx) => {
     const v = products[idx]?.variants.find((x) => x.id === i.variantKey);
-    const packed = (v as { weightGrams?: number | null } | undefined)?.weightGrams;
-    weight += packed ? packed * i.quantity : v ? estimateWeightGrams(v.sizeValue, v.sizeUnit, i.quantity) : 500 * i.quantity;
+    if (!v) {
+      fixedWeight += 500 * i.quantity;
+      return;
+    }
+    const line = { handle: i.productHandle, sizeValue: v.sizeValue, sizeUnit: v.sizeUnit, qty: i.quantity };
+    parcelLines.push(line);
+    const packed = (v as { weightGrams?: number | null }).weightGrams;
+    if (packed) fixedWeight += packed * i.quantity;
+    else sheetLines.push(line);
   });
+  const weight = fixedWeight + (sheetLines.length ? parcelFor(sheetLines).grams : 0);
+  const dims = parcelFor(parcelLines).box;
 
   const a = order.address;
   const label = ORDER_LABEL[order.status];
   const units = order.items.reduce((s, i) => s + i.quantity, 0);
   const paidOnline = extras.payments.some((p) => p.status === "success" || p.status === "refunded");
   const paymentText =
-    order.paymentMethod === "cod" ? "Cash on delivery" : order.paymentMethod === "offline" ? "Paid offline" : paidOnline ? "Paid online · PayU" : "Online · not paid yet";
+    order.paymentMethod === "cod" ? "Cash on delivery" : order.paymentMethod === "offline" ? "Paid offline" : paidOnline ? `Paid online · ${extras.payments.find((p) => p.status === "success" || p.status === "refunded")?.provider === "cashfree" ? "Cashfree" : "PayU"}` : "Online · not paid yet";
   const canInvoice = !NO_INVOICE.includes(order.status);
   const fullAddress = `${a.name}\n${a.line1}${a.line2 ? `, ${a.line2}` : ""}\n${a.city}, ${a.state} ${a.pincode}\n+91 ${a.phone}`;
   const waText = encodeURIComponent(`Namaste ${a.name.split(" ")[0]}, this is Swadeshi Mahadev Products about your order ${order.orderNo}.`);
@@ -230,6 +242,7 @@ async function OrderDetail({ searchParams }: { searchParams: PageProps<"/admin/o
               status={order.status}
               initialShipments={shipments}
               defaultWeight={weight}
+              defaultDims={dims}
               suggestedCourierId={order.courierId}
               configured={nimbusConfigured()}
             />

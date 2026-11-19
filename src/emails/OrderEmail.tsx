@@ -188,7 +188,7 @@ export function subjectFor(kind: EmailKind, o: EmailOrder) {
     case "delivery_failed":
       return `Delivery attempt missed: order ${o.orderNo}`;
     case "store_new_order":
-      return `New order ${o.orderNo} – ${inr(o.total)} – ${o.paymentMethod === "cod" ? "COD" : o.paymentMethod === "offline" ? "paid offline" : "PayU"}`;
+      return `New order ${o.orderNo} – ${inr(o.total)} – ${o.paymentMethod === "cod" ? "COD" : o.paymentMethod === "offline" ? "paid offline" : "online"}`;
   }
 }
 

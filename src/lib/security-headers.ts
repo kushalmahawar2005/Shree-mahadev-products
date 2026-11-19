@@ -5,17 +5,19 @@
 const isDev = process.env.NODE_ENV !== "production";
 
 export const CSP_SOURCES = {
-  script: ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])], // Next.js inline bootstrap scripts
+  // Next.js inline bootstrap scripts; Cashfree's checkout SDK (sdk.cashfree.com) for the payment popup.
+  script: ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), "https://*.cashfree.com"],
   style: ["'self'", "'unsafe-inline'"],
   img: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://i.ytimg.com"],
   media: ["'self'", "https://res.cloudinary.com"],
   font: ["'self'", "data:"],
-  connect: ["'self'", "https://api.cloudinary.com", ...(isDev ? ["ws:"] : [])],
+  connect: ["'self'", "https://api.cloudinary.com", "https://*.cashfree.com", ...(isDev ? ["ws:"] : [])],
   // Reels pasted as YouTube links play in YouTube's privacy-enhanced embed player.
-  frame: ["https://www.youtube-nocookie.com"],
+  // Cashfree's payment popup renders in an iframe from its own domains.
+  frame: ["https://www.youtube-nocookie.com", "https://*.cashfree.com"],
   // PayU hosted checkout POST. Chrome applies form-action to the redirects after the POST too, and
   // PayU hops to other subdomains (api.payu.in etc.), so allow all of them or the submit is silently blocked.
-  formAction: ["'self'", "https://*.payu.in", "https://*.payubiz.in"],
+  formAction: ["'self'", "https://*.payu.in", "https://*.payubiz.in", "https://*.cashfree.com"],
 };
 
 export function contentSecurityPolicy() {

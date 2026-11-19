@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { Amphora, ArrowRight, Baby as BabyLine, ChevronLeft, ChevronRight, Flame as FlameLine, Flower2, Soup, type LucideIcon } from "lucide-react";
 import { Baby, BowlSteam, Flame, Jar, Lightbulb, Lotus } from "@/components/icons/duo";
 import { cn } from "@/lib/utils/cn";
 import { PickCard, type PickProduct } from "./PickCard";
-import { deco } from "@/data/brand-art";
 import { TornEdge } from "@/components/ui/TornEdge";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/shadcn/carousel";
 
@@ -19,6 +18,7 @@ export type UseTab = {
   labelHi: string;
   note: string;
   tip: string;
+  scene: { src: string; portraitSrc: string; alt: string; tone: string };
   viewAll: string;
   products: PickProduct[];
 };
@@ -49,6 +49,7 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
   const reduce = useReducedMotion();
   const tab = tabs[active];
   const Icon = ICONS[tab.key] ?? BowlSteam;
+  const { tone } = tab.scene;
 
   // Embla carousel (shadcn). It remounts per tab (keyed), so every tab starts at the first card.
   const [api, setApi] = useState<CarouselApi>();
@@ -163,66 +164,58 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
         </div>
 
         <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-4 lg:grid-cols-[320px_1fr] lg:gap-5">
-          {/* Phones: one slim tip row + "See all" instead of the big panel (the chip already names the use). */}
-          <div className="flex items-start gap-2 rounded-2xl bg-white/60 px-3 py-2.5 sm:hidden">
-            <Lightbulb className="mt-0.5 size-4 shrink-0 text-[#b07a10]" aria-hidden />
-            <p className="flex-1 text-[12px] leading-snug text-ink">{tab.tip}</p>
-            <Link href={tab.viewAll} className="shrink-0 text-[12px] font-semibold whitespace-nowrap text-forest underline-offset-2 hover:underline">
-              See all
-            </Link>
-          </div>
-
-          {/* Story panel: crossfades + slides on tab change (sm+) */}
           <AnimatePresence mode="wait" initial={false}>
             <motion.aside
               key={tab.key}
               {...swap}
-              className="relative flex flex-col overflow-hidden rounded-3xl bg-forest p-3.5 text-white max-sm:hidden sm:p-6"
+              className="relative isolate flex w-full min-w-0 overflow-hidden rounded-3xl text-white [background-color:var(--scene-tone)] max-[520px]:aspect-[4/3] max-[520px]:items-end max-[520px]:gap-3 max-[520px]:p-3 min-[520px]:flex-col min-[520px]:justify-between min-[520px]:max-lg:aspect-[25/12] min-[520px]:max-lg:min-h-[16rem] lg:min-h-[34rem]"
+              style={{
+                "--scene-tone": tone,
+                "--scene-shade-mobile": `linear-gradient(0deg, ${tone}eb 0%, ${tone}9c 17%, transparent 42%)`,
+                "--scene-shade": `linear-gradient(180deg, ${tone}80 0%, ${tone}70 23%, ${tone}25 34%, transparent 44%, transparent 78%, ${tone}d9 100%)`,
+                "--scene-shade-wide": `linear-gradient(90deg, ${tone} 0%, ${tone} 34%, ${tone}cc 42%, transparent 54%)`,
+              } as CSSProperties}
             >
-              {/* soft lamp-light in the panel corner */}
-              <span aria-hidden className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-[radial-gradient(closest-side,rgba(232,200,121,0.18),transparent)]" />
-              {/* Phone: one slim row (icon · name + use · arrow). sm+: the full stacked card. */}
-              <div className="relative flex items-center gap-3 lg:block">
-                <span className="shrink-0 text-co-gold">
-                  <Icon className="size-8 lg:size-9" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="font-hindi text-[15px] leading-snug text-co-gold max-sm:hidden lg:mt-5 lg:text-lg" lang="hi">
+              <picture className="pointer-events-none absolute inset-0 min-[520px]:max-lg:left-[36%]">
+                <source media="(width < 64rem)" srcSet={tab.scene.src} type="image/webp" />
+                <Image
+                  src={tab.scene.portraitSrc}
+                  alt={tab.scene.alt}
+                  fill
+                  unoptimized
+                  className="object-cover lg:object-top"
+                />
+              </picture>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 max-[520px]:[background:var(--scene-shade-mobile)] min-[520px]:max-lg:[background:var(--scene-shade-wide)] lg:[background:var(--scene-shade)]"
+              />
+              <div className="relative [text-shadow:0_1px_6px_rgb(0_0_0/0.5)] min-[520px]:px-4 min-[520px]:pt-4 min-[520px]:max-lg:max-w-[46%] sm:px-6 sm:pt-6">
+                <div className="flex items-center gap-2.5">
+                  <span className="hidden shrink-0 text-co-gold min-[520px]:block">
+                    <Icon className="size-5 sm:size-6" />
+                  </span>
+                  <p className="font-hindi min-w-0 text-[13px] leading-snug text-co-gold sm:text-[15px] lg:text-base" lang="hi">
                     {tab.labelHi}
                   </p>
-                  <h3 className="text-lg leading-tight text-white sm:text-xl md:text-3xl">{tab.label}</h3>
-                  <p className="mt-0.5 truncate text-[12px] text-white/65 sm:hidden">{tab.note}</p>
                 </div>
+                <h3 className="mt-1.5 text-[21px] leading-tight text-white max-[520px]:mt-1 max-[520px]:text-lg sm:text-xl md:text-3xl">{tab.label}</h3>
+                <p className="mt-1 hidden text-[12px] text-white/80 min-[520px]:block sm:text-sm">{tab.note}</p>
+                <p className="mt-2 hidden gap-2 rounded-xl border border-white/25 bg-transparent px-2.5 py-2 text-[12px] leading-snug text-white min-[520px]:flex sm:mt-2.5 sm:gap-2.5 sm:rounded-2xl sm:px-3 sm:text-sm sm:leading-relaxed">
+                  <Lightbulb className="mt-0.5 size-4 shrink-0 text-co-gold" aria-hidden />
+                  {tab.tip}
+                </p>
+              </div>
+
+              <div className="relative max-[520px]:shrink-0 min-[520px]:px-4 min-[520px]:pt-2.5 min-[520px]:pb-4 sm:px-6 sm:pb-5">
                 <Link
                   href={tab.viewAll}
-                  aria-label={`Shop all for ${tab.label.toLowerCase()}`}
-                  className="grid size-10 shrink-0 place-items-center rounded-full bg-co-gold text-forest-deep transition-colors hover:bg-white sm:hidden"
+                  className="btn-shine inline-flex min-h-11 items-center justify-center gap-2 overflow-hidden rounded-full bg-co-gold px-4 py-2 text-[13px] font-bold text-forest-deep transition-colors hover:bg-white max-[520px]:px-3 max-[520px]:text-xs sm:px-5 sm:text-sm"
                 >
-                  <ArrowRight className="size-[18px]" />
+                  <span>Shop all<span className="max-[520px]:sr-only"> for {tab.label.toLowerCase()}</span></span>
+                  <ArrowRight className="size-4 shrink-0" />
                 </Link>
               </div>
-              <p className="relative mt-1 text-sm text-white/70 max-sm:hidden">{tab.note}</p>
-              {/* Tip sits right under the subtitle; the kadhai below grows to fill the rest of the panel */}
-              <p className="relative mt-3 flex gap-2 border-t border-white/10 pt-3 text-[13px] leading-relaxed text-white/80 sm:mt-6 sm:gap-2.5 sm:rounded-2xl sm:border-0 sm:bg-white/10 sm:p-3.5 sm:text-sm sm:text-white/90">
-                <Lightbulb className="mt-0.5 size-4 shrink-0 text-co-gold" aria-hidden />
-                {tab.tip}
-              </p>
-              {/* Painted brass kadhai + masala bowls, right above the CTA (desktop) */}
-              <div aria-hidden className="pointer-events-none relative mt-4 hidden min-h-[120px] flex-1 lg:block">
-                <Image
-                  src={deco.rasoiSet.src}
-                  alt=""
-                  fill
-                  sizes="320px"
-                  className="object-contain object-bottom drop-shadow-[0_16px_24px_rgba(0,0,0,0.35)]"
-                />
-              </div>
-              <Link
-                href={tab.viewAll}
-                className="btn-shine relative mt-6 hidden h-11 items-center justify-center gap-2 self-start overflow-hidden rounded-full bg-co-gold px-5 text-sm font-bold text-forest-deep transition-colors hover:bg-white sm:inline-flex lg:mt-5"
-              >
-                Shop all for {tab.label.toLowerCase()} <ArrowRight className="size-4" />
-              </Link>
             </motion.aside>
           </AnimatePresence>
 

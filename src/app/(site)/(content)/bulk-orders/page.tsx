@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { CalendarClock, Tin, FlaskConical, Phone, Store, Truck } from "@/components/icons/duo";
 import { BulkForm } from "@/components/BulkForm";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
@@ -100,7 +101,10 @@ export default async function BulkOrdersPage() {
           <div className="h-fit rounded-3xl border border-line bg-white p-5 shadow-[0_24px_48px_-36px_rgba(7,47,27,0.5)] md:p-8 lg:sticky lg:top-[calc(var(--sticky-top,120px)+16px)]">
             <h2 className="text-2xl">Send an inquiry</h2>
             <p className="mt-1 text-sm text-ink-muted">We save it for our team and open WhatsApp with your details filled in. Replies within a working day.</p>
-            <BulkForm products={products.map((p) => shortTitle(p.title))} />
+            {/* Suspense: the form reads ?product=&qty= (prefill from the per-order limit note). */}
+            <Suspense fallback={<div className="mt-5 h-[560px] animate-pulse rounded-2xl bg-subtle" />}>
+              <BulkForm products={products.map((p) => shortTitle(p.title))} />
+            </Suspense>
           </div>
         </div>
       </div>

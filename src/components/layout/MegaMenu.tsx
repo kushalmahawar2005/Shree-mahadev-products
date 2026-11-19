@@ -49,7 +49,24 @@ const PANELS: Record<MenuGroup, { all: [string, string]; useLinks: boolean; prom
  * featured promo card. The panel is as wide as its content (no empty area for short menus).
  * Fade + 8px slide. Keyboard: it opens from the nav (Enter / ↓), Escape closes (see Header).
  */
-export function MegaMenu({ open, data, onNavigate }: { open: MenuGroup | null; data: MenuData; onNavigate: () => void }) {
+export function MegaMenu({
+  open,
+  data,
+  onNavigate,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  open: MenuGroup | null;
+  data: MenuData;
+  onNavigate: () => void;
+  /**
+   * Hover tracking on the visible panel only (the full-width layer around it ignores the pointer).
+   * Mouse events, same as the nav: pointer events fire before mouse events, so mixing them let the nav's
+   * mouseleave (close) land after the panel's enter (keep open) and shut the menu.
+   */
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
   return (
     <AnimatePresence initial={false}>
       {open && (
@@ -57,7 +74,7 @@ export function MegaMenu({ open, data, onNavigate }: { open: MenuGroup | null; d
           key="mega"
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
+          exit={{ opacity: 0, y: -8, transition: { duration: 0.12, ease: EASE.out } }}
           transition={{ duration: 0.18, ease: EASE.out }}
           className="hidden pt-2 lg:block"
         >
@@ -66,7 +83,9 @@ export function MegaMenu({ open, data, onNavigate }: { open: MenuGroup | null; d
               data-mega-panel=""
               role="region"
               aria-label={PANELS[open].all[0]}
-              className="mx-auto flex w-fit max-w-full gap-6 rounded-3xl border border-line bg-[linear-gradient(180deg,#fbf7ef_0%,#f6efe2_100%)] p-6 shadow-[0_18px_30px_-18px_rgba(20,20,10,0.25)]"
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
+              className="pointer-events-auto mx-auto flex w-fit max-w-full gap-6 rounded-3xl border border-line bg-[linear-gradient(180deg,#fbf7ef_0%,#f6efe2_100%)] p-6 shadow-[0_18px_30px_-18px_rgba(20,20,10,0.25)]"
             >
               {/* Product tiles: as many columns as products (max 6), equal heights */}
               <motion.ul

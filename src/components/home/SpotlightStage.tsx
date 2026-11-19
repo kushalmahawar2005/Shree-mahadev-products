@@ -2,7 +2,7 @@
 
 import { showRating } from "@/lib/utils/reviews";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { ArrowRight, Check, Loader2, ShoppingBag, Star } from "lucide-react";
@@ -23,11 +23,17 @@ export type SpotItem = {
   swatch: string;
   image?: { url: string; alt: string; width: number; height: number };
   /**
-   * Lifestyle photo for this slide: fills the right side of the card (top on phones) and fades into
-   * `bg`, which becomes the whole card's background (pick the photo's own backdrop colour so the edge
-   * disappears). `position` is the CSS object-position that keeps the subject in frame.
+   * The landscape photo fades into `bg` on desktop. A separate portrait can fill the phone card
+   * behind a tinted glass panel.
    */
-  photo?: { url: string; alt: string; bg: string; position?: string };
+  photo?: {
+    url: string;
+    alt: string;
+    bg: string;
+    position?: string;
+    mobileUrl?: string;
+    mobileTint?: string;
+  };
   rating?: number;
   reviewCount?: number;
   variant?: { id: string; title: string; price: number; mrp?: number };
@@ -44,8 +50,9 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState(false);
   const s = items[i];
-  // Card height follows the content smoothly (phones: the photo slide is taller) instead of jumping.
+  // Keep the animated card height in sync with the image and copy.
   const contentRef = useRef<HTMLDivElement>(null);
+  const railRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | "auto">("auto");
   useEffect(() => {
     const el = contentRef.current;
@@ -64,7 +71,27 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
     return () => clearTimeout(t);
   }, [i, hold, reduce, items.length]);
 
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail || !window.matchMedia("(width < 48rem)").matches) return;
+    const active = rail.querySelector('[aria-selected="true"]');
+    if (!active) return;
+
+    const frame = rail.getBoundingClientRect();
+    const tab = active.getBoundingClientRect();
+    if (tab.left >= frame.left + 16 && tab.right <= frame.right - 16) return;
+    rail.scrollTo({
+      left: rail.scrollLeft + (tab.left + tab.right - frame.left - frame.right) / 2,
+      behavior: reduce ? "instant" : "smooth",
+    });
+  }, [i, reduce]);
+
   if (!s) return null;
+  const background = s.photo?.bg ?? `linear-gradient(135deg, ${s.color} 0%, ${s.color}e6 55%, #041d10 100%)`;
+  const mobileTint = s.photo?.mobileTint ?? s.color;
+  const { variant } = s;
+  const salePrice = variant ? formatMoney(variant.price) : null;
+  const originalPrice = variant?.mrp && variant.mrp > variant.price ? formatMoney(variant.mrp) : null;
   const pick = (n: number) => {
     setI(n);
     setAdded(false);
@@ -73,7 +100,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
   return (
     <div onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} onFocusCapture={() => setHold(true)} onBlurCapture={() => setHold(false)}>
       <motion.div
-        className="relative overflow-hidden rounded-3xl text-white md:rounded-[32px] shadow-[0_40px_80px_-50px_rgba(7,47,27,0.8)]"
+        className="relative overflow-hidden rounded-3xl text-white shadow-[0_40px_80px_-50px_rgba(7,47,27,0.8)] max-md:h-auto! md:rounded-[32px]"
         animate={{ height }}
         initial={false}
         transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -82,47 +109,65 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
         <AnimatePresence initial={false}>
           <motion.div
             key={s.handle + "-bg"}
-            className="absolute inset-0"
-            style={{ background: s.photo ? s.photo.bg : `linear-gradient(135deg, ${s.color} 0%, ${s.color}e6 55%, #041d10 100%)` }}
+            className="absolute inset-0 [background:var(--spotlight-mobile-bg)] md:[background:var(--spotlight-desktop-bg)]"
+            style={{
+              "--spotlight-mobile-bg": s.photo ? mobileTint : background,
+              "--spotlight-desktop-bg": background,
+            } as CSSProperties}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
           />
         </AnimatePresence>
-        {/* Lifestyle photo: right side on desktop (fades left into the card colour), top on phones. */}
-        <AnimatePresence initial={false}>
-          {s.photo && (
-            <motion.div
-              key={s.handle + "-photo"}
-              className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3] md:inset-y-0 md:right-0 md:left-auto md:aspect-auto md:w-[62%]"
-              initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.04 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <SmartImage
-                src={s.photo.url}
-                alt={s.photo.alt}
-                fill
-                sizes="(min-width: 768px) 62vw, 100vw"
-                className="object-cover [mask-image:linear-gradient(to_bottom,black_55%,transparent)] md:[mask-image:linear-gradient(to_right,transparent_0%,black_38%)]"
-                style={{ objectPosition: s.photo.position ?? "70% center" }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <span aria-hidden className="absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
 
         <div
           ref={contentRef}
           className={cn(
             // Same height for every slide on desktop, so switching never resizes the card there.
-            "relative grid items-center gap-2 p-4 md:min-h-[460px] md:gap-10 md:p-12",
+            "relative grid items-center md:min-h-[460px] md:gap-10 md:p-12",
+            !s.photo && "gap-2 p-4",
             s.image && !s.photo && "md:grid-cols-[1.05fr_1fr]",
           )}
         >
-          {/* Stage (only when the item has a photo) */}
+          {/* Select the portrait at the browser level so phones only request one version. */}
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 md:left-auto md:w-[62%]",
+              !s.photo && "hidden",
+            )}
+          >
+            <AnimatePresence initial={false}>
+              {s.photo && (
+                <motion.div
+                  key={s.handle + "-photo"}
+                  className="absolute inset-0"
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.04 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <picture>
+                    {s.photo.mobileUrl && (
+                      <source media="(width < 48rem)" srcSet={s.photo.mobileUrl} type="image/webp" />
+                    )}
+                    <SmartImage
+                      src={s.photo.url}
+                      alt={s.photo.alt}
+                      fill
+                      unoptimized={s.photo.url.startsWith("/") && s.photo.url.endsWith(".webp")}
+                      sizes="(min-width: 768px) 62vw, 100vw"
+                      className="object-cover object-top md:[mask-image:linear-gradient(to_right,transparent_0%,black_38%)] md:[object-position:var(--spotlight-desktop-position)]"
+                      style={{ "--spotlight-desktop-position": s.photo.position ?? "70% center" } as CSSProperties}
+                    />
+                  </picture>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          {s.photo && <div aria-hidden className="aspect-[3/2] max-h-[19rem] md:hidden" />}
+          <span aria-hidden className="pointer-events-none absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
+          {/* Standalone product shot for slides without a lifestyle photo. */}
           {s.image && !s.photo && (
           <div className="relative mx-auto aspect-square w-full max-w-[220px] sm:max-w-[320px] md:max-w-[420px]">
             <motion.span
@@ -170,36 +215,67 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               animate={{ opacity: 1, x: 0 }}
               exit={reduce ? undefined : { opacity: 0, x: -16 }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              // Photo slides: room for the picture on top (phones) / text on the left half (desktop). Set on
-              // this slide's own block so the outgoing text keeps its width while it fades out.
-              className={cn("flex flex-col items-start", s.photo && "pt-[60vw] sm:pt-[58vw] md:max-w-[56%] md:pt-0")}
+              className={cn(
+                "relative flex min-w-0 flex-col items-start",
+                s.photo && "max-md:isolate max-md:transform-none! max-md:px-3 max-md:pt-1 max-md:pb-3 sm:max-md:px-4 md:max-w-[58%]",
+              )}
             >
+              {s.photo && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-0 -top-8 bottom-0 -z-10 backdrop-blur-[10px] [mask-image:linear-gradient(to_bottom,transparent,black_26%)] md:hidden"
+                  style={{ background: `linear-gradient(180deg, ${mobileTint}68 0%, ${mobileTint}d9 29%, ${mobileTint}e6 100%)` }}
+                />
+              )}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-co-gold uppercase backdrop-blur max-md:hidden">
                 <Sparkles className="size-3.5" /> In the spotlight
               </span>
-              <p className="font-hindi text-sm text-co-gold md:mt-4 md:text-lg" lang="hi">
-                {s.titleHi}
-              </p>
-              <h3 className="text-[22px] leading-tight text-white md:text-5xl">{s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}</h3>
+              <div className={s.photo ? "grid w-full grid-cols-[minmax(0,1fr)_auto] items-end gap-x-2.5 md:contents" : "contents"}>
+                <div className="min-w-0 md:contents">
+                  <p className={cn("font-hindi text-sm text-co-gold md:mt-4 md:text-lg", s.photo && "max-md:text-[11px] max-md:leading-tight")} lang="hi">
+                    {s.titleHi}
+                  </p>
+                  <h3
+                    className={cn(
+                      "text-[clamp(1.375rem,6.25vw,1.75rem)] leading-tight text-white md:text-5xl",
+                      s.photo && "max-md:mt-0.5 max-md:text-[clamp(1.125rem,5.6vw,1.5rem)]",
+                    )}
+                  >
+                    {s.title.replace(/^(Wood|Cold)-Pressed\s+/, "")}
+                  </h3>
+                </div>
+                {s.photo && variant && (
+                  <p className="text-right whitespace-nowrap md:hidden">
+                    <span className="block text-[22px] leading-none font-extrabold text-white tabular-nums">{salePrice}</span>
+                    <span className="mt-1 flex justify-end gap-1.5 text-[10px] leading-tight text-white/80">
+                      {originalPrice && <s className="text-white/65">{originalPrice}</s>}
+                      <span>{variant.title}</span>
+                    </span>
+                  </p>
+                )}
+              </div>
               {s.rating && showRating(s.reviewCount) ? (
-                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-white/80 md:mt-2 md:text-sm">
+                <p className={cn("mt-1.5 flex items-center gap-1.5 text-xs text-white/80 md:mt-2 md:text-sm", s.photo && "max-md:hidden")}>
                   <Star className="size-4 fill-[#f5b400] text-[#f5b400]" /> {s.rating.toFixed(1)} · {s.reviewCount} review{s.reviewCount === 1 ? "" : "s"}
                 </p>
               ) : null}
-              <p className="mt-2 max-w-md text-[13px] leading-relaxed text-white/85 md:mt-4 md:text-lg">{s.text}</p>
-              <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-co-gold/40 px-2.5 py-1 text-[11px] font-semibold text-co-gold md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm">
-                <Check className="size-3.5 md:size-4" /> {s.note}
+              <p className={cn("mt-2 max-w-md text-[14px] leading-normal text-white/90 md:mt-4 md:text-lg md:leading-relaxed md:text-white/85", s.photo && "max-md:hidden")}>{s.text}</p>
+              <span className={cn(
+                "mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-co-gold/40 px-2.5 py-1 text-[11px] font-semibold text-co-gold md:mt-5 md:gap-2 md:px-3.5 md:py-1.5 md:text-sm",
+                s.photo && "max-md:mt-1 max-md:border-0 max-md:p-0",
+              )}>
+                <Check className={cn("size-3.5 md:size-4", s.photo && "max-md:size-3")} /> {s.note}
               </span>
 
-              <div className="mt-4 flex w-full flex-wrap items-center gap-2 md:mt-7 md:w-auto md:gap-3">
-                {s.variant && (
-                  <p className="mr-2 flex items-baseline gap-2 max-md:basis-full">
-                    <span className="text-[24px] font-extrabold text-white tabular-nums md:text-3xl">{formatMoney(s.variant.price)}</span>
-                    {s.variant.mrp && s.variant.mrp > s.variant.price && <s className="text-sm text-white/55">{formatMoney(s.variant.mrp)}</s>}
-                    <span className="text-xs text-white/60">{s.variant.title}</span>
+              <div className={cn("mt-4 grid w-full grid-cols-2 items-center gap-2.5 md:mt-7 md:flex md:w-auto md:flex-wrap md:gap-3", s.photo && "max-md:mt-2.5 max-md:gap-2")}>
+                {variant && (
+                  <p className={cn("col-span-2 flex flex-wrap items-baseline gap-x-2 md:mr-2", s.photo && "max-md:hidden")}>
+                    <span className="text-[24px] font-extrabold text-white tabular-nums md:text-3xl">{salePrice}</span>
+                    {originalPrice && <s className="text-sm text-white/55">{originalPrice}</s>}
+                    <span className="text-xs text-white/60">{variant.title}</span>
                   </p>
                 )}
-                {s.variant && (
+                {variant && (
                   <button
                     type="button"
                     disabled={busy}
@@ -207,19 +283,25 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                       flyToCart(e.currentTarget.closest("[data-spot-root]")?.querySelector("[data-spot-img]") ?? null, s.image?.url);
                       setBusy(true);
                       try {
-                        await add(s.variant!.id);
+                        await add(variant.id);
                         setAdded(true);
                       } finally {
                         setBusy(false);
                       }
                     }}
-                    className="btn-shine inline-flex h-10 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-co-gold px-5 text-[13px] font-bold md:h-12 md:flex-none md:px-6 md:text-sm text-forest-deep transition-colors hover:bg-white disabled:opacity-70"
+                    className="btn-shine inline-flex h-11 min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full bg-co-gold px-2.5 text-[13px] font-bold whitespace-nowrap text-forest-deep transition-colors hover:bg-white disabled:opacity-70 md:h-12 md:px-6 md:text-sm"
                   >
                     {busy ? <Loader2 className="size-4 animate-spin" /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
                     {added ? "Added" : "Add to cart"}
                   </button>
                 )}
-                <Link href={`/products/${s.handle}`} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/30 px-4 text-[13px] font-semibold text-white md:h-12 md:px-5 md:text-sm transition-colors hover:bg-white/10">
+                <Link
+                  href={`/products/${s.handle}`}
+                  className={cn(
+                    "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-full border border-white/30 px-2.5 text-[13px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-white/10 md:h-12 md:px-5 md:text-sm",
+                    !variant && "col-span-2",
+                  )}
+                >
                   Know more <ArrowRight className="size-4" />
                 </Link>
               </div>
@@ -229,7 +311,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
       </motion.div>
 
       {/* Thumbnail rail with autoplay progress */}
-      <div className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 md:mt-5 [scrollbar-width:none] md:mx-0 md:px-0">
+      <div ref={railRef} className="-mx-4 mt-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] max-md:snap-x max-md:snap-proximity max-md:scroll-px-4 md:mx-0 md:mt-5 md:px-0">
         <div role="tablist" aria-label="Spotlight products" className="flex w-max gap-2.5 md:mx-auto">
           {items.map((it, n) => {
             const on = n === i;
@@ -241,7 +323,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                 aria-selected={on}
                 onClick={() => pick(n)}
                 className={cn(
-                  "relative flex w-44 items-center gap-2.5 overflow-hidden rounded-2xl border bg-white/80 px-3 py-2.5 text-left md:w-52 md:gap-3 md:p-2 md:pr-3 backdrop-blur transition-all",
+                  "relative flex w-44 items-center gap-2.5 overflow-hidden rounded-2xl border bg-white/80 px-3 py-2.5 text-left backdrop-blur transition-all max-md:snap-start md:w-52 md:gap-3 md:p-2 md:pr-3",
                   on ? "border-forest shadow-[0_12px_24px_-16px_rgba(7,47,27,0.6)]" : "border-line opacity-80 hover:opacity-100",
                 )}
               >

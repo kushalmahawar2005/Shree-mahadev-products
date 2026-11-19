@@ -1,6 +1,7 @@
 import "server-only";
 import { getStoreSettings } from "./store-settings";
 import { getCourierQuotes, nimbusConfigured } from "./nimbuspost";
+import { boxForWeight, packedWeightGrams, type Box } from "@/lib/packaging";
 
 export type ShippingQuote = {
   serviceable: boolean;
@@ -12,11 +13,9 @@ export type ShippingQuote = {
   source: "nimbuspost" | "flat";
 };
 
-/** Packed weight estimate until real weights are set per variant. TODO(client): real packed weights. */
-export function estimateWeightGrams(sizeValue: number, sizeUnit: "ml" | "g", qty: number) {
-  const content = sizeUnit === "ml" ? sizeValue * 0.92 : sizeValue; // oil ≈ 0.92 g/ml
-  const pack = sizeValue >= 5000 ? 350 : sizeValue >= 1000 ? 150 : 90; // tin / bottle / jar + padding
-  return Math.ceil((content + pack) * qty);
+/** Shipping weight for `qty` units, from the client's packaging sheet (see lib/packaging.ts). */
+export function estimateWeightGrams(handle: string, sizeValue: number, sizeUnit: "ml" | "g", qty: number) {
+  return packedWeightGrams(handle, sizeValue, sizeUnit, qty);
 }
 
 const cache = new Map<string, { at: number; q: ShippingQuote }>();
@@ -31,6 +30,8 @@ export async function quoteShipping(input: {
   subtotal: number;
   weightGrams: number;
   method: "payu" | "cod";
+  /** Parcel box from lib/packaging (parcelFor); falls back to a box matching the weight. */
+  dims?: Box;
 }): Promise<ShippingQuote> {
   const { shipping: cfg } = await getStoreSettings();
   const free = input.subtotal >= cfg.freeShippingThreshold;
@@ -45,7 +46,8 @@ export async function quoteShipping(input: {
   };
   if (!nimbusConfigured()) return flat;
 
-  const key = `${input.pincode}|${input.method}|${Math.ceil(input.weightGrams / 500)}|${free}|${Math.ceil(input.subtotal / 500)}`;
+  const dims = input.dims ?? boxForWeight(input.weightGrams);
+  const key = `${input.pincode}|${input.method}|${Math.ceil(input.weightGrams / 500)}|${dims.length}x${dims.breadth}x${dims.height}|${free}|${Math.ceil(input.subtotal / 500)}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL) return hit.q;
 
@@ -55,6 +57,7 @@ export async function quoteShipping(input: {
       weightGrams: input.weightGrams,
       paymentType: input.method === "cod" ? "cod" : "prepaid",
       orderAmount: input.subtotal,
+      dims,
     });
     const best = quotes[0];
     const q: ShippingQuote = best

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Building2, Loader2, Megaphone, ReceiptText, Share2, Truck, X } from "lucide-react";
+import { Building2, CreditCard, Loader2, Megaphone, ReceiptText, Share2, Truck, X } from "lucide-react";
 import { Switch } from "@/components/shadcn/switch";
 import { saveStoreSettingsAction } from "@/lib/admin-actions";
 import type { StoreSettings } from "@/lib/store-settings";
@@ -36,7 +36,12 @@ function Card({ title, hint, icon: Icon, children }: { title: string; hint?: str
   );
 }
 
-export function SettingsForm({ initial }: { initial: StoreSettings }) {
+const GATEWAYS = [
+  { id: "payu", label: "PayU" },
+  { id: "cashfree", label: "Cashfree" },
+] as const;
+
+export function SettingsForm({ initial, gateways }: { initial: StoreSettings; gateways: Record<StoreSettings["paymentGateway"], boolean> }) {
   const [s, setS] = useState(initial);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -99,6 +104,36 @@ export function SettingsForm({ initial }: { initial: StoreSettings }) {
             <Switch checked={s.pricesIncludeGst} onCheckedChange={(v) => setS((x) => ({ ...x, pricesIncludeGst: v }))} className="data-[state=checked]:bg-forest" /> Prices already include GST
           </span>
         </F>
+      </Card>
+
+      <Card icon={CreditCard} title="Online payments" hint="Which gateway new online payments go through. Refunds and checks always use the gateway that took that payment.">
+        <div className="sm:col-span-2">
+          <div role="radiogroup" aria-label="Payment gateway" className="inline-flex rounded-full border border-line bg-subtle p-1">
+            {GATEWAYS.map((g) => {
+              const on = s.paymentGateway === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  disabled={!gateways[g.id] && !on}
+                  onClick={() => setS((x) => ({ ...x, paymentGateway: g.id }))}
+                  className={cn(
+                    "flex h-9 items-center gap-2 rounded-full px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                    on ? "bg-forest text-white shadow-sm" : "text-ink-muted hover:text-ink",
+                  )}
+                >
+                  {g.label}
+                  {!gateways[g.id] && <span className="text-[11px] font-normal">· keys missing</span>}
+                </button>
+              );
+            })}
+          </div>
+          {!gateways[s.paymentGateway] && (
+            <p className="mt-2 text-xs text-alert">{s.paymentGateway === "cashfree" ? "Cashfree" : "PayU"} keys are not set, so checkout uses the other gateway.</p>
+          )}
+        </div>
       </Card>
 
       <Card icon={Truck} title="Shipping & COD" hint="Courier rates come from NimbusPost. The flat fees are used only if rates can't be fetched.">

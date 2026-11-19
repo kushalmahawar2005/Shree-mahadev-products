@@ -43,7 +43,7 @@ import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
 import { Skeleton } from "@/components/shadcn/skeleton";
 import { useCart } from "@/components/cart/CartProvider";
-import { CART_COUPON_KEY, PayULogo } from "@/components/cart/CartDrawer";
+import { CART_COUPON_KEY, GatewayLogo } from "@/components/cart/CartDrawer";
 import { PaymentLogos } from "@/components/layout/PaymentLogos";
 import {
   AddMoreSheet,
@@ -202,7 +202,7 @@ export function CheckoutForm({
   customer: { name: string; phone: string; email: string } | null;
   addresses: SavedAddress[];
 }) {
-  const { shipping: ship } = useStoreSettings();
+  const { shipping: ship, paymentGateway } = useStoreSettings();
   const { cart, update, remove } = useCart();
   // Rows added from "Add more": flash them in the summary when the sheet closes.
   const [highlight, setHighlight] = useState<string[]>([]);
@@ -997,7 +997,7 @@ export function CheckoutForm({
         <Section
           n={3}
           title="Payment"
-          hint="Encrypted and processed by PayU"
+          hint={`Encrypted and processed by ${paymentGateway === "cashfree" ? "Cashfree" : "PayU"}`}
           open={open === "payment"}
           done={false}
           summary=""
@@ -1608,7 +1608,7 @@ function TrustRow() {
   return (
     <p className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-ink-muted">
       <span className="inline-flex items-center gap-1">
-        <Lock className="size-3.5 text-co-accent" /> Secured by <PayULogo />
+        <Lock className="size-3.5 text-co-accent" /> Secured by <GatewayLogo />
       </span>
       <span className="inline-flex items-center gap-1">
         <ShieldCheck className="size-3.5 text-co-accent" /> FSSAI licensed

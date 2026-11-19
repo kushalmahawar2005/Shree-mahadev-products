@@ -4,15 +4,17 @@ import { z } from "zod";
 import { checkoutConfig } from "@/config/checkout";
 import { lookupPincodeAction } from "@/lib/checkout-actions";
 import { clientIp, rateLimit } from "@/lib/server/rate-limit";
-import { estimateWeightGrams, quoteShipping } from "@/lib/server/shipping";
+import { quoteShipping } from "@/lib/server/shipping";
+import { parcelFor } from "@/lib/packaging";
 import { getStoreSettings } from "@/lib/server/store-settings";
 
 const Input = z
   .object({
     pincode: z.string().regex(/^[1-9]\d{5}$/),
+    handle: z.string().regex(/^[a-z0-9-]{1,80}$/),
     sizeValue: z.number().int().positive().max(100000),
     sizeUnit: z.enum(["ml", "g"]),
-    qty: z.number().int().min(1).max(50),
+    qty: z.number().int().min(1).max(200),
     subtotal: z.number().int().min(0).max(10_000_000),
   })
   .strict();
@@ -37,11 +39,11 @@ export async function checkDeliveryAction(raw: unknown): Promise<DeliveryCheck> 
   if (!p.success) return { ok: false, error: "Enter a valid 6-digit pincode." };
   const limit = await rateLimit("delivery_check", await clientIp(), 30, 10);
   if (!limit.ok) return { ok: false, error: `Too many checks. Try again in ${limit.retryInMin} min.` };
-  const { pincode, sizeValue, sizeUnit, qty, subtotal } = p.data;
-  const weightGrams = estimateWeightGrams(sizeValue, sizeUnit, qty);
+  const { pincode, handle, sizeValue, sizeUnit, qty, subtotal } = p.data;
+  const parcel = parcelFor([{ handle, sizeValue, sizeUnit, qty }]);
   const [place, quote, settings] = await Promise.all([
     lookupPincodeAction(pincode),
-    quoteShipping({ pincode, subtotal, weightGrams, method: "payu" }).catch(() => null),
+    quoteShipping({ pincode, subtotal, weightGrams: parcel.grams, dims: parcel.box, method: "payu" }).catch(() => null),
     getStoreSettings(),
   ]);
   if (!quote) return { ok: false, error: "Couldn't check right now. Please try again." };

@@ -40,7 +40,7 @@ export default function AboutPage() {
         <section className="mt-6 grid items-center gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-12">
           <div>
             <p className="font-hindi text-lg text-sale" lang="hi">
-              स्वदेशी · धीमी घानी
+              स्वदेशी · धीमी घाणी
             </p>
             <h1 className="text-4xl leading-[1.05] md:text-6xl">From Bijainagar, with patience</h1>
             <p className="mt-5 text-lg leading-relaxed text-ink-muted">

@@ -1,4 +1,5 @@
 import "server-only";
+import { qtyLimit } from "@/lib/order-limits";
 import { rankProducts } from "@/lib/search/product-match";
 import { catalogIsEmpty, findVariants, loadCollections, loadProducts } from "@/lib/server/catalog";
 import { getCollectionProductHandles } from "@/lib/server/collections";
@@ -42,11 +43,17 @@ async function build(lines: Encoded): Promise<Cart> {
   const found = await findVariants(lines.map(([v]) => v));
   const byKey = new Map(found.map((f) => [f.variant.id, f]));
   const cartLines: CartLine[] = [];
+  // Per-order carton limits (lib/order-limits): oils share one cap per bottle size, sweeteners per product.
+  const used = new Map<string, number>();
   for (const [variantId, quantity] of lines) {
     const f = byKey.get(variantId);
     if (!f || f.status !== "active" || !f.variant.availableForSale) continue;
-    const qty = f.variant.stock !== null ? Math.min(quantity, f.variant.stock) : quantity;
+    const limit = qtyLimit(f.handle, f.variant);
+    const room = limit.max - (used.get(limit.key) ?? 0);
+    const inStock = f.variant.stock !== null ? Math.min(quantity, f.variant.stock) : quantity;
+    const qty = Math.min(inStock, room);
     if (qty <= 0) continue;
+    used.set(limit.key, (used.get(limit.key) ?? 0) + qty);
     cartLines.push({
       id: variantId,
       quantity: qty,
@@ -81,7 +88,15 @@ function sortProducts(list: Product[], sort: ProductSort = "best") {
   }
 }
 
-const active = () => loadProducts({ status: "active" });
+/**
+ * Storefront view: sizes switched off in admin ("Available" unticked) are hidden completely, not shown
+ * as "price coming soon". A product with every size switched off is hidden too. Admin reads loadProducts directly.
+ */
+function storefront<T extends { variants: { enabled: boolean }[] }>(list: T[]): T[] {
+  return list.map((p) => ({ ...p, variants: p.variants.filter((v) => v.enabled) })).filter((p) => p.variants.length > 0);
+}
+
+const active = async () => storefront(await loadProducts({ status: "active" }));
 
 export const dbProvider: CommerceProvider = {
   async getProducts(opts: GetProductsOptions = {}) {
@@ -92,7 +107,7 @@ export const dbProvider: CommerceProvider = {
   },
 
   async getProduct(handle) {
-    const [p] = await loadProducts({ handles: [handle], status: "active" });
+    const [p] = storefront(await loadProducts({ handles: [handle], status: "active" }));
     return p;
   },
 

@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/utils/money";
 import type { CartLine, ProductVariant } from "@/lib/commerce/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/shadcn/select";
 import { useCart } from "./CartProvider";
+import { bulkOrderHref, maxForLine, qtyLimit } from "@/lib/order-limits";
 
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 
@@ -31,7 +32,10 @@ export function CartLineItem({
   /** Called after the line is removed, so the drawer can offer Undo. */
   onRemoved?: (line: CartLine) => void;
 }) {
-  const { update, remove, add, close } = useCart();
+  const { update, remove, add, close, cart } = useCart();
+  const maxQty = maxForLine(cart?.lines ?? [], line.product.handle, line.variant);
+  const limit = qtyLimit(line.product.handle, line.variant, shortTitle(line.product.title));
+  const atLimit = limit.client && line.quantity >= maxQty;
   const [busy, setBusy] = useState(false);
   const img = variantImage(line.product.images, line.variant.title) ?? line.product.images[0];
   const run = async (fn: () => Promise<void>) => {
@@ -113,6 +117,14 @@ export function CartLineItem({
           </div>
         </div>
 
+        {atLimit && (
+          <p className="mt-1 text-right text-[11px] leading-snug text-ink-muted">
+            Max {limit.max} {limit.label} per order.{" "}
+            <Link href={bulkOrderHref(line.product.title, line.variant.title, limit.max)} onClick={close} className="font-semibold text-forest underline underline-offset-2">
+              Need more? Bulk order
+            </Link>
+          </p>
+        )}
         <div className="mt-auto flex items-center justify-end gap-1 pt-1.5">
           <QtyStepper
             value={line.quantity}
@@ -122,6 +134,7 @@ export function CartLineItem({
             label={`${line.product.title} ${line.variant.title}`}
             size="sm"
             min={1}
+            max={maxQty}
           />
           <button
             type="button"
@@ -150,6 +163,7 @@ export function QtyStepper({
   busy,
   label,
   min = 0,
+  max = 99,
   size = "md",
 }: {
   value: number;
@@ -158,6 +172,8 @@ export function QtyStepper({
   busy?: boolean;
   label: string;
   min?: number;
+  /** Per-order limit (lib/order-limits). */
+  max?: number;
   size?: "sm" | "md";
 }) {
   const btn = size === "sm" ? "size-9" : "size-11";
@@ -177,7 +193,7 @@ export function QtyStepper({
       </span>
       <button
         type="button"
-        disabled={disabled || value >= 99}
+        disabled={disabled || value >= max}
         onClick={() => onChange(value + 1)}
         className={`grid ${btn} place-items-center rounded-full text-forest transition-colors hover:bg-khaki-soft disabled:opacity-40`}
         aria-label="Increase quantity"

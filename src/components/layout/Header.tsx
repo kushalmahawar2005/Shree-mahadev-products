@@ -22,7 +22,7 @@ import { MobileNav } from "./MobileNav";
 
 const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
 const OPEN_DELAY = 100; // hover intent before a mega menu opens
-const CLOSE_GRACE = 150; // time to move the pointer from the nav into the panel
+const CLOSE_GRACE = 120; // time to move the pointer from the nav into the panel
 
 /**
  * Site header.
@@ -295,8 +295,10 @@ function HeaderBar({
         </div>
       </nav>
 
-      <div onMouseEnter={keepOpen} onMouseLeave={closeSoon} className="absolute inset-x-0 top-full z-30">
-        <MegaMenu open={mega} data={menus} onNavigate={() => setMega(null)} />
+      {/* Full-width layer ignores the pointer; only the visible panel keeps the menu open (MegaMenu),
+          so moving off the panel to either side closes it straight away. */}
+      <div className="pointer-events-none absolute inset-x-0 top-full z-30">
+        <MegaMenu open={mega} data={menus} onNavigate={() => setMega(null)} onMouseEnter={keepOpen} onMouseLeave={closeSoon} />
       </div>
     </div>
   );

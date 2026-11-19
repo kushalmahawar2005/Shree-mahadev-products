@@ -7,8 +7,8 @@ import { ArrowLeftRight, ArrowUpRight, Check, Minus } from "lucide-react";
 
 const ROWS = [
   { label: "Extraction", ours: "Slow wooden ghani, low temperature", refined: "High-heat pressing, often solvent extraction" },
-  { label: "Processing", ours: "Cotton cloth-filtered, settled naturally", refined: "Usually bleached and deodorised" },
-  { label: "Taste & aroma", ours: "The taste and aroma of the seed", refined: "Neutral, little aroma" },
+  { label: "Processing", ours: "Seed extraction, cotton cloth filtration, then natural settling", refined: "Multiple refining stages, chemical processing, industrial filtration" },
+  { label: "Taste & aroma", ours: "Authentic, natural flavour of the seed", refined: "Neutral, little aroma" },
 ];
 
 export function GhaniVsRefined() {

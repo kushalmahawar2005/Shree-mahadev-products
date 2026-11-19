@@ -25,7 +25,7 @@ const savePin = (pincode: string) => {
 };
 
 /** Pincode → "Delivers by Sat, 15 Nov to Jaipur" (NimbusPost quote on the server). */
-export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: number }) {
+export function DeliveryCheck({ handle, variant, qty }: { handle: string; variant: ProductVariant; qty: number }) {
   const [pin, setPin] = useState("");
   const [res, setRes] = useState<Result | null>(null);
   const [pending, start] = useTransition();
@@ -34,6 +34,7 @@ export function DeliveryCheck({ variant, qty }: { variant: ProductVariant; qty: 
     start(async () => {
       const r = await checkDeliveryAction({
         pincode: p,
+        handle,
         sizeValue: variant.sizeValue,
         sizeUnit: variant.sizeUnit,
         qty,

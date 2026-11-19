@@ -61,7 +61,7 @@ export function FeaturedCollections({ tiles }: { tiles: CategoryTile[] }) {
       <div className="relative mx-auto max-w-[1360px] px-4 md:px-8">
         <div className="mb-6 flex flex-col items-center gap-1.5 text-center md:mb-10 md:gap-2">
           <p lang="hi" className="font-hindi inline-flex items-center gap-2 rounded-full border border-khaki/50 bg-white/60 px-3 py-1 text-sm text-sale md:text-base">
-            <span className="size-1.5 rounded-full bg-mustard" /> हमारी घानी से आपकी रसोई तक
+            <span className="size-1.5 rounded-full bg-mustard" /> हमारी घाणी से आपकी रसोई तक
           </p>
           <h2 className="text-[24px] md:text-[44px]">Shop by category</h2>
           <p className="max-w-xl text-sm text-ink-muted md:text-base">Everything we make, slow and honest. Pick where you want to start.</p>

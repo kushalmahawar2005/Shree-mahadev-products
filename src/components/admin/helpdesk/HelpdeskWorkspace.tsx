@@ -380,7 +380,7 @@ function ReturnDetail({ r, run, pending }: { r: AdminReturn; run: Run; pending: 
             </span>
           </Field>
           <Field label="Email">{r.email}</Field>
-          <Field label="Payment">{r.paymentMethod === "cod" ? "Cash on delivery" : "Paid online (PayU)"}</Field>
+          <Field label="Payment">{r.paymentMethod === "cod" ? "Cash on delivery" : "Paid online"}</Field>
         </section>
 
         <div className="flex flex-wrap gap-2">

@@ -32,7 +32,7 @@ export default function OurGhaniPage() {
 
         <section className="mt-6 text-center">
           <p className="font-hindi text-lg text-sale" lang="hi">
-            लकड़ी की घानी
+            लकड़ी की घाणी
           </p>
           <h1 className="mx-auto max-w-3xl text-4xl leading-[1.05] md:text-6xl">Seed to bottle, slowly</h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">

@@ -57,7 +57,7 @@ export function Reels({
   align = "center",
   dark = false,
   hideOnMobile = false,
-  eyebrow = "घानी से सीधा",
+  eyebrow = "घाणी से सीधा",
   subtitle = "Real moments from our ghani. Tap any reel to watch.",
 }: {
   title: string;

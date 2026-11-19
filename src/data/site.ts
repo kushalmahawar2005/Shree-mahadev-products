@@ -34,6 +34,7 @@ export const site = {
     { label: "Instagram", href: "https://www.instagram.com/woodpressoil.by.mahadevproduct" },
     { label: "Facebook", href: "https://www.facebook.com/share/1Cybi8gVQE/" },
     { label: "YouTube", href: "https://youtube.com/@taksahabvlogs" },
+    { label: "WhatsApp", href: "https://whatsapp.com/channel/0029VbBp1pa77qVWi7VElf3W" },
   ] as { label: string; href: string }[],
   /** Festive marigold toran hung once under the header (see FestiveToran). Shown only while
    *  `enabled` and today (IST) is within [start, end]; it hides itself after the season. */

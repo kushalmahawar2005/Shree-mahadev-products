@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { CheckCircle2, MessageCircle } from "@/components/icons/duo";
 import { cn } from "@/lib/utils/cn";
@@ -12,7 +13,17 @@ const fieldClass =
 const labelClass = "grid gap-1.5 text-[13px] font-medium text-ink-muted";
 const QTY = ["2 × 15 L tins", "5 × 15 L tins", "10 × 15 L tins", "Monthly supply"];
 
-export function BulkForm({ products }: { products: string[] }) {
+export function BulkForm({ products: catalog }: { products: string[] }) {
+  // Sent here from the cart / product page when an order is over the per-order limit:
+  // ?product=Groundnut Oil&qty=12 × 1 L → that product ticked and the quantity filled in.
+  const params = useSearchParams();
+  const fromProduct = (params.get("product") ?? "").trim().slice(0, 80);
+  const fromSize = (params.get("size") ?? "").trim().slice(0, 20);
+  const fromMax = Math.min(10_000, Math.max(0, Number.parseInt(params.get("max") ?? "", 10) || 0));
+  const limited = Boolean(fromSize && fromMax);
+  // Quick picks above the website limit for that size (e.g. 4 × 15 L → 8, 12, 20 × 15 L), else tin presets.
+  const quick = limited ? [2, 3, 5].map((m) => `${fromMax * m} × ${fromSize}`).concat("Monthly supply") : QTY;
+  const products = fromProduct && !catalog.includes(fromProduct) ? [fromProduct, ...catalog] : catalog;
   const [values, setValues] = useState({
     name: "",
     business: "",
@@ -25,7 +36,7 @@ export function BulkForm({ products }: { products: string[] }) {
     website: "",
   });
   // A buyer often wants several products in one inquiry: tick as many as needed.
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(fromProduct ? [fromProduct] : []);
   const toggle = (p: string) => setPicked((list) => (list.includes(p) ? list.filter((x) => x !== p) : [...list, p]));
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState("");
@@ -184,16 +195,23 @@ export function BulkForm({ products }: { products: string[] }) {
         {picked.length > 0 && <p className="text-xs text-ink-muted">{picked.length} selected</p>}
       </fieldset>
       <label className={cn(labelClass, "sm:col-span-2")}>
-        Quantity
+        <span>
+          Quantity
+          {limited && (
+            <span className="ml-1.5 font-normal text-ink-muted/80">
+              (online orders take up to {fromMax} × {fromSize}; tell us how many you need)
+            </span>
+          )}
+        </span>
         <input
           required
           className={fieldClass}
-          placeholder="e.g. 10 tins of 15L"
+          placeholder={limited ? `e.g. ${fromMax * 2} × ${fromSize}` : "e.g. 10 tins of 15L"}
           value={values.quantity}
           onChange={set("quantity")}
         />
         <span className="flex flex-wrap gap-1.5">
-          {QTY.map((q) => (
+          {quick.map((q) => (
             <button
               key={q}
               type="button"

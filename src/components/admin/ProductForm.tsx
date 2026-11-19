@@ -337,7 +337,7 @@ export function ProductForm({
                   onChange={(e) => set("descriptionHtml", editableTextToHtml(e.target.value))}
                 />
               </Field>
-              <Field label="Benefits" hint={`One per line · ${p.benefits.length} added (3–5 works best) · **text** = bold`}>
+              <Field label="Highlights" hint={`Top box on the product page · one per line · ${p.benefits.length} added (3–5 works best) · **text** = bold`}>
                 <textarea className={area} rows={4} value={listText(p.benefits)} onChange={(e) => set("benefits", textList(e.target.value))} placeholder={"Natural nutty aroma\nHigh smoke point"} />
               </Field>
               <Field label="Best for" hint={`One per line · ${p.bestFor.length} added`}>
@@ -349,7 +349,7 @@ export function ProductForm({
               <Field label="How it&apos;s made" hint="**text** = bold">
                 <textarea className={area} rows={3} value={p.processNote ?? ""} onChange={(e) => set("processNote", e.target.value)} />
               </Field>
-              <Field label="Benefits (details)" hint="Shown under &quot;Benefits&quot; on the product page, one point per line. Empty = row hidden. **text** = bold">
+              <Field label="Benefits" hint="Shown under &quot;Benefits&quot; on the product page, one point per line. Empty = row hidden. **text** = bold">
                 <textarea className={area} rows={4} value={p.benefitsText ?? ""} onChange={(e) => set("benefitsText", e.target.value)} placeholder={"Rich in natural Vitamin E\nGood for everyday cooking"} />
               </Field>
               <Field label="Ingredients" hint="Shown under &quot;Ingredients&quot; on the product page. Empty = row hidden. **text** = bold">

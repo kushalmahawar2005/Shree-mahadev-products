@@ -52,6 +52,8 @@ export const StoreSettingsSchema = z.object({
   announcement: AnnouncementSchema,
   socials: SocialsSchema,
   lowStockThreshold: z.number().int().min(0).max(1000),
+  /** Which gateway takes online payments. Falls back to the other one if its keys are missing. */
+  paymentGateway: z.enum(["payu", "cashfree"]).default("payu"),
 });
 
 export type StoreSettings = z.infer<typeof StoreSettingsSchema>;

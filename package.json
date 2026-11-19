@@ -31,6 +31,7 @@
     "db:qa:seed": "node --conditions=react-server --experimental-strip-types scripts/seed-qa-catalog.mjs"
   },
   "dependencies": {
+    "@cashfreepayments/cashfree-js": "^1.0.7",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^7.0.6",
     "@mdx-js/loader": "^3.1.1",

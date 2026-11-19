@@ -67,7 +67,7 @@ export function ReportInsight({ report, rows }: { report: string; rows: Row[] })
         <Shell
           insight={`COD is ${pct(num(cod?.orders), orders)}% of orders.${cod ? ` ${codRto} COD order${codRto === 1 ? "" : "s"} came back (RTO), that is ${pct(codRto, num(cod.orders))}% of COD.` : ""}`}
         >
-          <Donut data={rows.map((r) => ({ name: r.method === "cod" ? "Cash on delivery" : r.method === "payu" ? "Online (PayU)" : String(r.method), value: num(r.orders), extra: inr(num(r.revenue)) }))} unit="orders" />
+          <Donut data={rows.map((r) => ({ name: r.method === "cod" ? "Cash on delivery" : r.method === "payu" ? "Online" : String(r.method), value: num(r.orders), extra: inr(num(r.revenue)) }))} unit="orders" />
         </Shell>
       );
     }

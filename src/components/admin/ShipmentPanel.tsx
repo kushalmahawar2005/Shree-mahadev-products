@@ -64,6 +64,7 @@ export function ShipmentPanel({
   status,
   initialShipments,
   defaultWeight,
+  defaultDims,
   suggestedCourierId,
   configured,
 }: {
@@ -71,6 +72,7 @@ export function ShipmentPanel({
   status: OrderStatus;
   initialShipments: Shipment[];
   defaultWeight: number;
+  defaultDims: { length: number; breadth: number; height: number };
   suggestedCourierId: string | null;
   configured: boolean;
 }) {
@@ -78,7 +80,7 @@ export function ShipmentPanel({
   const [shipments, setShipments] = useState(initialShipments);
   const [orderStatus, setOrderStatus] = useState(status);
   const [weight, setWeight] = useState(defaultWeight);
-  const [dims, setDims] = useState({ length: 20, breadth: 15, height: 15 });
+  const [dims, setDims] = useState(defaultDims);
   const [quotes, setQuotes] = useState<CourierQuote[] | null>(null);
   const [courier, setCourier] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

@@ -22,22 +22,28 @@ const ATTEMPT_LABEL: Record<string, string> = {
   success: "Captured",
   refunded: "Refunded",
   failed: "Failed",
-  pending: "Pending at PayU",
+  pending: "Pending at gateway",
   initiated: "Started, not completed",
 };
-const MODE: Record<string, string> = { UPI: "UPI", CC: "Credit card", DC: "Debit card", NB: "Net banking", CASH: "Wallet", EMI: "EMI", reconciled: "Confirmed via PayU check" };
-
-const VERIFY_MSG = {
-  paid: "PayU confirmed the payment. The order is now paid.",
-  failed: "PayU reports this attempt failed. The order stays unpaid.",
-  pending: "PayU hasn't settled this payment yet. Try again in a few minutes.",
-  none: "There is no open payment attempt to check.",
+const MODE: Record<string, string> = {
+  UPI: "UPI", CC: "Credit card", DC: "Debit card", NB: "Net banking", CASH: "Wallet", EMI: "EMI", reconciled: "Confirmed via gateway check",
+  // Cashfree payment groups
+  upi: "UPI", credit_card: "Credit card", debit_card: "Debit card", net_banking: "Net banking", wallet: "Wallet", upi_credit_card: "UPI (credit card)",
+  credit_card_emi: "Card EMI", debit_card_emi: "Card EMI", cardless_emi: "Cardless EMI", pay_later: "Pay later", prepaid_card: "Prepaid card",
 };
+const GW = { payu: "PayU", cashfree: "Cashfree" } as const;
+
+const verifyMsg = (gw: string) => ({
+  paid: `${gw} confirmed the payment. The order is now paid.`,
+  failed: `${gw} reports this attempt failed. The order stays unpaid.`,
+  pending: `${gw} hasn't settled this payment yet. Try again in a few minutes.`,
+  none: "There is no open payment attempt to check.",
+});
 
 const fmt = (d: string) =>
   new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(d.replace(" ", "T") + "+05:30"));
 
-/** Payment state for an order: method, outcome, every PayU attempt, and a live "Check with PayU". */
+/** Payment state for an order: method, outcome, every gateway attempt (PayU / Cashfree), and a live "Check with <gateway>". */
 export function PaymentPanel({
   orderId,
   method,
@@ -56,6 +62,8 @@ export function PaymentPanel({
   const [msg, setMsg] = useState<string | null>(null);
   const success = attempts.find((a) => a.status === "success" || a.status === "refunded");
   const open = attempts.find((a) => a.status === "initiated" || a.status === "pending");
+  const gw = GW[(success ?? open ?? attempts[0])?.provider ?? "payu"];
+  const multi = new Set(attempts.map((a) => a.provider)).size > 1;
 
   const summary =
     method === "cod"
@@ -67,9 +75,9 @@ export function PaymentPanel({
       : method === "offline"
         ? { tone: "green", title: "Paid offline", text: `${formatMoney(total)} recorded as received outside the website.` }
         : success
-          ? { tone: "green", title: "Paid online", text: `${formatMoney(success.amount)} captured by PayU${success.mode ? ` via ${MODE[success.mode] ?? success.mode}` : ""}.` }
+          ? { tone: "green", title: "Paid online", text: `${formatMoney(success.amount)} captured by ${gw}${success.mode ? ` via ${MODE[success.mode] ?? success.mode}` : ""}.` }
           : open
-            ? { tone: "amber", title: "Waiting for payment", text: "Customer started PayU checkout but no payment is confirmed yet." }
+            ? { tone: "amber", title: "Waiting for payment", text: `Customer started ${gw} checkout but no payment is confirmed yet.` }
             : { tone: "red", title: "Not paid", text: "No successful payment on this order." };
 
   const Icon = method === "cod" ? Banknote : method === "offline" ? Wallet : CreditCard;
@@ -98,17 +106,17 @@ export function PaymentPanel({
                 setMsg(null);
                 try {
                   const outcome = unwrap(await verifyPaymentAction(orderId));
-                  setMsg(VERIFY_MSG[outcome]);
+                  setMsg(verifyMsg(gw)[outcome]);
                   router.refresh();
                 } catch (e) {
-                  setMsg((e as Error).message || "Couldn't reach PayU");
+                  setMsg((e as Error).message || `Couldn't reach ${gw}`);
                 }
               })
             }
             className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 text-xs font-semibold text-forest-text transition-colors hover:border-forest"
           >
             {pending ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
-            Check with PayU
+            Check with {gw}
           </button>
         )}
       </div>
@@ -116,7 +124,7 @@ export function PaymentPanel({
 
       {method === "payu" && attempts.length > 0 && (
         <div>
-          <p className="mb-2 text-xs font-semibold text-ink-muted">PayU attempts ({attempts.length})</p>
+          <p className="mb-2 text-xs font-semibold text-ink-muted">{multi ? "Payment" : gw} attempts ({attempts.length})</p>
           <ul className="divide-y divide-line rounded-xl border border-line">
             {attempts.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3.5 py-3 text-sm">
@@ -128,7 +136,8 @@ export function PaymentPanel({
                   <span className="block text-xs text-ink-muted">
                     {fmt(a.createdAt)}
                     {a.mode ? ` · ${MODE[a.mode] ?? a.mode}` : ""}
-                    {a.mihpayid ? ` · PayU ID ${a.mihpayid}` : ""}
+                    {multi ? ` · ${GW[a.provider]}` : ""}
+                    {a.mihpayid ? ` · ${GW[a.provider]} ID ${a.mihpayid}` : ""}
                   </span>
                   {a.error && a.status !== "success" && <span className="block text-xs text-red-700">{a.error}</span>}
                 </span>
@@ -141,7 +150,7 @@ export function PaymentPanel({
           </ul>
         </div>
       )}
-      {method === "payu" && attempts.length === 0 && <p className="text-sm text-ink-muted">Customer never reached the PayU page.</p>}
+      {method === "payu" && attempts.length === 0 && <p className="text-sm text-ink-muted">Customer never reached the payment page.</p>}
     </div>
   );
 }

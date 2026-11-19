@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/server/admin-auth";
 import { mailConfigured } from "@/lib/server/mail";
 import { nimbusConfigured } from "@/lib/server/nimbuspost";
 import { payuConfigured } from "@/lib/server/payu";
+import { cashfreeConfigured, cashfreeMode } from "@/lib/server/cashfree";
 
 export const metadata = { title: "Store settings" };
 export const instant = false;
@@ -30,14 +31,23 @@ export default function SettingsPage() {
 async function Settings() {
   await connection();
   await requireRole("owner");
-  return <SettingsForm initial={await getStoreSettings()} />;
+  return <SettingsForm initial={await getStoreSettings()} gateways={{ payu: payuConfigured(), cashfree: cashfreeConfigured() }} />;
 }
 
 async function Integrations() {
   await connection();
   const payuTestMode = payuConfigured() && process.env.PAYU_MODE !== "live";
+  const gatewayIsCashfree = (await getStoreSettings()).paymentGateway === "cashfree";
   const integrations = [
     { name: "Online payments · PayU", ok: payuConfigured(), warning: payuTestMode, state: payuTestMode ? "Test mode" : "Live mode", keys: "PAYU_KEY · PAYU_SALT", note: payuTestMode ? "Test credentials are configured; real payments are not being captured." : "Live payment credentials are configured." },
+    {
+      name: "Online payments · Cashfree",
+      ok: cashfreeConfigured() || !gatewayIsCashfree,
+      warning: cashfreeConfigured() && cashfreeMode() !== "production",
+      state: !cashfreeConfigured() ? "Not set up" : cashfreeMode() === "production" ? "Live mode" : "Test mode",
+      keys: "CASHFREE_APP_ID · CASHFREE_SECRET_KEY · CASHFREE_ENV",
+      note: !cashfreeConfigured() ? "Optional second gateway. Add keys, then pick it under Online payments." : cashfreeMode() === "production" ? "Live Cashfree keys are configured." : "Sandbox keys: payments are test-only.",
+    },
     { name: "Order email · Resend", ok: mailConfigured(), warning: false, state: mailConfigured() ? "Configured" : "Missing key", keys: "RESEND_API_KEY", note: "Without this key, order emails stay queued until delivery is configured." },
     { name: "Courier rates · NimbusPost", ok: nimbusConfigured(), warning: false, state: nimbusConfigured() ? "Configured" : "Missing keys", keys: "NIMBUSPOST_API_KEY · NIMBUSPOST_API_SECRET", note: "Without these keys, checkout uses the configured flat shipping fee." },
   ];

@@ -69,7 +69,7 @@ export function RefundPanel({ orderId, paid, left, refunds }: { orderId: number;
               </button>
             }
             title={`Refund ${formatMoney(n)}?`}
-            description="The money goes back to the customer's original payment method through PayU. The customer is emailed."
+            description="The money goes back to the customer's original payment method through the gateway that took it (PayU or Cashfree). The customer is emailed."
             confirmLabel="Refund now"
             destructive
             onConfirm={() =>

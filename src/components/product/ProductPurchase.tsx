@@ -18,6 +18,8 @@ import { unitPrice } from "@/lib/utils/unitPrice";
 import { cn } from "@/lib/utils/cn";
 import type { Product, ProductVariant } from "@/lib/commerce/types";
 import { defaultVariant } from "@/lib/commerce/default-variant";
+import { bulkOrderHref, maxForLine, qtyLimit } from "@/lib/order-limits";
+import Link from "next/link";
 
 type Props = Pick<Product, "handle" | "title" | "variants" | "defaultSize"> & {
   image?: string;
@@ -46,11 +48,11 @@ function packagingLabel(handle: string, variant: ProductVariant) {
 
 /** Price + size cards + qty / Add to cart + Buy now + pincode check, with a sticky bar once the CTA scrolls away. */
 export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10, isOil = false }: Props) {
-  const { add, open } = useCart();
+  const { add, open, cart } = useCart();
   // Admin's "Shown first" size, else 1 L / 1 kg, else the first size on sale.
   const preferred = defaultVariant({ variants, defaultSize }, (list) => list.find((v) => v.sizeValue === 1000)) ?? variants[0];
   const [variantId, setVariantId] = useState(preferred?.id);
-  const [qty, setQty] = useState(1);
+  const [qtyRaw, setQty] = useState(1);
   const [busy, setBusy] = useState<"add" | "buy" | null>(null);
   const [added, setAdded] = useState(false);
   const variant = variants.find((v) => v.id === variantId) ?? preferred;
@@ -84,7 +86,13 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
   const perUnit = (v: ProductVariant) => v.price.amount / Math.max(1, v.sizeValue);
   const onSale = variants.filter((v) => v.availableForSale && v.price.amount > 0);
   const bestValueId = onSale.length > 2 ? onSale.reduce((a, b) => (perUnit(b) < perUnit(a) ? b : a)).id : null;
-  const canBuy = variant.availableForSale;
+  // Per-order carton limit: what's already in the cart (same bottle size for oils) counts against it.
+  const limit = qtyLimit(handle, variant, title.replace(/^(Wood|Cold)-Pressed\s+/, ""));
+  const inCart = cart?.lines.find((l) => l.variant.id === variant.id)?.quantity ?? 0;
+  const room = maxForLine(cart?.lines ?? [], handle, variant) - inCart;
+  const qty = Math.max(1, Math.min(qtyRaw, room));
+  const full = room <= 0;
+  const canBuy = variant.availableForSale && !full;
 
   async function addToCart(e?: React.MouseEvent) {
     if (!variant) return;
@@ -175,7 +183,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
         <div ref={ctaRef} className="mt-4 space-y-2">
           {/* One row on sm+: qty · Add to cart · Buy now. Phones: Buy now wraps to its own line. */}
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-            <QtyStepper value={qty} min={1} onChange={setQty} label={title} disabled={!canBuy} />
+            <QtyStepper value={qty} min={1} max={Math.max(1, room)} onChange={setQty} label={title} disabled={!canBuy} />
             <button
               type="button"
               disabled={!canBuy || !!busy}
@@ -183,7 +191,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
               className="btn-shine inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-[15px] font-semibold whitespace-nowrap text-white transition-colors hover:bg-forest-mid disabled:opacity-60"
             >
               {busy === "add" ? <LoadingDots /> : added ? <Check className="size-4" /> : <ShoppingBag className="size-4" />}
-              {!canBuy ? "Price coming soon" : added ? "Added" : "Add to cart"}
+              {full ? "Limit reached" : !canBuy ? "Price coming soon" : added ? "Added" : "Add to cart"}
             </button>
             {canBuy && (
               <button
@@ -196,6 +204,14 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
               </button>
             )}
           </div>
+          {limit.client && (full || qty >= room) && (
+            <p className="rounded-xl bg-warm px-3 py-2 text-[13px] leading-snug text-ink ring-1 ring-warm-line" role="status">
+              {full ? `Your cart already has the most we ship in one order: ${limit.max} ${limit.label}.` : `Max ${limit.max} ${limit.label} per order.`}{" "}
+              <Link href={bulkOrderHref(title, variant.title, limit.max)} className="font-semibold text-forest underline underline-offset-2">
+                Need more? Place a bulk order
+              </Link>
+            </p>
+          )}
           {added && (
             <button type="button" onClick={open} className="w-full text-center text-sm font-semibold text-forest underline-offset-2 hover:underline">
               View cart
@@ -203,7 +219,7 @@ export function ProductPurchase({ handle, title, variants, defaultSize, image, c
           )}
         </div>
       )}
-      {canBuy && !compact && <DeliveryCheck variant={variant} qty={qty} />}
+      {canBuy && !compact && <DeliveryCheck handle={handle} variant={variant} qty={qty} />}
       {footer}
 
       {/* Sticky add-to-cart once the main CTA scrolls away */}

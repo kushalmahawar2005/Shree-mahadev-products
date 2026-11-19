@@ -3,6 +3,45 @@
  * copy is ours. Anything not confirmed by the client is marked TODO(client).
  */
 import { scenes, stages } from "./brand-art";
+import type { shopByUse } from "./site";
+
+export const shopByUseScenes: Record<
+  (typeof shopByUse)[number]["tag"],
+  { src: string; portraitSrc: string; alt: string; tone: string; firstProduct?: string }
+> = {
+  "daily-cooking": {
+    src: "/images/shop-by-use/daily-cooking.webp",
+    portraitSrc: "/images/shop-by-use/daily-cooking-portrait.webp",
+    alt: "Dadi stirring sabzi beside dal, rotis and a bottle of Mahadev Yellow Mustard Oil",
+    tone: "#3d281a",
+  },
+  "deep-frying": {
+    src: "/images/shop-by-use/deep-frying.webp",
+    portraitSrc: "/images/shop-by-use/deep-frying-portrait.webp",
+    alt: "Dadi lifting a puffed puri from a kadhai beside Mahadev Groundnut Oil",
+    tone: "#2d2118",
+  },
+  "pickles-tadka": {
+    src: "/images/shop-by-use/pickles-tadka.webp",
+    portraitSrc: "/images/shop-by-use/pickles-tadka-portrait.webp",
+    alt: "Dadi filling a bharni with mango achaar beside Mahadev Black Mustard Oil",
+    tone: "#492d17",
+  },
+  "hair-skin": {
+    src: "/images/shop-by-use/hair-skin.webp",
+    portraitSrc: "/images/shop-by-use/hair-skin-portrait.webp",
+    alt: "Dadi giving a young woman a champi beside a brass bowl and Mahadev Coconut Oil",
+    tone: "#342a1c",
+    firstProduct: "coconut-oil",
+  },
+  "baby-massage": {
+    src: "/images/shop-by-use/baby-massage.webp",
+    portraitSrc: "/images/shop-by-use/baby-massage-portrait.webp",
+    alt: "Dadi massaging a baby's foot with a bottle of Mahadev Almond Oil on a side table",
+    tone: "#4a3424",
+    firstProduct: "almond-oil",
+  },
+};
 
 export const topPicks = {
   title: "Top picks for you",
@@ -92,6 +131,14 @@ export const spotlight = [
     text: "Sharp, clean and golden. The oil Rajasthan has made achaar and tadka with for generations.",
     note: "Best for pickles & tadka",
     color: "#0C3C24",
+    photo: {
+      url: "/images/spotlight/yellow-mustard-oil-dadi.webp",
+      alt: "Dadi holding Mahadev Yellow Mustard Oil beside a jar of mango pickle",
+      bg: "linear-gradient(140deg, #0c3925 0%, #103a26 54%, #09291b 100%)",
+      position: "85% center",
+      mobileUrl: "/images/spotlight/yellow-mustard-oil-mobile.webp",
+      mobileTint: "#103222",
+    },
   },
   {
     handle: "groundnut-oil",
@@ -105,6 +152,8 @@ export const spotlight = [
       alt: "Dadi holding a bottle of Mahadev wood-pressed groundnut oil, with fresh puris and peanuts",
       bg: "linear-gradient(180deg, #4b230c 0%, #4f2711 45%, #552b16 100%)",
       position: "68% center",
+      mobileUrl: "/images/spotlight/groundnut-oil-mobile.webp",
+      mobileTint: "#432718",
     },
     color: "#5B3A1E",
   },
@@ -114,6 +163,14 @@ export const spotlight = [
     text: "Dark, slightly tangy honey from jamun blossoms. Raw and unheated, so it may crystallise. That is a good sign.",
     note: "Best with warm water",
     color: "#8A5A0B",
+    photo: {
+      url: "/images/spotlight/jamun-raw-honey-dadi.webp",
+      alt: "Dadi holding Mahadev Jamun Raw Honey beside fresh jamun",
+      bg: "linear-gradient(112deg, #774605 0%, #70480b 38%, #403b16 66%, #222c15 100%)",
+      position: "86% center",
+      mobileUrl: "/images/spotlight/jamun-raw-honey-mobile.webp",
+      mobileTint: "#483118",
+    },
   },
   {
     handle: "black-sesame-oil",
@@ -121,6 +178,14 @@ export const spotlight = [
     text: "Deep, warm and rich. Traditionally used for winter malish and oil pulling.",
     note: "Best for massage",
     color: "#072F1B",
+    photo: {
+      url: "/images/spotlight/black-sesame-oil-dadi.webp",
+      alt: "Dadi holding Mahadev Black Sesame Oil beside a bowl of black sesame seeds",
+      bg: "linear-gradient(140deg, #082c1e 0%, #133c2a 56%, #0b3021 100%)",
+      position: "85% center",
+      mobileUrl: "/images/spotlight/black-sesame-oil-mobile.webp",
+      mobileTint: "#123025",
+    },
   },
   {
     handle: "flaxseed-oil",
@@ -128,6 +193,14 @@ export const spotlight = [
     text: "Pressed cold and bottled fresh. Drizzle it, never fry it.",
     note: "Best for salads & drizzling",
     color: "#9C6A2F",
+    photo: {
+      url: "/images/spotlight/flaxseed-oil-dadi.webp",
+      alt: "Dadi holding Mahadev Flaxseed Oil beside flaxseeds and salad",
+      bg: "linear-gradient(112deg, #865825 0%, #79582a 36%, #4e4925 65%, #26351d 100%)",
+      position: "85% center",
+      mobileUrl: "/images/spotlight/flaxseed-oil-mobile.webp",
+      mobileTint: "#41391f",
+    },
   },
 ] as const;
 

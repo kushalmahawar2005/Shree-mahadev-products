@@ -11,7 +11,7 @@ const trustPoints: [DuoIcon, string][] = [
   [FlaskConicalOff, "No chemicals"],
   [FilterX, "No refining"],
   [Hourglass, "Slow kachi ghani"],
-  [Sprout, "Seed to bottle, one family"],
+  [Sprout, "Seed to bottle, for your family"],
 ];
 
 /** Full-width banner carousel (1600 x 650), then a trust ticker. */

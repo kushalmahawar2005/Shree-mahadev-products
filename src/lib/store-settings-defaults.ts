@@ -33,6 +33,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   },
   socials: [...site.socials],
   lowStockThreshold: 5,
+  paymentGateway: "payu",
 };
 
 /** Messages live today (IST date), with {threshold} replaced. */

@@ -189,5 +189,5 @@ function itemsLabel(items: { quantity: number; productTitle: string; variantTitl
 }
 
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date(value.replace(" ", "T") + "+05:30"));
-const paymentLabel = (method: string) => method === "cod" ? "Cash on delivery" : method === "offline" ? "Offline paid" : "PayU online";
+const paymentLabel = (method: string) => method === "cod" ? "Cash on delivery" : method === "offline" ? "Offline paid" : "Paid online";
 export const instant = false;

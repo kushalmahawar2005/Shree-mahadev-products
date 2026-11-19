@@ -48,3 +48,4 @@ next-env.d.ts
 
 # Local scratch (reference images, frame sheets)
 /tmp/
+.claude/skills/

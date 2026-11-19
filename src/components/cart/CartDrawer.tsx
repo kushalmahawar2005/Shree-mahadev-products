@@ -44,7 +44,7 @@ type Applied = { code: string; discount: number; freeShipping: boolean; phoneRul
  */
 export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; catalog?: Product[] }) {
   const { cart, isOpen, close, pending, error, add, lastAdded } = useCart();
-  const { codEnabled, freeShippingThreshold, flatShippingFee } = useStoreSettings().shipping;
+  const { codEnabled, freeShippingThreshold } = useStoreSettings().shipping;
   const [adding, setAdding] = useState<string | null>(null);
   const lines = cart?.lines ?? [];
   const subtotal = cart?.subtotal.amount ?? 0;
@@ -101,7 +101,9 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
   const m = cartMath({
     lines: lines.map((l) => ({ price: l.variant.price.amount, mrp: l.variant.compareAtPrice?.amount, qty: l.quantity })),
     freeShippingThreshold,
-    shippingFee: flatShippingFee,
+    // No pincode here, so no real courier rate: shipping is shown as "At checkout" and kept out of the
+    // total (a guessed fee made the checkout total jump). Checkout quotes the real rate per pincode.
+    shippingFee: 0,
     couponDiscount: coupon?.discount ?? 0,
     couponFreeShipping: !!coupon?.freeShipping,
     milestones: cartConfig.discountMilestones.map((d) => ({ amount: d.amount, value: d.value })),
@@ -399,13 +401,16 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                         {m.milestoneDiscount > 0 && <Row label="Offer discount" value={`− ${money2(m.milestoneDiscount)}`} good />}
                         {couponOff > 0 && <Row label={`Coupon ${coupon?.code}`} value={`− ${money2(couponOff)}`} good />}
                         {m.prepaidDiscount > 0 && <Row label="Prepaid discount" value={`− ${money2(m.prepaidDiscount)}`} good />}
-                        <Row label="Shipping" value={freeShip ? "FREE" : money2(shipping)} good={freeShip} />
+                        <Row label="Shipping" value={freeShip ? "FREE" : "At checkout"} good={freeShip} />
                         {saved > 0 && <Row label="Total savings" value={money2(saved)} good />}
                         <div className="flex justify-between border-t border-line pt-1.5 font-semibold">
                           <dt className="text-ink">Estimated total</dt>
                           <dd className="text-forest tabular-nums">{money2(total)}</dd>
                         </div>
-                        {codEnabled && <p className="text-[11px] text-ink-muted">COD charges, if any, are added at checkout.</p>}
+                        <p className="text-[11px] text-ink-muted">
+                          {freeShip ? "" : "Shipping is calculated from your pincode at checkout. "}
+                          {codEnabled ? "COD charges, if any, are added at checkout." : ""}
+                        </p>
                       </div>
                     </motion.dl>
                   )}
@@ -436,7 +441,7 @@ export function CartDrawer({ upsells, catalog = [] }: { upsells: Product[]; cata
                   </a>
                 </Button>
                 <p className="mt-1.5 flex items-center justify-center gap-1.5 text-[11px] text-ink-muted">
-                  <ShieldCheck className="size-3.5 text-forest" /> UPI · Cards{codEnabled ? " · COD" : ""} · Secured by <PayULogo />
+                  <ShieldCheck className="size-3.5 text-forest" /> UPI · Cards{codEnabled ? " · COD" : ""} · Secured by <GatewayLogo />
                 </p>
               </div>
             )}
@@ -509,7 +514,18 @@ function SavedRibbon({ value }: { value: number }) {
 }
 
 /** PayU wordmark (hand-rolled SVG in PayU green; no official asset in the repo). */
-export function PayULogo() {
+/** Wordmark of the gateway that takes online payments (admin → Settings → Online payments). */
+export function GatewayLogo() {
+  const gateway = useStoreSettings().paymentGateway;
+  if (gateway === "cashfree") {
+    return (
+      <svg viewBox="0 0 74 16" className="h-3.5 w-auto" role="img" aria-label="Cashfree">
+        <text x="0" y="13" fontFamily="Arial, Helvetica, sans-serif" fontSize="15" fontWeight="800" fill="#6933D3" letterSpacing="-0.3">
+          Cashfree
+        </text>
+      </svg>
+    );
+  }
   return (
     <svg viewBox="0 0 46 16" className="h-3.5 w-auto" role="img" aria-label="PayU">
       <text x="0" y="13" fontFamily="Arial, Helvetica, sans-serif" fontSize="15" fontWeight="800" fill="#7FB100" letterSpacing="-0.3">
