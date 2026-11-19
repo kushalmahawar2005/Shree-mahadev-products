@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // Dev-only badge: keep it off the admin sidebar (bottom-left).
   devIndicators: false,
   // Let phones/clients open the dev server through an ngrok tunnel (HMR + dev chunks).
-  allowedDevOrigins: ["*.ngrok-free.dev", "*.ngrok-free.app", "*.ngrok.app"],
+  allowedDevOrigins: ["*.ngrok-free.dev", "*.ngrok-free.app", "*.ngrok.app", "*.trycloudflare.com"],
   // A separate QA runtime can coexist with the user's normal local dev server.
   distDir: process.env.NEXT_BUILD_DIR || ".next",
   cacheComponents: true,

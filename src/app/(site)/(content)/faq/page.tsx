@@ -1,8 +1,9 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { MessageCircle, Phone } from "@/components/icons/duo";
 import { FaqBrowser, type Faq } from "@/components/faq/FaqBrowser";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
-import { site, whatsappLink } from "@/data/site";
+import { helpLink, site } from "@/data/site";
 import { formatMoney } from "@/lib/utils/money";
 import { jsonLdString, pageMetadata } from "@/lib/utils/seo";
 import { getStoreSettings } from "@/lib/server/store-settings";
@@ -39,9 +40,9 @@ export default async function FaqPage() {
         ? `Yes, COD is available${shipping.codMaxOrder ? ` on orders up to ${formatMoney(shipping.codMaxOrder)}` : ""} for serviceable pincodes. Any COD charge is shown at checkout before you place the order.`
         : "Not at the moment. You can pay online with UPI, cards, net banking or wallets.",
     },
-    { cat: "Payments", q: "Which payment methods do you accept?", a: "UPI, debit and credit cards, net banking and wallets, processed securely by PayU." },
-    { cat: "Payments", q: "My money was deducted but the order shows unpaid.", a: "Please don't pay again. Payments can take a few minutes to confirm. If it still shows unpaid, WhatsApp us your order number and we'll check it with PayU." },
-    { cat: "Help", q: "How can I reach you?", a: `Call or WhatsApp ${site.phone} between ${site.supportHours}, or email ${site.email}.`, link: { href: "/contact", label: "All contact options" } },
+    { cat: "Payments", q: "Which payment methods do you accept?", a: "UPI, debit and credit cards, net banking and wallets, processed securely by our payment partner." },
+    { cat: "Payments", q: "My money was deducted but the order shows unpaid.", a: "Please don't pay again. Payments can take a few minutes to confirm. If it still shows unpaid, raise a request in Help & support with your order number and we'll check it with the bank." },
+    { cat: "Help", q: "How can I reach you?", a: `See our contact page (${site.supportHours}). If you have placed an order, raise a request in Help & support and our team will get back to you.`, link: { href: "/contact", label: "Contact us" } },
     { cat: "Help", q: "What is your return and refund policy?", a: "Read the full policy for damaged, leaking or wrong items and how refunds work.", link: { href: "/policies/refund-return", label: "Refund & returns policy" } },
   ];
 
@@ -86,12 +87,12 @@ export default async function FaqPage() {
             <p className="mt-1 text-sm text-white/70">Real people reply, {site.supportHours}.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <a href={whatsappLink("Hi, I have a question.")} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center gap-2 rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep hover:bg-white">
-              <MessageCircle className="size-4" /> WhatsApp us
-            </a>
-            <a href={site.phoneHref} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/30 px-5 text-sm font-semibold hover:bg-white/10">
-              <Phone className="size-4" /> Call
-            </a>
+            <Link href="/contact" className="inline-flex h-11 items-center gap-2 rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep hover:bg-white">
+              <MessageCircle className="size-4" /> Contact us
+            </Link>
+            <Link href={helpLink()} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/30 px-5 text-sm font-semibold hover:bg-white/10">
+              <Phone className="size-4" /> Help with an order
+            </Link>
           </div>
         </section>
       </div>

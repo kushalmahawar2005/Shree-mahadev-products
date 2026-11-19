@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Lock, WhatsApp } from "@/components/icons/duo";
+import { LifeBuoy } from "lucide-react";
+import { Lock } from "@/components/icons/duo";
 import { PaymentLogos } from "@/components/layout/PaymentLogos";
 import { checkoutConfig } from "@/config/checkout";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 
 const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
 
@@ -21,15 +22,13 @@ export default function CheckoutLayout({ children }: { children: React.ReactNode
             <span className="hidden sm:inline">Secure checkout</span>
             <span className="sm:hidden">Checkout</span>
           </p>
-          <a
-            href={whatsappLink("Hi, I need help with my order at checkout.")}
+          <Link
+            href="/contact"
             target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 justify-self-end rounded-full px-2 py-1.5 text-xs font-semibold text-co-success hover:bg-co-success-soft md:px-3 md:text-sm"
+            className="inline-flex items-center gap-1.5 justify-self-end rounded-full px-2 py-1.5 text-xs font-semibold text-forest hover:bg-co-success-soft md:px-3 md:text-sm"
           >
-            <WhatsApp className="size-5" />
-            <span className="hidden md:inline">Need help?</span> WhatsApp
-          </a>
+            <LifeBuoy className="size-5" /> Need help?
+          </Link>
         </div>
       </header>
 

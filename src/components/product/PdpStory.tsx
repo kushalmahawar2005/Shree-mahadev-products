@@ -24,7 +24,14 @@ export function HomeChecks({ eyebrow, title, intro, items }: { eyebrow: string; 
               <li key={c.title} className="flex overflow-hidden rounded-2xl border border-line bg-surface md:block md:rounded-3xl">
                 <div className="relative aspect-square w-28 shrink-0 bg-co-brand-soft md:aspect-[4/3] md:w-auto">
                   {c.image ? (
-                    <Image src={c.image} alt="" fill sizes="(min-width: 768px) 400px, 33vw" className="object-cover" />
+                    <Image
+                      src={c.image}
+                      alt=""
+                      fill
+                      unoptimized={c.image.startsWith("/images/product-story/check-honey-")}
+                      sizes="(min-width: 768px) 400px, 112px"
+                      className="object-cover"
+                    />
                   ) : (
                     // TODO(art): check-* paintings (docs/illustration-prompts.md, "Home checks").
                     <span className="absolute inset-0 grid place-items-center">

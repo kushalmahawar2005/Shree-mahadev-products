@@ -5,10 +5,10 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Check, RotateCcw } from "lucide-react";
-import { AlertCircle, Banknote, Clock, CreditCard, MapPin, MessageCircle, PackageCheck, Phone, Truck, XCircle } from "@/components/icons/duo";
+import { AlertCircle, Banknote, Clock, CreditCard, MapPin, MessageCircle, PackageCheck, Truck, XCircle } from "@/components/icons/duo";
 import { OrderCelebrate, SuccessTick } from "@/components/checkout/OrderCelebrate";
 import { PurchaseEvent } from "@/components/marketing/PurchaseEvent";
-import { site, whatsappLink } from "@/data/site";
+import { helpLink, site } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import { getOrderByToken, type Order } from "@/lib/server/orders";
 import { formatMoney } from "@/lib/utils/money";
@@ -117,12 +117,12 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
               <a href={`/checkout/pay?t=${order.token}`} className="btn-shine inline-flex h-12 items-center justify-center gap-2 overflow-hidden rounded-full bg-forest px-4 text-sm font-bold text-white hover:bg-forest-mid sm:px-7">
                 <RotateCcw className="size-4" /> Try payment again
               </a>
-              <a
-                href={whatsappLink(`Hi, my payment for order ${order.orderNo} failed.`)}
+              <Link
+                href={helpLink(order.orderNo)}
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text hover:border-forest/40 sm:px-6"
               >
-                <MessageCircle className="size-4" /> Order on WhatsApp
-              </a>
+                <MessageCircle className="size-4" /> Get help
+              </Link>
             </>
           ) : (
             <>
@@ -246,16 +246,13 @@ async function OrderContent({ searchParams }: { searchParams: Promise<Record<str
           <section className="rounded-3xl bg-forest p-4 text-white md:p-5">
             <p className="font-semibold">Need help with this order?</p>
             <p className="mt-1 text-sm text-white/70">{site.supportHours}</p>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <a
-                href={whatsappLink(`Hi, I have a question about order ${order.orderNo}.`)}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#e8c879] px-4 text-sm font-bold text-forest-deep hover:bg-white"
+            <div className="mt-4 flex">
+              <Link
+                href={helpLink(order.orderNo)}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#e8c879] px-5 text-sm font-bold text-forest-deep hover:bg-white"
               >
-                <MessageCircle className="size-4" /> WhatsApp
-              </a>
-              <a href={`tel:${site.phone.replace(/\s/g, "")}`} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/30 px-4 text-sm font-semibold hover:bg-white/10">
-                <Phone className="size-4" /> Call
-              </a>
+                <MessageCircle className="size-4" /> Get help with this order
+              </Link>
             </div>
           </section>
         </div>

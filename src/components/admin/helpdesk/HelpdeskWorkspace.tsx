@@ -35,6 +35,7 @@ import { StatTile } from "@/components/admin/ui";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/shadcn/sheet";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
+import { VIDEO_ISSUES, isSupportVideo, type IssueKey } from "@/components/account/help/help-lib";
 
 export type HelpdeskTab = "returns" | "tickets" | "waitlist" | "faq";
 type Faq = { faqId: string; question: string; helpful: number; notHelpful: number; updatedAt: string };
@@ -561,9 +562,15 @@ function TicketDetail({ t, run, pending }: { t: AdminTicket; run: Run; pending: 
 
         {t.photos.length > 0 && (
           <section>
-            <h3 className="mb-2 text-sm font-semibold text-ink">Photos</h3>
+            <h3 className="mb-2 text-sm font-semibold text-ink">Unboxing video & photos</h3>
+            {t.photos.filter(isSupportVideo).map((v) => (
+              <video key={v} src={v} controls playsInline preload="metadata" className="mb-2 max-h-72 w-full rounded-xl border border-line bg-black" />
+            ))}
+            {t.photos.some((p) => isSupportVideo(p)) || !VIDEO_ISSUES.includes(t.issue as IssueKey) ? null : (
+              <p className="mb-2 rounded-xl bg-warm px-3 py-2 text-xs text-ink">No unboxing video attached. Refund policy needs one for damage or expiry.</p>
+            )}
             <div className="grid grid-cols-3 gap-2">
-              {t.photos.map((p) => (
+              {t.photos.filter((p) => !isSupportVideo(p)).map((p) => (
                 <a key={p} href={p} target="_blank" rel="noreferrer" className="overflow-hidden rounded-xl border border-line">
                   <Image src={p} alt="Customer photo" width={240} height={240} className="aspect-square w-full object-cover transition-transform hover:scale-105" />
                 </a>
@@ -580,7 +587,7 @@ function TicketDetail({ t, run, pending }: { t: AdminTicket; run: Run; pending: 
             </span>
           </Field>
           {t.email && <Field label="Email">{t.email}</Field>}
-          <Field label="Wants">{t.contactPref === "call" ? `A call${t.callbackSlot ? ` (${t.callbackSlot})` : ""}` : "WhatsApp reply"}</Field>
+          <Field label="Wants">{t.contactPref === "call" ? `A call${t.callbackSlot ? ` (${t.callbackSlot})` : ""}` : "Support ticket"}</Field>
           {t.utr && (
             <Field label="UTR / reference">
               <span className="inline-flex items-center gap-1 font-mono">

@@ -23,38 +23,49 @@ export function ContactCard({ name, phone }: { name: string; phone: string }) {
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${site.name}, ${fullAddress}`)}`;
   return (
     <section className={card} aria-labelledby="contact-h">
-      <h2 id="contact-h" className="text-base font-bold text-ink">
-        Contact us
-      </h2>
-      <p className="mt-1 flex items-center gap-2 text-sm text-ink-muted" aria-live="polite">
-        <span className={cn("size-2 rounded-full", status.online ? "bg-co-success ring-4 ring-co-success/15" : "bg-co-border-strong")} />
-        {status.text}
-      </p>
-      <a href={wa} target="_blank" rel="noopener noreferrer" className={cn(primaryBtn, "mt-4 whitespace-nowrap")}>
-        <MessageCircle className="size-4" /> Chat on WhatsApp
-      </a>
-      <RequestCallback phone={formatPhone(phone)} className="mt-2 border border-forest bg-white text-forest hover:bg-forest hover:text-white" />
-      <ul className="mt-4 divide-y divide-line text-sm">
-        <li className="flex items-center gap-3 py-3">
-          <Phone className="size-4 shrink-0 text-ink-muted" />
-          <a href={site.phoneHref} className="min-w-0 flex-1 font-semibold text-ink hover:underline">
-            {formatPhone(site.phone)}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h2 id="contact-h" className="text-base font-bold text-ink">
+            Contact us
+          </h2>
+          <p className="mt-1 flex items-center gap-2 text-sm text-ink-muted" aria-live="polite">
+            <span className={cn("size-2 shrink-0 rounded-full", status.online ? "bg-co-success ring-4 ring-co-success/15" : "bg-co-border-strong")} />
+            {status.text}
+          </p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 md:w-[440px] md:shrink-0">
+          <a href={wa} target="_blank" rel="noopener noreferrer" className={cn(primaryBtn, "whitespace-nowrap")}>
+            <MessageCircle className="size-4" /> Chat on WhatsApp
           </a>
-          <span className="text-xs whitespace-nowrap text-ink-muted">Call {site.supportHours}</span>
+          <RequestCallback phone={formatPhone(phone)} className="border border-forest bg-white whitespace-nowrap text-forest hover:bg-forest hover:text-white" />
+        </div>
+      </div>
+      <ul className="mt-5 grid gap-4 border-t border-line pt-5 text-sm md:grid-cols-3 md:gap-6">
+        <li className="flex items-start gap-3">
+          <Phone className="mt-0.5 size-4 shrink-0 text-ink-muted" />
+          <div className="min-w-0">
+            <a href={site.phoneHref} className="font-semibold whitespace-nowrap text-ink hover:underline">
+              {formatPhone(site.phone)}
+            </a>
+            <p className="text-xs text-ink-muted">Call {site.supportHours}</p>
+          </div>
         </li>
-        <li className="flex items-center gap-3 py-3">
-          <Mail className="size-4 shrink-0 text-ink-muted" />
-          <a href={`mailto:${site.email}`} className="min-w-0 flex-1 text-sm font-semibold break-all text-ink hover:underline">
-            {site.email}
-          </a>
-          <CopyId value={site.email} label="email" />
+        <li className="flex items-start gap-3">
+          <Mail className="mt-0.5 size-4 shrink-0 text-ink-muted" />
+          <div className="min-w-0 flex-1">
+            <a href={`mailto:${site.email}`} className="block truncate font-semibold text-ink hover:underline" title={site.email}>
+              {site.email}
+            </a>
+            <p className="text-xs text-ink-muted">We reply within a working day</p>
+          </div>
+          <CopyId value={site.email} label="email" className="-mt-2" />
         </li>
-        <li className="flex items-start gap-3 pt-3">
+        <li className="flex items-start gap-3">
           <MapPin className="mt-0.5 size-4 shrink-0 text-ink-muted" />
           <div className="min-w-0 flex-1 text-ink-muted">
             <p className="font-semibold text-ink">{site.name}</p>
-            <p>{fullAddress}</p>
-            <a href={maps} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex h-9 items-center gap-1 font-semibold text-forest hover:underline">
+            <p className="text-xs leading-relaxed">{fullAddress}</p>
+            <a href={maps} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex h-8 items-center gap-1 text-xs font-semibold text-forest hover:underline">
               Open in Maps <ExternalLink className="size-3.5" />
             </a>
           </div>
@@ -67,7 +78,7 @@ export function ContactCard({ name, phone }: { name: string; phone: string }) {
 export function PolicyLinks() {
   return (
     <nav className={cn(card, "py-2 md:py-3")} aria-label="Policies">
-      <ul className="divide-y divide-line">
+      <ul className="grid divide-y divide-line sm:grid-cols-2 sm:gap-x-6 sm:divide-y-0 lg:grid-cols-4">
         {POLICIES.map((p) => (
           <li key={p.href}>
             <Link href={p.href} className="flex h-12 items-center justify-between text-sm font-semibold text-ink hover:text-forest">

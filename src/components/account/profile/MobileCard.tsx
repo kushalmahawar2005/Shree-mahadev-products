@@ -1,5 +1,6 @@
 "use client";
 
+import { toMobile10 } from "@/lib/utils/phone";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, BadgeCheck, Loader2, Smartphone } from "lucide-react";
@@ -126,7 +127,7 @@ function ChangeNumberFlow({ onDone }: { onDone: () => void }) {
             <input
               autoFocus
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").replace(/^(91|0)(?=\d{10})/, "").slice(0, 10))}
+              onChange={(e) => setPhone(toMobile10(e.target.value))}
               inputMode="numeric"
               autoComplete="tel-national"
               placeholder="10-digit mobile number"

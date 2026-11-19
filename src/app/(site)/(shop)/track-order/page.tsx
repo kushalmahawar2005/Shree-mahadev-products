@@ -67,9 +67,9 @@ async function TrackingSection({
       {/* The result card has its own help buttons; this line is for the empty form. */}
       {!initial.tracking && (
         <p className="mt-6 text-center text-sm text-ink-muted">
-          Can&apos;t find it? Call or WhatsApp{" "}
-          <a href={site.phoneHref} className="font-semibold text-forest-text whitespace-nowrap">
-            {site.phone}
+          Can&apos;t find it?{" "}
+          <a href="/account/help" className="font-semibold text-forest-text whitespace-nowrap">
+            Get help with an order
           </a>
           , {site.supportHours}.
         </p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { toMobile10 } from "@/lib/utils/phone";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -25,6 +26,7 @@ import {
   Plus,
   Trash2,
   X,
+  Video,
 } from "lucide-react";
 import {
   Banknote,
@@ -150,11 +152,7 @@ const NF = {
 } as const;
 const NO_DELIVERY = "Sorry, we don't deliver to this pincode yet.";
 
-const digits10 = (p: string) =>
-  p
-    .replace(/\D/g, "")
-    .replace(/^(91|0)(?=\d{10}$)/, "")
-    .slice(0, 10);
+const digits10 = toMobile10;
 /** "bhawar badi bijainagar, rajasthan" → "Bhawar Badi Bijainagar, Rajasthan" (emails untouched). */
 const titleCase = (t: string) =>
   t
@@ -774,7 +772,7 @@ export function CheckoutForm({
                         inputMode="numeric"
                         autoComplete="tel-national"
                         placeholder="10-digit mobile number"
-                        maxLength={10}
+                        maxLength={16}
                         aria-invalid={invalid}
                         className={cn(INPUT, "pl-[4.25rem] tracking-wide")}
                         {...register("phone", {
@@ -1606,6 +1604,7 @@ function PayButton({
 
 function TrustRow() {
   return (
+    <>
     <p className="mt-2.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-ink-muted">
       <span className="inline-flex items-center gap-1">
         <Lock className="size-3.5 text-co-accent" /> Secured by <GatewayLogo />
@@ -1617,9 +1616,16 @@ function TrustRow() {
         href="/policies/refund-return"
         className="inline-flex items-center gap-1 underline-offset-2 hover:underline"
       >
-        <Truck className="size-3.5 text-co-accent" /> Easy returns
+        <Truck className="size-3.5 text-co-accent" /> Damage &amp; expiry covered
       </Link>
     </p>
+    <p className="mt-2 flex items-start justify-center gap-1.5 text-center text-[11.5px] leading-snug text-ink-muted">
+      <Video className="mt-px size-3.5 shrink-0 text-co-accent" />
+      <span>
+        Please record a video while opening your parcel. Refunds for damaged or expired products need this unboxing video.
+      </span>
+    </p>
+    </>
   );
 }
 

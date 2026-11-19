@@ -15,7 +15,6 @@ import { OrderCard } from "@/components/account/OrderCard";
 import { Usuals } from "@/components/account/Usuals";
 import { buildUsuals, productInfo } from "@/lib/account/usuals";
 import { EmptyState, PageHeader } from "@/components/account/ui";
-import { whatsappLink } from "@/data/site";
 import { getProducts } from "@/lib/commerce";
 import {
   ACTIVE_STATUSES,
@@ -193,14 +192,7 @@ export default async function AccountOverview() {
         {[
           { href: "/track-order", label: "Track an order", icon: Truck },
           { href: "/shop", label: "Shop again", icon: ShoppingBag },
-          {
-            href: whatsappLink(
-              `Hi, I'm ${formatName(c.name)} (${formatPhone(c.phone)}). I need help with my account.`,
-            ),
-            label: "Chat on WhatsApp",
-            icon: MessageCircle,
-            external: true,
-          },
+          { href: "/account/orders", label: "My orders", icon: MessageCircle, external: false },
           { href: "/account/help", label: "Help & FAQs", icon: CircleHelp },
         ].map(({ href, label, icon: Icon, external }) => (
           <Link

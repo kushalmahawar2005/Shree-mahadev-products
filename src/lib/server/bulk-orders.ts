@@ -1,7 +1,7 @@
 import "server-only";
 import type { RowDataPacket } from "mysql2";
 import { db } from "@/lib/server/db";
-import { getOrderById, setOrderStatus, listOrders, type OrderFilter } from "@/lib/server/orders";
+import { getOrderById, setOrderStatus, listOrders, type OrderFilter, type OrderScope, type OrderSort } from "@/lib/server/orders";
 import { bookShipment, cancelOrderShipment, labelForOrder, quoteForOrder } from "@/lib/server/shipments";
 import { parcelFor, type PackLine } from "@/lib/packaging";
 
@@ -133,7 +133,7 @@ const csvCell = (v: unknown) => {
 };
 
 /** Every order in the view (all pages) as CSV: one row per order, items joined. */
-export async function ordersCsv(opts: { filter: OrderFilter; q?: string; from?: string; to?: string }) {
+export async function ordersCsv(opts: { filter: OrderFilter; q?: string; sort?: OrderSort } & OrderScope) {
   const rows: string[] = [
     ["Order no", "Placed", "Status", "Payment", "Customer", "Phone", "Email", "City", "State", "Pincode", "Items", "Units", "Subtotal", "Discount", "Shipping", "COD fee", "Total"].join(","),
   ];

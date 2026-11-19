@@ -7,7 +7,9 @@ import {
   ISSUES,
   ISSUE_KEYS,
   PHOTO_ISSUES,
+  VIDEO_ISSUES,
   cancelRule,
+  isSupportVideo,
   issuesFor,
   type HelpOrderDetail,
 } from "@/components/account/help/help-lib";
@@ -58,19 +60,28 @@ export async function getHelpOrderAction(raw: unknown) {
   return { ok: true as const, order: detail };
 }
 
-/** Signed direct-upload params for one help photo (browser → Cloudinary). */
-export async function signSupportPhotoUploadAction() {
+/** Signed direct-upload params for one help photo or unboxing video (browser → Cloudinary). */
+export async function signSupportPhotoUploadAction(kind: unknown = "image") {
   const customer = await requireCustomer();
+  const k = kind === "video" ? "video" : "image";
   const limit = await rateLimit("support_upload", String(customer.id), 15, 60);
   if (!limit.ok) return fail(`Too many uploads. Try again in ${limit.retryInMin} min.`);
   try {
-    const s = signSupportUpload();
-    if (!s) return fail("Photo uploads aren't set up yet. Send the request without photos and share them on WhatsApp.");
+    const s = signSupportUpload(k);
+    if (!s) return fail("Uploads aren't available right now. Please try again later.");
     return { ok: true as const, ...s };
   } catch (e) {
     console.error("signSupportPhotoUploadAction", e);
     return fail("Could not prepare the photo upload.");
   }
+}
+
+async function verifyAttachments(list: { url: string; publicId: string }[]) {
+  for (const ph of list) {
+    const err = await verifySupportPhoto(ph);
+    if (err) return err;
+  }
+  return null;
 }
 
 const TicketInput = z
@@ -88,9 +99,15 @@ const TicketInput = z
     callbackSlot: z.enum(supportConfig.callbackSlots).optional(),
     photos: z
       .array(z.object({ url: z.string().url().max(500), publicId: z.string().min(1).max(200) }).strict())
-      .max(supportConfig.photos.max),
+      .max(supportConfig.photos.max + supportConfig.video.max),
   })
   .strict()
+  .refine((v) => v.photos.filter((p) => isSupportVideo(p.url)).length <= supportConfig.video.max, { message: "Add only one video.", path: ["photos"] })
+  .refine((v) => v.photos.filter((p) => !isSupportVideo(p.url)).length <= supportConfig.photos.max, { message: `Add up to ${supportConfig.photos.max} photos.`, path: ["photos"] })
+  .refine((v) => !VIDEO_ISSUES.includes(v.issue) || v.photos.some((p) => isSupportVideo(p.url)), {
+    message: "Please add your unboxing video. Damage and expiry claims need it.",
+    path: ["photos"],
+  })
   .refine((v) => v.contactPref !== "call" || v.callbackSlot, { message: "Pick a time for the call back.", path: ["callbackSlot"] })
   .refine((v) => v.message.length > 0 || v.issue !== "other", { message: "Tell us a little about the problem.", path: ["message"] })
   .refine((v) => v.issue !== "callback" || v.contactPref === "call", { message: "Pick a time for the call back.", path: ["callbackSlot"] });
@@ -120,10 +137,8 @@ export async function submitSupportTicketAction(raw: unknown) {
   } else if (input.issue !== "callback" && !issuesFor(null).includes(input.issue)) return fail("Please pick the issue again.");
 
   const photos = PHOTO_ISSUES.includes(input.issue) ? input.photos : [];
-  for (const ph of photos) {
-    const err = await verifySupportPhoto(ph);
-    if (err) return fail(err);
-  }
+  const err = await verifyAttachments(photos);
+  if (err) return fail(err);
   const utr = input.issue === "money_deducted" && input.utr ? input.utr : null;
   const callbackSlot = input.contactPref === "call" ? (input.callbackSlot ?? null) : null;
 

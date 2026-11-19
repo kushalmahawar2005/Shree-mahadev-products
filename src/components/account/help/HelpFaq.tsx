@@ -92,7 +92,7 @@ export function HelpFaq({ faqs }: { faqs: FaqEntry[] }) {
             ))}
           </Accordion>
         ) : (
-          <p className="py-8 text-center text-sm text-ink-muted">No answers match that. Try another word, or ask us on WhatsApp.</p>
+          <p className="py-8 text-center text-sm text-ink-muted">No answers match that. Try another word, or raise a request above.</p>
         )}
       </div>
     </section>

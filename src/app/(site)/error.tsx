@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { buttonClass } from "@/components/ui/Button";
 import { Container } from "@/components/ui/primitives";
-import { site, whatsappLink } from "@/data/site";
 
 /**
  * Storefront error boundary: something failed while rendering a page. Keeps the header, footer and
@@ -35,10 +34,10 @@ export default function SiteError({ error, retry }: { error: unknown; retry: () 
       </div>
       <p className="mt-8 text-sm text-ink-muted">
         Still stuck?{" "}
-        <a className="font-semibold text-forest underline" href={whatsappLink(`Hi, a page on your website showed an error${digest ? ` (ref ${digest})` : ""}.`)}>
-          WhatsApp us
-        </a>{" "}
-        on {site.phone}.
+        <Link className="font-semibold text-forest underline" href="/contact">
+          Contact us
+        </Link>
+        .
       </p>
       {digest && <p className="mt-3 text-xs text-ink-muted/70">Ref: {digest}</p>}
     </Container>

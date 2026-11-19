@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PageHeader, StatusBadge } from "@/components/admin/ui";
 import { ORDER_LABEL } from "@/components/admin/orderLabels";
-import { getOrderFilterCounts, listOrders, type OrderFilter } from "@/lib/server/orders";
+import { getOrderFilterCounts, listOrders, ORDER_PAYS, ORDER_SORTS, type OrderFilter, type OrderPay, type OrderSort } from "@/lib/server/orders";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import { OrdersBulkBar, SelectAllOrders } from "@/components/admin/OrdersBulkBar";
 import { OrdersDateFilter } from "@/components/admin/OrdersDateFilter";
+import { OrdersViewControls } from "@/components/admin/OrdersViewControls";
 
 export const metadata = { title: "Orders" };
 
@@ -49,9 +50,16 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
   const day = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(str(k)) ? str(k) : "");
   const from = day("from");
   const to = day("to") || from;
+  const time = (k: string) => (from && /^([01]\d|2[0-3]):[0-5]\d$/.test(str(k)) ? str(k) : "");
+  const fromTime = time("ft");
+  const toTime = time("tt");
+  const sort = (ORDER_SORTS.includes(str("sort") as OrderSort) ? str("sort") : "") as OrderSort | "";
+  const pay = (ORDER_PAYS.includes(str("pay") as OrderPay) ? str("pay") : "all") as OrderPay;
+  const per = [25, 50, 100].includes(Number(str("per"))) ? Number(str("per")) : 25;
+  const scope = { from, to, fromTime: fromTime || undefined, toTime: toTime || undefined, pay };
   const [result, counts] = await Promise.all([
-    listOrders({ filter, page, perPage: 25, q: query, from, to }),
-    getOrderFilterCounts({ from, to }),
+    listOrders({ filter, page, perPage: per, q: query, sort: sort || undefined, ...scope }),
+    getOrderFilterCounts(scope),
   ]).catch((error) => {
     console.error("Orders could not be loaded", error);
     return [null, null] as const;
@@ -67,7 +75,12 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
     if (from) {
       params.set("from", from);
       params.set("to", to);
+      if (fromTime) params.set("ft", fromTime);
+      if (toTime) params.set("tt", toTime);
     }
+    if (sort) params.set("sort", sort);
+    if (pay !== "all") params.set("pay", pay);
+    if (per !== 25) params.set("per", String(per));
     const nextPage = changes.page ?? 1;
     if (nextPage > 1) params.set("page", String(nextPage));
     return `/admin/orders?${params.toString()}`;
@@ -76,7 +89,10 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
   return (
     <>
       <div className="mb-5 space-y-3">
-        <OrdersDateFilter from={from} to={to} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <OrdersDateFilter from={from} to={to} fromTime={fromTime} toTime={toTime} />
+          <OrdersViewControls sort={sort} pay={pay} per={per} />
+        </div>
         <nav aria-label="Filter orders" className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {FILTERS.map((item) => (
             <Link key={item.id} href={href({ f: item.id, page: 1 })} aria-current={filter === item.id ? "page" : undefined} className={cn("inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl border px-3.5 text-sm font-semibold transition-colors", filter === item.id ? "border-forest bg-forest text-white shadow-sm" : "border-line bg-surface text-ink-muted hover:border-forest/40 hover:text-forest-fg")}>
@@ -89,6 +105,11 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
             <input type="hidden" name="f" value={filter} />
             {from && <input type="hidden" name="from" value={from} />}
             {from && <input type="hidden" name="to" value={to} />}
+            {fromTime && <input type="hidden" name="ft" value={fromTime} />}
+            {toTime && <input type="hidden" name="tt" value={toTime} />}
+            {sort && <input type="hidden" name="sort" value={sort} />}
+            {pay !== "all" && <input type="hidden" name="pay" value={pay} />}
+            {per !== 25 && <input type="hidden" name="per" value={per} />}
             <input name="q" defaultValue={query} placeholder="Order no., phone or customer name" aria-label="Search orders" className="min-h-10 min-w-0 flex-1 rounded-xl border border-line bg-subtle px-3.5 text-sm outline-none transition focus:border-forest focus:ring-2 focus:ring-forest/10 sm:max-w-md" />
             <button className="min-h-10 shrink-0 rounded-xl bg-forest px-4 text-sm font-semibold text-white transition hover:bg-forest-deep">Search</button>
             {query && <Link href={href({ q: "", page: 1 })} className="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3 text-sm font-medium text-ink-muted hover:bg-khaki-soft">Clear</Link>}
@@ -98,7 +119,15 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
               {result.total} order{result.total === 1 ? "" : "s"} · <b className="font-semibold text-ink tabular-nums">{formatMoney(result.value)}</b> in this view
             </span>
             <a
-              href={`/admin/orders/export?${new URLSearchParams({ f: filter, ...(query ? { q: query } : {}), ...(from ? { from, to } : {}) }).toString()}`}
+              href={`/admin/orders/export?${new URLSearchParams({
+                f: filter,
+                ...(query ? { q: query } : {}),
+                ...(from ? { from, to } : {}),
+                ...(fromTime ? { ft: fromTime } : {}),
+                ...(toTime ? { tt: toTime } : {}),
+                ...(sort ? { sort } : {}),
+                ...(pay !== "all" ? { pay } : {}),
+              }).toString()}`}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-forest px-4 text-sm font-semibold text-forest-fg hover:bg-khaki-soft"
             >
               Download CSV

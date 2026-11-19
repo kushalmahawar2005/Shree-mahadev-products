@@ -778,22 +778,48 @@ const FILTER_SQL: Record<OrderFilter, string> = {
 /** Small global counts for the order workspace filter tabs. */
 /** "YYYY-MM-DD" bounds → SQL on created_at (stored in IST, so plain date strings compare correctly). */
 const isDay = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-function dateWhere(from?: string, to?: string) {
+const isTime = (s?: string) => !!s && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+
+export type OrderSort = "newest" | "oldest" | "total_desc" | "total_asc";
+export type OrderPay = "all" | "online" | "cod";
+export const ORDER_SORTS: OrderSort[] = ["newest", "oldest", "total_desc", "total_asc"];
+export const ORDER_PAYS: OrderPay[] = ["all", "online", "cod"];
+
+/** Admin list scope shared by the list, the tab counts and the CSV export. */
+export type OrderScope = {
+  /** Placed on/after this day (YYYY-MM-DD), from `fromTime` (HH:MM) when given. */
+  from?: string;
+  /** Placed on/before this day (YYYY-MM-DD), up to `toTime` (HH:MM) when given. */
+  to?: string;
+  fromTime?: string;
+  toTime?: string;
+  pay?: OrderPay;
+};
+
+function dateWhere(scope: OrderScope = {}) {
+  const { from, to, fromTime, toTime, pay } = scope;
   const where: string[] = [];
   const params: string[] = [];
   if (isDay(from)) {
     where.push("o.created_at >= ?");
-    params.push(`${from} 00:00:00`);
+    params.push(`${from} ${isTime(fromTime) ? fromTime : "00:00"}:00`);
   }
   if (isDay(to)) {
-    where.push("o.created_at < DATE_ADD(?, INTERVAL 1 DAY)");
-    params.push(to!);
+    if (isTime(toTime)) {
+      where.push("o.created_at <= ?");
+      params.push(`${to} ${toTime}:59`);
+    } else {
+      where.push("o.created_at < DATE_ADD(?, INTERVAL 1 DAY)");
+      params.push(to!);
+    }
   }
+  if (pay === "cod") where.push("o.payment_method = 'cod'");
+  else if (pay === "online") where.push("o.payment_method NOT IN ('cod','offline')");
   return { where, params };
 }
 
-export async function getOrderFilterCounts(range: { from?: string; to?: string } = {}): Promise<Record<OrderFilter, number>> {
-  const d = dateWhere(range.from, range.to);
+export async function getOrderFilterCounts(range: OrderScope = {}): Promise<Record<OrderFilter, number>> {
+  const d = dateWhere(range);
   const [[row]] = await db().query<Row[]>(
     `SELECT COUNT(*) AS all_orders,
        SUM(status IN ('paid','cod_pending','confirmed','packed','pending_payment','payment_failed','rto')) AS needs_action,
@@ -824,11 +850,8 @@ export async function listOrders(
     perPage?: number;
     filter?: OrderFilter;
     q?: string;
-    /** Placed on/after this day (YYYY-MM-DD). */
-    from?: string;
-    /** Placed on/before this day (YYYY-MM-DD). */
-    to?: string;
-  } = {},
+    sort?: OrderSort;
+  } & OrderScope = {},
 ) {
   const perPage = Math.min(Math.max(opts.perPage ?? 25, 5), 100);
   const page = Math.max(opts.page ?? 1, 1);
@@ -839,7 +862,7 @@ export async function listOrders(
     where.push("(o.order_no = ? OR o.phone = ? OR o.customer_name LIKE ?)");
     params.push(q.toUpperCase(), q.replace(/\D/g, "").slice(-10), `%${q}%`);
   }
-  const d = dateWhere(opts.from, opts.to);
+  const d = dateWhere(opts);
   where.push(...d.where);
   params.push(...d.params);
   const w = where.join(" AND ");
@@ -850,10 +873,15 @@ export async function listOrders(
   );
   const [rows] = await db().query<Row[]>(
     `${ORDER_SELECT} WHERE ${w} ORDER BY ${
-      opts.filter === "needs_action"
-        ? "CASE o.status WHEN 'paid' THEN 0 WHEN 'cod_pending' THEN 1 WHEN 'confirmed' THEN 2 WHEN 'packed' THEN 3 WHEN 'rto' THEN 4 WHEN 'pending_payment' THEN 5 WHEN 'payment_failed' THEN 6 ELSE 7 END ASC, "
-        : ""
-    }o.id DESC LIMIT ? OFFSET ?`,
+      // An explicit sort wins; otherwise "Needs action" shows the most urgent statuses first.
+      opts.sort && opts.sort !== "newest"
+        ? { oldest: "o.id ASC", total_desc: "o.total DESC, o.id DESC", total_asc: "o.total ASC, o.id DESC" }[opts.sort]
+        : `${
+            opts.filter === "needs_action" && !opts.sort
+              ? "CASE o.status WHEN 'paid' THEN 0 WHEN 'cod_pending' THEN 1 WHEN 'confirmed' THEN 2 WHEN 'packed' THEN 3 WHEN 'rto' THEN 4 WHEN 'pending_payment' THEN 5 WHEN 'payment_failed' THEN 6 ELSE 7 END ASC, "
+              : ""
+          }o.id DESC`
+    } LIMIT ? OFFSET ?`,
     [...params, perPage, (page - 1) * perPage],
   );
   if (!rows.length)

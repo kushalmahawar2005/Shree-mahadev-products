@@ -9,7 +9,7 @@ export const CSP_SOURCES = {
   script: ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), "https://*.cashfree.com"],
   style: ["'self'", "'unsafe-inline'"],
   img: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://i.ytimg.com"],
-  media: ["'self'", "https://res.cloudinary.com"],
+  media: ["'self'", "blob:", "https://res.cloudinary.com"], // blob: = preview of an unboxing video before upload
   font: ["'self'", "data:"],
   connect: ["'self'", "https://api.cloudinary.com", "https://*.cashfree.com", ...(isDev ? ["ws:"] : [])],
   // Reels pasted as YouTube links play in YouTube's privacy-enhanced embed player.

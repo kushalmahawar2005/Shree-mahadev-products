@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { buttonClass } from "@/components/ui/Button";
 import { Container } from "@/components/ui/primitives";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 
 /** Branded 404 body, used by both (site)/not-found.tsx and app/global-not-found.tsx. */
 export function NotFoundContent() {
@@ -39,7 +39,7 @@ export function NotFoundContent() {
         </Link>
       </div>
       <p className="mt-8 text-sm text-ink-muted">
-        Need help? <a className="font-semibold text-forest underline" href={whatsappLink("Hi, I couldn't find a page on your website.")}>WhatsApp us</a> on {site.phone} ({site.supportHours}).
+        Need help? <a className="font-semibold text-forest underline" href="/contact">Contact us</a> ({site.supportHours}).
       </p>
     </Container>
   );

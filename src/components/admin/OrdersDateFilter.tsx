@@ -34,30 +34,41 @@ const PRESETS = [
 ] as const;
 
 /** Orders list: date presets + a custom range (shadcn Calendar). Writes ?from=&to= and keeps the tab / search. */
-export function OrdersDateFilter({ from, to }: { from: string; to: string }) {
+export function OrdersDateFilter({ from, to, fromTime = "", toTime = "" }: { from: string; to: string; fromTime?: string; toTime?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
   const [range, setRange] = useState<DateRange | undefined>(from ? { from: fromIso(from), to: fromIso(to || from) } : undefined);
+  const [ft, setFt] = useState(fromTime);
+  const [tt, setTt] = useState(toTime);
 
-  const go = (next: [string, string] | null) => {
+  /** Presets clear the time window; the custom picker can add one (e.g. 10:00 to 14:00). */
+  const go = (next: [string, string] | null, times?: [string, string]) => {
     const p = new URLSearchParams(params.toString());
     p.delete("page");
+    p.delete("ft");
+    p.delete("tt");
     if (next) {
       p.set("from", next[0]);
       p.set("to", next[1]);
+      if (times?.[0]) p.set("ft", times[0]);
+      if (times?.[1]) p.set("tt", times[1]);
     } else {
       p.delete("from");
       p.delete("to");
     }
     start(() => router.push(`${pathname}?${p.toString()}`, { scroll: false }));
   };
-  const active = PRESETS.find((pr) => {
-    const r = pr.range();
-    return r ? r[0] === from && r[1] === to : !from && !to;
-  })?.id;
+  const timed = Boolean(fromTime || toTime);
+  const active = timed
+    ? undefined
+    : PRESETS.find((pr) => {
+        const r = pr.range();
+        return r ? r[0] === from && r[1] === to : !from && !to;
+      })?.id;
+  const timeLabel = timed ? ` · ${fromTime || "00:00"}–${toTime || "23:59"}` : "";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -85,12 +96,28 @@ export function OrdersDateFilter({ from, to }: { from: string; to: string }) {
           )}
         >
           <CalendarDays className="size-4" />
-          {from ? (from === to ? nice(from) : `${nice(from)} – ${nice(to)}`) : "Custom dates"}
+          {from ? `${from === to ? nice(from) : `${nice(from)} – ${nice(to)}`}${timeLabel}` : "Custom dates & time"}
           {pending && <Loader2 className="size-3.5 animate-spin" />}
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto p-0">
           <Calendar mode="range" numberOfMonths={2} selected={range} onSelect={setRange} defaultMonth={range?.from} disabled={{ after: new Date() }} className="rounded-xl" />
-          <div className="flex items-center justify-between gap-3 border-t border-line p-3">
+          <div className="flex flex-wrap items-end gap-3 border-t border-line px-3 pt-3">
+            <label className="grid gap-1 text-[11px] font-semibold text-ink-muted">
+              From time
+              <input type="time" value={ft} onChange={(e) => setFt(e.target.value)} className="h-9 rounded-lg border border-line bg-subtle px-2 text-sm text-ink outline-none focus:border-forest" />
+            </label>
+            <label className="grid gap-1 text-[11px] font-semibold text-ink-muted">
+              To time
+              <input type="time" value={tt} onChange={(e) => setTt(e.target.value)} className="h-9 rounded-lg border border-line bg-subtle px-2 text-sm text-ink outline-none focus:border-forest" />
+            </label>
+            {(ft || tt) && (
+              <button type="button" onClick={() => (setFt(""), setTt(""))} className="h-9 rounded-lg px-2 text-xs font-semibold text-ink-muted hover:bg-khaki-soft">
+                Clear time
+              </button>
+            )}
+            <p className="w-full text-[11px] text-ink-muted">Optional. Start time applies to the first day, end time to the last day.</p>
+          </div>
+          <div className="flex items-center justify-between gap-3 p-3">
             <span className="text-xs text-ink-muted">
               {range?.from ? `${nice(iso(range.from))} – ${nice(iso(range.to ?? range.from))}` : "Pick a start and end date"}
             </span>
@@ -99,7 +126,7 @@ export function OrdersDateFilter({ from, to }: { from: string; to: string }) {
               disabled={!range?.from}
               onClick={() => {
                 if (!range?.from) return;
-                go([iso(range.from), iso(range.to ?? range.from)]);
+                go([iso(range.from), iso(range.to ?? range.from)], [ft, tt]);
                 setOpen(false);
               }}
               className="h-9 rounded-full bg-forest px-4 text-xs font-semibold text-white transition-colors hover:bg-forest-mid disabled:opacity-50"

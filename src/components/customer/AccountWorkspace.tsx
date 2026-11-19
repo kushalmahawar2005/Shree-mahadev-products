@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, ChevronRight, Loader2, LogOut, Plus, RotateCcw } from "lucide-react";
 import { BadgeCheck, BookOpen, Boxes, MapPin, MessageCircle, Package, Phone, ShieldCheck, Store, Truck, UserRound, type DuoIcon } from "@/components/icons/duo";
 import { SmartImage } from "@/components/ui/SmartImage";
-import { whatsappLink } from "@/data/site";
+import { helpLink } from "@/data/site";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
 import { logoutCustomerAction, reorderAction, requestCustomerOtpAction, saveCustomerAddressAction, setCustomerNameAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
@@ -358,7 +358,7 @@ function Overview({ orders, addresses, card, go }: { orders: Order[]; addresses:
     { href: "/track-order", title: "Track an order", text: "Live courier status", icon: Truck },
     { href: "/shop", title: "Shop again", text: "Oils, honey, jaggery", icon: Store },
     { href: "/bulk-orders", title: "Bulk orders", text: "Tins for shops & events", icon: Boxes },
-    { href: whatsappLink("Hi, I need help with my order."), title: "Chat with us", text: "WhatsApp, 9am–6pm", icon: MessageCircle, external: true },
+    { href: helpLink(), title: "Help & support", text: "Raise a request, 9am–6pm", icon: MessageCircle },
   ];
   return (
     <div className="space-y-5">

@@ -12,6 +12,7 @@ export const ISSUES = {
   delayed: "Delivery delayed",
   change_date: "Change delivery date",
   damaged: "Damaged or leaked",
+  expired: "Expired product",
   wrong_item: "Wrong item",
   missing_item: "Missing item",
   quality: "Quality concern",
@@ -30,7 +31,16 @@ export type IssueKey = keyof typeof ISSUES;
 export const ISSUE_KEYS = Object.keys(ISSUES) as [IssueKey, ...IssueKey[]];
 
 /** Issues where photos help (bottle/box + label). */
-export const PHOTO_ISSUES: readonly IssueKey[] = ["damaged", "wrong_item", "missing_item", "quality"];
+export const PHOTO_ISSUES: readonly IssueKey[] = ["damaged", "expired", "wrong_item", "missing_item", "quality"];
+
+/**
+ * Refund claims (damage / expiry) need an unboxing video: the parcel opened on camera from the sealed
+ * box, showing the damage or the expiry date. Store policy, see /policies/refund-return.
+ */
+export const VIDEO_ISSUES: readonly IssueKey[] = ["damaged", "expired"];
+
+/** Help attachments are photos or one unboxing video; Cloudinary serves videos under /video/upload/. */
+export const isSupportVideo = (url: string) => url.includes("/video/upload/");
 
 /** Which chips to offer for an order status (null = "Not about a specific order"). */
 export function issuesFor(status: string | null): IssueKey[] {
@@ -50,7 +60,7 @@ export function issuesFor(status: string | null): IssueKey[] {
       return ["where_is_order", "delayed", "change_date", "other"];
     case "delivered":
     case "return_requested":
-      return ["damaged", "wrong_item", "missing_item", "quality", "return_refund", "other"];
+      return ["damaged", "expired", "wrong_item", "missing_item", "quality", "return_refund", "other"];
     default: // cancelled, refunded, partially_refunded, rto
       return ["refund_status", "why_cancelled", "reorder_help", "other"];
   }
@@ -80,7 +90,7 @@ export const isPaidOnline = (status: string, method: string) =>
   method === "payu" && ["paid", "confirmed", "packed"].includes(status);
 
 export const PAID_CANCEL_MESSAGE =
-  "Ye order online paid hai, isliye hamari team ise cancel karke poora refund karegi. Neeche \"Cancel request bhejein\" dabaiye.";
+  "This order was paid online, so our team will cancel it and refund you in full. Tap \"Request cancellation\" below.";
 
 /** "12 Nov" from an IST DB string. */
 export function shortDate(raw: string) {

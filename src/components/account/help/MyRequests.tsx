@@ -5,10 +5,9 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Inbox, MessageCircle, Phone } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/shadcn/collapsible";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/shadcn/sheet";
-import { whatsappLink } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 import { formatDateTime } from "@/lib/utils/format";
-import { ISSUES, TICKET_STATUS, shortDate, type HelpTicket, type IssueKey } from "./help-lib";
+import { ISSUES, TICKET_STATUS, isSupportVideo, shortDate, type HelpTicket, type IssueKey } from "./help-lib";
 
 const issueLabel = (k: string) => ISSUES[k as IssueKey] ?? k;
 
@@ -106,35 +105,29 @@ export function MyRequests({ tickets, openTicket }: { tickets: HelpTicket[]; ope
                       </>
                     ) : (
                       <>
-                        <MessageCircle className="size-4" /> WhatsApp
+                        <MessageCircle className="size-4" /> Support ticket
                       </>
                     )}
                   </dd>
                 </div>
                 {active.photos.length > 0 && (
                   <div>
-                    <dt className="text-ink-muted">Photos</dt>
-                    <dd className="mt-1 flex gap-2">
-                      {active.photos.map((u) => (
-                        <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="block size-20 overflow-hidden rounded-xl border border-line">
-                          {/* eslint-disable-next-line @next/next/no-img-element -- customer upload, any format (HEIC) */}
-                          <img src={u} alt="Attached photo" className="size-full object-cover" />
-                        </a>
-                      ))}
+                    <dt className="text-ink-muted">Attachments</dt>
+                    <dd className="mt-1 flex flex-wrap gap-2">
+                      {active.photos.map((u) =>
+                        isSupportVideo(u) ? (
+                          <video key={u} src={u} controls playsInline preload="metadata" className="max-h-48 w-full rounded-xl border border-line bg-black" />
+                        ) : (
+                          <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="block size-20 overflow-hidden rounded-xl border border-line">
+                            {/* eslint-disable-next-line @next/next/no-img-element -- customer upload, any format (HEIC) */}
+                            <img src={u} alt="Attached photo" className="size-full object-cover" />
+                          </a>
+                        ),
+                      )}
                     </dd>
                   </div>
                 )}
               </dl>
-              <div className="mt-auto p-4">
-                <a
-                  href={whatsappLink(`Hi, about ticket ${active.ticketNo}${active.orderNo ? ` · Order #${active.orderNo}` : ""}`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-forest px-5 text-base font-semibold text-white hover:bg-forest-mid"
-                >
-                  <MessageCircle className="size-5" /> Follow up on WhatsApp
-                </a>
-              </div>
             </>
           )}
         </SheetContent>

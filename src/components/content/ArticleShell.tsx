@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { BookOpen, CalendarDays, ChefHat, FileText, MessageCircle } from "@/components/icons/duo";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
-import { site, whatsappLink } from "@/data/site";
+import { site } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 
 const fmt = (d: string) => new Date(`${d}T00:00:00+05:30`).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
@@ -104,17 +104,15 @@ export function ArticleShell({
           <div>
             <p className="font-bold text-white">Have a question about this?</p>
             <p className="text-sm text-white/70">
-              WhatsApp or call {site.phone}, {site.supportHours}.
+              We&apos;re happy to help, {site.supportHours}.
             </p>
           </div>
-          <a
-            href={whatsappLink(`Hi, I have a question about "${title}".`)}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/contact"
             className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-co-gold px-5 text-sm font-bold text-forest-deep hover:bg-white"
           >
-            <MessageCircle className="size-4" /> Ask us
-          </a>
+            <MessageCircle className="size-4" /> Contact us
+          </Link>
         </aside>
       </div>
     </div>

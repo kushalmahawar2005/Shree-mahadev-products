@@ -143,16 +143,16 @@ function Side({ side }: { side: "refined" | "ghani" }) {
       alt={
         side === "refined"
           ? "An oil refinery: steel tanks, pipes and a chimney, painted in cold greys"
-          : "A village kachi ghani turned by a bullock, golden oil pouring into a brass pot"
+          : "Our process under the Mahadev logo: seeds poured in, cleaned by hand, pressed in the kolhu, settled for 10 days and bottled"
       }
       fill
       sizes="(min-width: 1360px) 1300px, 100vw"
-      className={cn("object-cover object-[50%_68%]", side === "refined" ? "[filter:saturate(.7)_hue-rotate(-6deg)_brightness(1.02)]" : "[filter:saturate(1.12)_sepia(.08)]")}
+      className={cn("object-cover", side === "refined" ? "object-[50%_68%]" : "object-[50%_55%]", side === "refined" ? "[filter:saturate(.7)_hue-rotate(-6deg)_brightness(1.02)]" : "[filter:saturate(1.12)_sepia(.08)]")}
       />
       {side === "refined" ? (
         <Facts title="Most refined oils" tone="cold" items={REFINED} className="right-3 bottom-3 sm:right-6 sm:bottom-6" />
       ) : (
-        <Facts title="Our wood-pressed oils" tone="warm" items={GHANI} className="bottom-3 left-3 sm:bottom-6 sm:left-6" />
+        <Facts title="Our wood-pressed oils" tone="warm" items={GHANI} className="top-12 left-3 sm:top-14 sm:left-6" />
       )}
     </div>
   );
@@ -185,19 +185,19 @@ function Facts({
   return (
     <div
       className={cn(
-        "absolute w-[42%] rounded-xl border p-2 max-sm:hidden shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[min(330px,calc(50vw-2.5rem))] sm:rounded-2xl sm:p-[clamp(10px,1.5vw,16px)] lg:w-[420px] lg:p-5",
+        "absolute w-[42%] rounded-xl border p-2 max-sm:hidden shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] backdrop-blur-md sm:w-[min(280px,calc(50vw-2.5rem))] sm:rounded-2xl sm:p-[clamp(9px,1.2vw,13px)] lg:w-[330px] lg:p-4",
         warm ? "border-white/50 bg-[#fff6e2]/55" : "border-white/60 bg-white/50",
         className,
       )}
     >
-      <p className={cn("text-[10px] font-bold tracking-[0.12em] uppercase max-sm:hidden sm:text-xs sm:tracking-[0.14em]", warm ? "text-forest-text" : "text-[#3f4953]")}>
+      <p className={cn("text-[10px] font-bold tracking-[0.12em] uppercase max-sm:hidden sm:text-[11px] sm:tracking-[0.14em]", warm ? "text-forest-text" : "text-[#3f4953]")}>
         {title}
       </p>
-      <ul className="space-y-1 sm:mt-2.5 sm:space-y-[clamp(4px,0.8vw,8px)]">
+      <ul className="space-y-1 sm:mt-2 sm:space-y-[clamp(3px,0.6vw,6px)]">
         {/* Phones: the side labels already name each card, so only the first three points show. */}
         {items.map(({ icon: Icon, text }, i) => (
-          <li key={text} className={cn("flex items-start gap-1.5 text-[11px] leading-snug font-medium sm:gap-[clamp(6px,1vw,10px)] sm:text-[clamp(12px,1.6vw,15px)] lg:text-[15px]", i >= 3 && "max-sm:hidden")}>
-            <Icon className={cn("mt-px size-3.5 shrink-0 sm:mt-0.5 sm:size-[clamp(14px,1.8vw,18px)] lg:size-[18px]", warm ? "text-[#b07a10]" : "text-[#5d6873]")} aria-hidden />
+          <li key={text} className={cn("flex items-start gap-1.5 text-[11px] leading-snug font-medium sm:gap-[clamp(6px,0.8vw,8px)] sm:text-[clamp(11.5px,1.3vw,13px)] lg:text-[13px]", i >= 3 && "max-sm:hidden")}>
+            <Icon className={cn("mt-px size-3.5 shrink-0 sm:mt-0.5 sm:size-[clamp(13px,1.4vw,15px)] lg:size-[15px]", warm ? "text-[#b07a10]" : "text-[#5d6873]")} aria-hidden />
             <span className={warm ? "text-ink" : "text-[#2f3740]"}>{text}</span>
           </li>
         ))}

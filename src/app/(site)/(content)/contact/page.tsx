@@ -9,7 +9,7 @@ import { pageMetadata } from "@/lib/utils/seo";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact us",
-  description: `Call or WhatsApp ${site.phone} (${site.supportHours}). ${fullAddress}.`,
+  description: `Contact Swadeshi Mahadev Products (${site.supportHours}). ${fullAddress}.`,
   path: "/contact",
 });
 

@@ -106,8 +106,13 @@ export function InquiryEmail({ inquiry }: { inquiry: InquiryEmailData }) {
               {inquiry.message && (
                 <>
                   <br />
-                  <br />
-                  {inquiry.message}
+                  {/* Keep the buyer's line breaks (numbered questions, lists). */}
+                  {inquiry.message.split("\n").map((line, i) => (
+                    <span key={i}>
+                      <br />
+                      {line}
+                    </span>
+                  ))}
                 </>
               )}
             </Text>

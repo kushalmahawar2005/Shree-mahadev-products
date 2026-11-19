@@ -1,5 +1,6 @@
 "use client";
 
+import { toMobile10 } from "@/lib/utils/phone";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Briefcase, Check, Home, Loader2, MapPin, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
@@ -237,16 +238,13 @@ export function AddressForm({
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
-                maxLength={10}
+                maxLength={16}
                 placeholder="10-digit mobile"
                 aria-invalid={invalid}
                 className={cn(INPUT, "pl-14")}
                 {...register("phone", {
                   onChange: (e) =>
-                    (e.target.value = e.target.value
-                      .replace(/\D/g, "")
-                      .replace(/^(91|0)(?=\d{10}$)/, "")
-                      .slice(0, 10)),
+                    (e.target.value = toMobile10(e.target.value)),
                 })}
               />
             </div>

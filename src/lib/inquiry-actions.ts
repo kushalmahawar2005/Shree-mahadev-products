@@ -10,11 +10,12 @@ import { notifyOrder, queueInquiryAlert } from "@/lib/server/mail";
 import { createOrder, type OrderItemInput } from "@/lib/server/orders";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { INDIAN_STATES } from "@/lib/checkout";
+import { toMobile10 } from "@/lib/utils/phone";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 const phone = z
   .string()
-  .transform((value) => value.replace(/\D/g, ""))
+  .transform(toMobile10)
   .pipe(
     z.string().regex(/^[6-9]\d{9}$/, "Enter a 10-digit Indian mobile number."),
   );
@@ -30,7 +31,8 @@ const email = z
 const bulkInquirySchema = z
   .object({
     name: z.string().trim().min(2).max(120),
-    business: z.string().trim().min(2).max(160),
+    // Optional: a family or a single buyer ordering above the website limit has no business name.
+    business: z.string().trim().max(160).refine((v) => v === "" || v.length >= 2, "Business name is too short."),
     city: z.string().trim().min(2).max(80),
     phone,
     email,

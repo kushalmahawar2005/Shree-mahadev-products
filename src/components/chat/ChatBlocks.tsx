@@ -4,13 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertTriangle, ArrowUpRight, Check, CheckCircle2, ChevronRight, ClipboardCheck, FileText, House, LoaderCircle, PackageCheck, ShieldCheck, Truck, XCircle, type LucideIcon } from "lucide-react";
-import * as Duo from "@/components/icons/duo";
 import { AddToCartCard, CartCard, ShopCard, ShopCards } from "@/components/chat/ChatCommerce";
 import { RichText } from "@/components/chat/ChatParts";
 import { ease, enter, move, rise, staggerParent, tap } from "@/components/chat/motion";
-import { site, whatsappLink } from "@/data/site";
+import { helpLink, site } from "@/data/site";
 import { CheckoutCard } from "@/components/chat/CheckoutCard";
-import { PhotoPicker, type HelpPhoto } from "@/components/account/help/PhotoPicker";
+import { PhotoPicker, hasVideo, type HelpPhoto } from "@/components/account/help/PhotoPicker";
 import type { ChatPlaceResult } from "@/lib/checkout-actions";
 import type { ChatBlock, ChatBlockOf } from "@/lib/chat/blocks";
 
@@ -163,7 +162,7 @@ function OrderListBlock({ block, handlers }: { block: ChatBlockOf<"order_list">;
 
 /* ---------- action_confirm ---------- */
 const CANCEL_REASONS = ["Ordered by mistake", "Want to change items or address", "Found a better price", "Delivery is too slow", "Other"];
-export const RETURN_CHOICES = ["Damaged or leaking", "Expired", "Wrong item received", "Item missing", "Quality not as expected"] as const;
+export const RETURN_CHOICES = ["Damaged or leaking", "Expired on arrival"] as const;
 
 function ActionConfirmBlock({ block, handlers }: { block: ChatBlockOf<"action_confirm">; handlers: BlockHandlers }) {
   const isReturn = block.kind === "return";
@@ -172,13 +171,13 @@ function ActionConfirmBlock({ block, handlers }: { block: ChatBlockOf<"action_co
   const [photos, setPhotos] = useState<HelpPhoto[]>([]);
   const uploading = photos.some((photo) => photo.state === "uploading");
   const [state, setState] = useState<"idle" | "busy" | "error">("idle");
-  const title = block.kind === "cancel" ? `${block.orderNo} cancel karein?` : block.kind === "cancel_request" ? `${block.orderNo} cancel request bhejein?` : `${block.orderNo} return request`;
+  const title = block.kind === "cancel" ? `Cancel ${block.orderNo}?` : block.kind === "cancel_request" ? `Request cancellation of ${block.orderNo}?` : `Return request for ${block.orderNo}`;
 
   if (block.resolved) {
     return (
       <div className="flex items-center gap-2 rounded-xl bg-co-panel px-3 py-2.5 text-[13px] text-ink-muted">
         {block.resolved === "confirmed" ? <CheckCircle2 size={16} className="text-forest" /> : <XCircle size={16} />}
-        {block.resolved === "confirmed" ? "Ho gaya." : "Theek hai, kuch nahi badla."}
+        {block.resolved === "confirmed" ? "Done." : "Okay, nothing was changed."}
       </div>
     );
   }
@@ -193,7 +192,7 @@ function ActionConfirmBlock({ block, handlers }: { block: ChatBlockOf<"action_co
       )}
       {block.kind === "cancel" && (
         <motion.label variants={rise} className="block text-[12.5px] font-medium text-ink">
-          Wajah
+          Reason
           <select value={reason} onChange={(event) => setReason(event.target.value)} className="mt-1 h-11 w-full rounded-xl border border-line bg-white px-3 text-sm">
             {CANCEL_REASONS.map((item) => <option key={item}>{item}</option>)}
           </select>
@@ -206,29 +205,26 @@ function ActionConfirmBlock({ block, handlers }: { block: ChatBlockOf<"action_co
               <button key={item} type="button" role="radio" aria-checked={reason === item} onClick={() => setReason(item)} className={`min-h-10 rounded-full border px-3 text-[13px] font-medium ${reason === item ? "border-forest bg-forest text-white" : "border-line text-ink"}`}>{item}</button>
             ))}
           </div>
-          <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} rows={2} placeholder="Kya hua? (optional)" className="w-full rounded-xl border border-line px-3 py-2 text-[15px] outline-none focus:border-forest/40" />
-          <div>
-            <p className="mb-1 text-[12.5px] font-medium text-ink">Photo (3 tak) · bottle, box aur label</p>
-            <PhotoPicker photos={photos} setPhotos={setPhotos} />
-          </div>
+          <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} rows={2} placeholder="What happened? (optional)" className="w-full rounded-xl border border-line px-3 py-2 text-[15px] outline-none focus:border-forest/40" />
+          <PhotoPicker photos={photos} setPhotos={setPhotos} video />
         </motion.div>
       )}
-      {state === "error" && <p className="text-[13px] text-alert">Nahi ho paaya. Dobara try karein.</p>}
+      {state === "error" && <p className="text-[13px] text-alert">Something went wrong. Please try again.</p>}
       <motion.div variants={rise} className="flex gap-2">
-        <button type="button" disabled={state === "busy"} onClick={() => handlers.onDismiss(block)} className="h-11 flex-1 rounded-xl border border-line text-sm font-semibold text-ink transition-colors hover:bg-co-panel">Wapas jaayein</button>
+        <button type="button" disabled={state === "busy"} onClick={() => handlers.onDismiss(block)} className="h-11 flex-1 rounded-xl border border-line text-sm font-semibold text-ink transition-colors hover:bg-co-panel">Go back</button>
         <motion.button
           {...tap}
           type="button"
-          disabled={state === "busy" || uploading}
+          disabled={state === "busy" || uploading || (isReturn && !hasVideo(photos))}
           onClick={async () => {
             setState("busy");
-            const done = photos.filter((photo) => photo.state === "done" && photo.url && photo.publicId).slice(0, 3).map((photo) => ({ url: photo.url!, publicId: photo.publicId! }));
+            const done = photos.filter((photo) => photo.state === "done" && photo.url && photo.publicId).map((photo) => ({ url: photo.url!, publicId: photo.publicId! }));
             try { await handlers.onConfirm(block, reason, { note, photos: done }); } catch { setState("error"); return; }
             setState("idle");
           }}
           className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-alert text-sm font-semibold text-white disabled:opacity-60"
         >
-          {state === "busy" ? <LoaderCircle size={16} className="animate-spin" /> : block.kind === "cancel" ? "Haan, cancel karein" : "Haan, bhejein"}
+          {state === "busy" ? <LoaderCircle size={16} className="animate-spin" /> : block.kind === "cancel" ? "Yes, cancel" : isReturn ? "Send return request" : "Yes, send request"}
         </motion.button>
       </motion.div>
     </motion.div>
@@ -288,11 +284,8 @@ function LoginCardBlock({ block, handlers }: { block: ChatBlockOf<"login_card">;
 function HandoffBlock({ block }: { block: ChatBlockOf<"handoff"> }) {
   return (
     <div className={`${card} space-y-2`}>
-      <p className="text-sm text-ink">{block.reason ?? "Hamari team aapki madad karegi."} <span className="text-ink-muted">({site.supportHours})</span></p>
-      <div className="grid grid-cols-2 gap-2">
-        <a href={whatsappLink("Namaste, mujhe madad chahiye.")} target="_blank" rel="noreferrer" className="flex h-11 items-center justify-center gap-2 rounded-xl bg-forest text-sm font-semibold text-white"><Duo.WhatsApp size={18} mono />WhatsApp</a>
-        <a href={site.phoneHref} className="flex h-11 items-center justify-center rounded-xl border border-line text-sm font-semibold text-ink">Call karein</a>
-      </div>
+      <p className="text-sm text-ink">{block.reason ?? "Our team will help you."} <span className="text-ink-muted">({site.supportHours})</span></p>
+      <Link href={helpLink()} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-forest text-sm font-semibold text-white">Raise a request</Link>
     </div>
   );
 }

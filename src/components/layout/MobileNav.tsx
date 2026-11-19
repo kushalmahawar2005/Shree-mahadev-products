@@ -7,8 +7,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
 import { thumbUrl } from "@/lib/image-loader";
 import { formatMoney } from "@/lib/utils/money";
-import { site, shopByUse, whatsappLink, type NavItem } from "@/data/site";
-import { UserIcon, WhatsAppIcon } from "./icons";
+import { shopByUse, type NavItem } from "@/data/site";
+import { UserIcon } from "./icons";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import type { MenuData } from "./MegaMenu";
 
@@ -122,17 +122,13 @@ export function MobileNav({ open, onClose, menus, nav }: { open: boolean; onClos
             ))}
           </ul>
 
-          <a
-            href={whatsappLink("Hi, I have a question about your products.")}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/contact"
+            onClick={onClose}
             className="mt-5 flex min-h-12 items-center justify-center gap-2 rounded-full bg-forest font-semibold text-white"
           >
-            <WhatsAppIcon className="size-5" /> Chat on WhatsApp
-          </a>
-          <p className="mt-2 text-center text-xs text-ink-muted">
-            {site.phone} · {site.supportHours}
-          </p>
+            Contact us
+          </Link>
           <InstallApp onDone={onClose} className="mt-4 min-h-12 w-full justify-center rounded-full border border-forest/30 text-sm font-semibold text-forest-text" />
         </nav>
 

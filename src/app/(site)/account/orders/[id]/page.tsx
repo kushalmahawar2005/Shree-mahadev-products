@@ -14,7 +14,6 @@ import {
   MapPin,
   MessageCircle,
   Package,
-  Phone,
   ReceiptIndianRupee,
   Star,
   Truck,
@@ -37,7 +36,7 @@ import {
 import { primaryBtn, secondaryBtn } from "@/lib/account/ui-classes";
 import { OrderStatusBadge } from "@/components/account/shared";
 import { accountConfig } from "@/config/account";
-import { site, whatsappLink } from "@/data/site";
+import { helpLink } from "@/data/site";
 import { arrivingBy } from "@/lib/account/order-status";
 import {
   PAY_MODES,
@@ -120,8 +119,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   const ui = statusUi(o, eta);
   const captured = isCaptured(o);
   const itemCount = o.items.reduce((s, i) => s + i.qty, 0);
-  const statusLabel = ui.title.split(" · ")[0]!.toLowerCase();
-  const help = whatsappLink(`Hi, I need help with order ${o.orderNo} (${statusLabel}).`);
+  const help = helpLink(o.orderNo);
 
   // GST invoice: issued once the sale is final (online payment captured, or COD dispatched).
   const inv = await invoiceInfoForOrder(o.id);
@@ -367,17 +365,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               </p>
               <RequestCallback orderId={o.id} orderNo={o.orderNo} phone={formatPhone(shell.customer.phone)} className="mt-3" />
               <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <a
-                  href={help}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={cn(secondaryBtn, "whitespace-nowrap")}
-                >
-                  <MessageCircle className="size-4" /> WhatsApp us
-                </a>
-                <a href={site.phoneHref} className={cn(secondaryBtn, "whitespace-nowrap")}>
-                  <Phone className="size-4" /> Call {accountConfig.support.hours}
-                </a>
+                <Link href={help} className={cn(secondaryBtn, "whitespace-nowrap sm:col-span-2 lg:col-span-1 xl:col-span-2")}>
+                  <MessageCircle className="size-4" /> Raise a request
+                </Link>
               </div>
             </section>
           </Reveal>

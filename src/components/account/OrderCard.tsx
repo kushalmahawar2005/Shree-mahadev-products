@@ -17,7 +17,7 @@ import {
   Truck,
 } from "lucide-react";
 import { useCart } from "@/components/cart/CartProvider";
-import { whatsappLink } from "@/data/site";
+import { helpLink } from "@/data/site";
 import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
 import { cutoutUrl } from "@/lib/image-loader";
 import type { AccountOrder } from "@/lib/server/account";
@@ -180,7 +180,7 @@ function OrderActions({
   const [reason, setReason] = useState<(typeof CANCEL_REASONS)[number]>(
     CANCEL_REASONS[0],
   );
-  const help = whatsappLink(`Hi, I need help with order ${o.orderNo}.`);
+  const help = helpLink(o.orderNo);
 
   const buyAgain = () =>
     startBuy(async () => {
@@ -196,11 +196,11 @@ function OrderActions({
         toast.error(r.error, {
           duration: 10000,
           action: {
-            label: "Cancel request bhejein",
+            label: "Request cancellation",
             onClick: async () => {
               const q = await requestCancelOrderAction({ orderId: o.id, reason });
               if (!q.ok) return void toast.error(q.error);
-              toast.success(`Request bhej di (${q.ticketNo}). Team jaldi cancel + refund karegi.`);
+              toast.success(`Request sent (${q.ticketNo}). Our team will cancel and refund it shortly.`);
               onChange?.();
               router.refresh();
             },
@@ -313,12 +313,7 @@ function OrderActions({
       actions = (
         <>
           {buyAgainBtn(true)}
-          <a
-            href={help}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={ghost}
-          >
+          <a href={help} className={ghost}>
             <MessageCircle className="size-4" /> Need help?
           </a>
         </>

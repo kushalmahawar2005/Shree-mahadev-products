@@ -1,6 +1,6 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import { ISSUES, type HelpTicket, type IssueKey } from "@/components/account/help/help-lib";
+import { ISSUES, isSupportVideo, type HelpTicket, type IssueKey } from "@/components/account/help/help-lib";
 import { supportConfig } from "@/config/support";
 import { site } from "@/data/site";
 import { cloudinary, cloudinaryConfigured, destroyImage, isOwnCloudinaryUrl } from "./cloudinary";
@@ -78,18 +78,19 @@ export async function listSupportTickets(customerId: number, limit = 20): Promis
 
 /* ── Photos: browser → Cloudinary (signed), then checked again on the server before saving ── */
 
-export function signSupportUpload() {
+export function signSupportUpload(kind: "image" | "video" = "image") {
   if (!cloudinaryConfigured()) return null;
   const params = {
     folder: FOLDER,
     timestamp: Math.round(Date.now() / 1000),
-    allowed_formats: supportConfig.photos.formats.join(","),
+    allowed_formats: (kind === "video" ? supportConfig.video.formats : supportConfig.photos.formats).join(","),
   };
   return {
     ...params,
     signature: cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET!),
     apiKey: process.env.CLOUDINARY_API_KEY!,
     cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+    resourceType: kind,
   };
 }
 
@@ -100,12 +101,14 @@ export function signSupportUpload() {
 export async function verifySupportPhoto(p: { url: string; publicId: string }): Promise<string | null> {
   if (!isOwnCloudinaryUrl(p.url, p.publicId) || !p.publicId.startsWith(`${FOLDER}/`))
     return "One of the photos was not uploaded to our image store.";
+  const video = isSupportVideo(p.url);
   try {
-    const r = (await cloudinary.api.resource(p.publicId, { resource_type: "image" })) as { bytes: number; format: string };
-    const formats: readonly string[] = supportConfig.photos.formats;
-    if (!formats.includes(String(r.format).toLowerCase()) || Number(r.bytes) > supportConfig.photos.maxBytes) {
-      await destroyImage(p.publicId);
-      return "Photos must be JPG, PNG, WEBP or HEIC and under 5 MB.";
+    const r = (await cloudinary.api.resource(p.publicId, { resource_type: video ? "video" : "image" })) as { bytes: number; format: string };
+    const rule = video ? supportConfig.video : supportConfig.photos;
+    const formats: readonly string[] = rule.formats;
+    if (!formats.includes(String(r.format).toLowerCase()) || Number(r.bytes) > rule.maxBytes) {
+      await destroyImage(p.publicId, video ? "video" : "image");
+      return video ? "The video must be MP4, MOV, WEBM or 3GP and under 100 MB." : "Photos must be JPG, PNG, WEBP or HEIC and under 5 MB.";
     }
     return null;
   } catch (e) {

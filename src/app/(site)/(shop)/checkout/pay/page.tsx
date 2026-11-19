@@ -14,7 +14,7 @@ import { activeGateway } from "@/lib/server/payment-gateway";
 import { CashfreeCheckout } from "@/components/checkout/CashfreeCheckout";
 import { OutOfStockError } from "@/lib/server/inventory";
 import { getOrderByToken, startPaymentAttempt } from "@/lib/server/orders";
-import { site, whatsappLink } from "@/data/site";
+import { helpLink, site } from "@/data/site";
 
 export const metadata: Metadata = { title: "Secure payment", robots: { index: false } };
 
@@ -45,8 +45,8 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
     return (
       <div>
         <h1 className="text-2xl">Online payment is not set up yet</h1>
-        <p className="mt-2 text-sm text-ink-muted">Order {order.orderNo} is saved. Please complete it on WhatsApp.</p>
-        <WhatsAppButton href={whatsappLink(`Hi, I want to pay for order ${order.orderNo}.`)} label="Order on WhatsApp" />
+        <p className="mt-2 text-sm text-ink-muted">Order {order.orderNo} is saved. Our team will help you complete it.</p>
+        <HelpButton href={helpLink(order.orderNo)} label="Get help" />
       </div>
     );
   }
@@ -72,7 +72,7 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
       <div>
         <h1 className="text-2xl">Sorry, this went out of stock</h1>
         <p className="mt-2 text-sm text-ink-muted">{e.message}</p>
-        <WhatsAppButton href={whatsappLink(`Hi, order ${order.orderNo} went out of stock while paying.`)} label="Message us on WhatsApp" />
+        <HelpButton href={helpLink(order.orderNo)} label="Get help" />
       </div>
     );
   }
@@ -103,17 +103,17 @@ async function PayContent({ searchParams }: { searchParams: Promise<Record<strin
       return (
         <div>
           <h1 className="text-2xl">Payment couldn&apos;t start</h1>
-          <p className="mt-2 text-sm text-ink-muted">Order {order.orderNo} is saved. Please try again in a minute, or finish it on WhatsApp.</p>
+          <p className="mt-2 text-sm text-ink-muted">Order {order.orderNo} is saved. Please try again in a minute, or ask us for help.</p>
           <div className="mt-6 grid gap-2.5">
             {/* Plain <a>: a full load starts a fresh payment attempt. */}
             <a href={`/checkout/pay?t=${order.token}`} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-forest px-6 text-sm font-bold text-white hover:bg-forest-mid">
               <Lock className="size-4" /> Try payment again
             </a>
             <a
-              href={whatsappLink(`Hi, I want to pay for order ${order.orderNo}.`)}
+              href={helpLink(order.orderNo)}
               className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-line bg-white px-6 text-sm font-semibold text-forest hover:border-forest/40"
             >
-              <MessageCircle className="size-4" /> Message us on WhatsApp
+              <MessageCircle className="size-4" /> Get help
             </a>
           </div>
         </div>
@@ -177,7 +177,7 @@ function Spinner({ label }: { label: string }) {
   );
 }
 
-function WhatsAppButton({ href, label }: { href: string; label: string }) {
+function HelpButton({ href, label }: { href: string; label: string }) {
   return (
     <a href={href} className="mt-6 inline-flex h-12 items-center gap-2 rounded-full bg-forest px-6 text-sm font-bold text-white hover:bg-forest-mid">
       <MessageCircle className="size-4" /> {label}

@@ -120,12 +120,15 @@ async function paymentOf(conn: PoolConnection, orderId: number, method: string) 
   if (method === "cod") return { paymentMode: "Cash on delivery", paymentRef: "" };
   if (method === "offline") return { paymentMode: "Paid offline", paymentRef: "" };
   const [[payment]] = await conn.execute<Row[]>(
-    "SELECT txnid, mihpayid, mode FROM payments WHERE order_id=? AND status IN ('success','refunded') ORDER BY id DESC LIMIT 1", [orderId],
+    "SELECT txnid, mihpayid, mode, provider FROM payments WHERE order_id=? AND status IN ('success','refunded') ORDER BY id DESC LIMIT 1", [orderId],
   );
-  if (!payment) return { paymentMode: "Online (PayU)", paymentRef: "" };
+  if (!payment) return { paymentMode: "Online", paymentRef: "" };
+  const gw = payment.provider === "cashfree" ? "Cashfree" : "PayU";
+  // Readable mode: PayU sends UPI / CC / NB, Cashfree sends upi / net_banking / debit_card…
+  const mode = payment.mode ? String(payment.mode).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : "";
   return {
-    paymentMode: `Online (PayU${payment.mode ? ` · ${String(payment.mode)}` : ""})`,
-    paymentRef: [`Txn ${String(payment.txnid)}`, payment.mihpayid ? `PayU ID ${String(payment.mihpayid)}` : ""].filter(Boolean).join(" · "),
+    paymentMode: `Online (${gw}${mode ? ` · ${mode}` : ""})`,
+    paymentRef: [`Txn ${String(payment.txnid)}`, payment.mihpayid ? `${gw} ID ${String(payment.mihpayid)}` : ""].filter(Boolean).join(" · "),
   };
 }
 

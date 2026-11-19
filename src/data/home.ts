@@ -170,6 +170,7 @@ export const spotlight = [
       position: "86% center",
       mobileUrl: "/images/spotlight/jamun-raw-honey-mobile.webp",
       mobileTint: "#483118",
+      tabletPortrait: true,
     },
   },
   {

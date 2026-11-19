@@ -1,5 +1,6 @@
 "use client";
 
+import { toMobile10 } from "@/lib/utils/phone";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
@@ -63,18 +64,18 @@ export function AccountMenuLogin({
   };
 
   const verify = (code = state.code) => {
-    if (code.length !== 6) return setError("6 digit ka OTP daalein.");
+    if (code.length !== 6) return setError("Enter the 6-digit OTP.");
     setError("");
     start(async () => {
       const r = await verifyCustomerOtpAction({ phone: state.phone, code });
-      if (!r.ok) return setError(("error" in r && r.error) || "OTP galat hai.");
+      if (!r.ok) return setError(("error" in r && r.error) || "That OTP is incorrect.");
       if ("needsName" in r && r.needsName) set({ step: "name" });
       else finish();
     });
   };
 
   const saveName = () => {
-    if (state.name.trim().length < 2) return setError("Kam se kam 2 letters.");
+    if (state.name.trim().length < 2) return setError("Please enter at least 2 letters.");
     setError("");
     start(async () => {
       const r = await setCustomerNameAction({ name: state.name.trim() });
@@ -98,7 +99,7 @@ export function AccountMenuLogin({
         {state.step === "phone" && (
           <motion.form key="phone" {...step} onSubmit={(e) => (e.preventDefault(), sendOtp())} noValidate>
             <p className="text-[16px] leading-tight font-semibold text-ink">Namaste 🙏</p>
-            <p className="mt-0.5 text-[12.5px] text-ink-muted">Phone number se login karein, password nahi.</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">Log in with your phone number. No password needed.</p>
             <label className="mt-3 flex h-11 items-center rounded-xl border border-line bg-white transition-[border-color,box-shadow] focus-within:border-forest focus-within:ring-4 focus-within:ring-forest/10">
               <span className="pr-2 pl-3.5 text-sm font-semibold text-ink-muted">+91</span>
               <span className="h-5 w-px bg-line" aria-hidden />
@@ -109,16 +110,16 @@ export function AccountMenuLogin({
                 placeholder="Mobile number"
                 aria-label="Mobile number"
                 value={state.phone}
-                maxLength={10}
-                onChange={(e) => set({ phone: e.target.value.replace(/\D/g, "").slice(0, 10) })}
+                maxLength={16}
+                onChange={(e) => set({ phone: toMobile10(e.target.value) })}
                 className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-[15px] tracking-wide text-ink tabular-nums outline-none placeholder:tracking-normal placeholder:text-ink-muted/60"
               />
             </label>
             <button type="submit" disabled={pending || state.phone.length !== 10} className={cn(btn, "mt-2.5")}>
               {pending && <Loader2 className="size-4 animate-spin" />}
-              OTP bhejein
+              Send OTP
             </button>
-            <p className="mt-2 text-center text-[11.5px] text-ink-muted">OTP WhatsApp / SMS par aayega</p>
+            <p className="mt-2 text-center text-[11.5px] text-ink-muted">You will get the OTP on WhatsApp or SMS</p>
           </motion.form>
         )}
 
@@ -127,14 +128,14 @@ export function AccountMenuLogin({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Number badlein"
+                aria-label="Change number"
                 onClick={() => (setError(""), set({ step: "phone", code: "" }))}
                 className="-ml-1 grid size-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-ivory hover:text-ink"
               >
                 <ArrowLeft className="size-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-[15px] leading-tight font-semibold text-ink">OTP daalein</p>
+                <p className="text-[15px] leading-tight font-semibold text-ink">Enter OTP</p>
                 <p className="text-[12.5px] text-ink-muted tabular-nums">+91 {state.phone.slice(0, 5)} {state.phone.slice(5)} par bheja</p>
               </div>
             </div>
@@ -159,14 +160,14 @@ export function AccountMenuLogin({
             {state.devCode && <p className="mt-2 text-center text-[11px] text-ink-muted">Test mode: OTP {state.devCode} (auto filled)</p>}
             <button type="submit" disabled={pending || state.code.length !== 6} className={cn(btn, "mt-3")}>
               {pending && <Loader2 className="size-4 animate-spin" />}
-              Login karein
+              Log in
             </button>
             <p className="mt-2 text-center text-[12px] text-ink-muted">
               {wait > 0 ? (
-                <span className="tabular-nums">Dobara bhejein {wait}s mein</span>
+                <span className="tabular-nums">Resend in {wait}s</span>
               ) : (
                 <button type="button" onClick={sendOtp} disabled={pending} className="font-semibold text-forest-text underline-offset-4 hover:underline">
-                  OTP dobara bhejein
+                  Resend OTP
                 </button>
               )}
             </p>
@@ -175,13 +176,13 @@ export function AccountMenuLogin({
 
         {state.step === "name" && (
           <motion.form key="name" {...step} onSubmit={(e) => (e.preventDefault(), saveName())} noValidate>
-            <p className="text-[16px] leading-tight font-semibold text-ink">Swagat hai! 🎉</p>
-            <p className="mt-0.5 text-[12.5px] text-ink-muted">Aapko kis naam se bulayein?</p>
+            <p className="text-[16px] leading-tight font-semibold text-ink">Welcome! 🎉</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">What should we call you?</p>
             <input
               autoFocus
               autoComplete="name"
-              placeholder="Aapka naam"
-              aria-label="Aapka naam"
+              placeholder="Your name"
+              aria-label="Your name"
               value={state.name}
               maxLength={80}
               onChange={(e) => set({ name: e.target.value })}
@@ -189,10 +190,10 @@ export function AccountMenuLogin({
             />
             <button type="submit" disabled={pending} className={cn(btn, "mt-2.5")}>
               {pending && <Loader2 className="size-4 animate-spin" />}
-              Shuru karein
+              Get started
             </button>
             <button type="button" onClick={finish} className="mx-auto mt-2 block text-[12px] text-ink-muted underline-offset-4 hover:underline">
-              Baad mein
+              Later
             </button>
           </motion.form>
         )}
@@ -206,7 +207,7 @@ export function AccountMenuLogin({
             >
               <Check className="size-5" strokeWidth={2.5} />
             </motion.span>
-            <p className="mt-2.5 text-[15px] font-semibold text-ink">Login ho gaya</p>
+            <p className="mt-2.5 text-[15px] font-semibold text-ink">You are logged in</p>
           </motion.div>
         )}
       </AnimatePresence>

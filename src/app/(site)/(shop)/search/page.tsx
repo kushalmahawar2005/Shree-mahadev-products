@@ -7,7 +7,6 @@ import { SearchBox } from "@/components/search/SearchBox";
 import { PickCard } from "@/components/home/PickCard";
 import { toPickProduct } from "@/components/home/pickProduct";
 import { getProducts, searchProducts } from "@/lib/commerce";
-import { whatsappLink } from "@/data/site";
 
 export const metadata: Metadata = {
   title: "Search",
@@ -56,15 +55,13 @@ async function Results({ searchParams }: Pick<PageProps<"/search">, "searchParam
             <SearchX className="size-6" />
           </span>
           <p className="mt-4 text-lg font-bold text-forest-text">Nothing found for &ldquo;{q}&rdquo;</p>
-          <p className="mt-1 max-w-md text-sm text-ink-muted">Try a simpler word like &ldquo;mustard&rdquo; or &ldquo;honey&rdquo;, or ask us on WhatsApp.</p>
-          <a
-            href={whatsappLink(`Hi, I'm looking for ${q}.`)}
-            target="_blank"
-            rel="noopener noreferrer"
+          <p className="mt-1 max-w-md text-sm text-ink-muted">Try a simpler word like &ldquo;mustard&rdquo; or &ldquo;honey&rdquo;, or contact us.</p>
+          <Link
+            href="/contact"
             className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-forest px-5 text-sm font-bold text-white hover:bg-forest-mid"
           >
-            <MessageCircle className="size-4" /> Ask on WhatsApp
-          </a>
+            <MessageCircle className="size-4" /> Contact us
+          </Link>
         </div>
       )}
 

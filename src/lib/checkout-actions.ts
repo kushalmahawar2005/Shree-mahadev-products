@@ -442,11 +442,11 @@ export async function chatCheckoutAction(raw: unknown): Promise<ChatCheckoutSumm
       ship.codEnabled ? quoteShipping({ ...base, method: "cod" }) : null,
     ]);
     const codReason = !ship.codEnabled
-      ? "Cash on delivery abhi band hai."
+      ? "Cash on delivery is not available right now."
       : !cod?.serviceable
-        ? "Is pincode par COD available nahi hai."
+        ? "Cash on delivery is not available for this pincode."
         : ship.codMaxOrder && c.subtotal > ship.codMaxOrder
-          ? `COD ₹${ship.codMaxOrder} tak ke order par hi milta hai.`
+          ? `Cash on delivery is available on orders up to ₹${ship.codMaxOrder}.`
           : undefined;
     quote = {
       serviceable: payu.serviceable,
@@ -493,23 +493,23 @@ export async function placeChatOrderAction(raw: unknown): Promise<ChatPlaceResul
 
   const run = (async (): Promise<ChatPlaceResult> => {
     const limit = await rateLimit("chat_order", String(session.id), 5, 10);
-    if (!limit.ok) return { ok: false, error: `Bahut saari koshish ho gayi. ${limit.retryInMin} min baad try karein.` };
+    if (!limit.ok) return { ok: false, error: `Too many attempts. Please try again in ${limit.retryInMin} min.` };
     const { addressId, method, expectedTotal } = parsed.data;
 
     const summary = await chatCheckoutAction({ addressId });
     if (!summary.ok) return { ok: false, error: "auth" in summary && summary.auth ? summary.error : "Please log in again." };
-    if (summary.addressId !== addressId) return { ok: false, error: "Address nahi mila. Dobara chuniye." };
+    if (summary.addressId !== addressId) return { ok: false, error: "We could not find that address. Please choose it again." };
     const total = method === "cod" ? summary.quote?.cod.total : summary.quote?.payu.total;
-    if (!summary.quote?.serviceable) return { ok: false, error: "Is pincode par delivery abhi available nahi hai." };
-    if (method === "cod" && !summary.quote.cod.allowed) return { ok: false, error: summary.quote.cod.reason ?? "COD available nahi hai." };
-    if (total !== expectedTotal) return { ok: false, changed: true, error: "Daam ya shipping badal gaya hai. Naya total dekh lijiye." };
+    if (!summary.quote?.serviceable) return { ok: false, error: "We do not deliver to this pincode yet." };
+    if (method === "cod" && !summary.quote.cod.allowed) return { ok: false, error: summary.quote.cod.reason ?? "Cash on delivery is not available." };
+    if (total !== expectedTotal) return { ok: false, changed: true, error: "The price or shipping has changed. Please check the new total." };
 
     const [addresses, [[customer]]] = await Promise.all([
       listAddresses(session.id),
       db().query<RowDataPacket[]>("SELECT email FROM customers WHERE id=?", [session.id]),
     ]);
     const address = addresses.find((a) => a.id === addressId);
-    if (!address) return { ok: false, error: "Address nahi mila." };
+    if (!address) return { ok: false, error: "We could not find that address." };
     const fd = new FormData();
     const fields: Record<string, string> = {
       method, name: address.name, phone: address.phone, email: String(customer?.email ?? ""),
@@ -518,7 +518,7 @@ export async function placeChatOrderAction(raw: unknown): Promise<ChatPlaceResul
     };
     for (const [k, v] of Object.entries(fields)) fd.set(k, v);
     const result = await placeOrderCore(fd, "chat");
-    if (!("placed" in result)) return { ok: false, error: result.error ?? Object.values(result.fieldErrors ?? {})[0] ?? "Order place nahi ho paaya." };
+    if (!("placed" in result)) return { ok: false, error: result.error ?? Object.values(result.fieldErrors ?? {})[0] ?? "We could not place your order." };
     const [[row]] = await db().query<RowDataPacket[]>("SELECT order_no FROM orders WHERE id=?", [result.placed.orderId]);
     const orderNo = String(row?.order_no ?? result.placed.orderId);
     return result.placed.method === "cod"

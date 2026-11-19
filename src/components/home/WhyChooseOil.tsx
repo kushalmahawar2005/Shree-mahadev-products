@@ -89,13 +89,12 @@ export function WhyChooseOil() {
                 transition={reduce ? undefined : { duration: 6, repeat: Infinity, ease: [0.37, 0, 0.63, 1] }}
               >
                 <Image
-                  src="/illustrations/dadi-ghani.webp"
-                  alt="Dadi ji in a pink bandhani saree holding a brass lota, beside our yellow kachi ghani oil machine, with seeds, groundnuts and khali"
-                  width={1088}
-                  height={1205}
-                  quality={85}
-                  sizes="(min-width: 1360px) 500px, (min-width: 1024px) 38vw, 90vw"
-                  className="relative mx-auto h-auto max-h-[240px] w-auto drop-shadow md:max-h-[360px]-[0_16px_20px_rgba(60,40,10,0.12)] lg:max-h-[480px]"
+                  src="/illustrations/dadi-bottle.webp"
+                  alt="Dadi ji in a pink bandhani saree holding a bottle of Mahadev wood-pressed groundnut oil"
+                  width={556}
+                  height={1285}
+                  unoptimized
+                  className="relative mx-auto h-auto max-h-[280px] w-auto drop-shadow-[0_16px_20px_rgba(60,40,10,0.12)] md:max-h-[400px] lg:max-h-[520px]"
                 />
               </motion.div>
               {/* Speech bubble, tail pointing down-left to Dadi */}
@@ -105,7 +104,7 @@ export function WhyChooseOil() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, margin: "-80px" }}
                 transition={{ duration: 0.4, delay: reduce ? 0 : 0.3, ease: EASE }}
-                className="font-hindi absolute -top-3 left-[30%] max-w-[11rem] origin-bottom-left rounded-2xl border border-line bg-page px-3 py-2 text-[12.5px] leading-snug md:max-w-[13.5rem] md:px-3.5 md:py-2.5 md:text-[15px] text-forest-text shadow-[0_10px_24px_-14px_rgba(7,47,27,0.45)] sm:left-[34%] md:text-base"
+                className="font-hindi absolute top-[6%] left-[56%] max-w-[11rem] origin-bottom-left rounded-2xl border border-line bg-page px-3 py-2 text-[12.5px] leading-snug md:max-w-[13.5rem] md:px-3.5 md:py-2.5 md:text-[15px] text-forest-text shadow-[0_10px_24px_-14px_rgba(7,47,27,0.45)] sm:left-[55%] md:text-base"
               >
                 {DADI_QUOTE}
                 <span aria-hidden className="absolute -bottom-[7px] left-5 size-3.5 rotate-45 border-r border-b border-line bg-page" />

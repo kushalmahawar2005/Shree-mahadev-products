@@ -105,14 +105,14 @@ const COPY: Record<
       `Order ${o.orderNo} is on its way${o.courier ? ` with ${o.courier}` : ""}.`,
     heading: "Your order is on its way",
     intro: (o) =>
-      `Order ${o.orderNo} has been handed to ${o.courier ?? "our courier partner"}. You can track it any time.`,
+      `Order ${o.orderNo} has been handed to ${o.courier ?? "our courier partner"}. You can track it any time. When it arrives, please record a video while opening the parcel: damage or expiry claims are accepted only with an unboxing video.`,
     cta: "Track your order",
   },
   delivered: {
     preview: (o) => `Order ${o.orderNo} delivered. How was it?`,
     heading: "Delivered. We hope you love it.",
     intro: () =>
-      "Your order has been delivered. Unrefined oil can look a little cloudy or settle in winter. That is normal. If anything is not right, just reply to this email or WhatsApp us.",
+      "Your order has been delivered. Unrefined oil can look a little cloudy or settle in winter. That is normal. If a product arrived damaged or expired, raise a request from My orders within 7 days with your unboxing video.",
     cta: "Write a review",
   },
   cancelled: {

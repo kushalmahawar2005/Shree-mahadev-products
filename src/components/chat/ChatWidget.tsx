@@ -25,7 +25,6 @@ import { BlockList, type BlockHandlers } from "@/components/chat/ChatBlocks";
 import { parseBlocks, type ChatBlock, type ChatBlockOf } from "@/lib/chat/blocks";
 import { reorderAction } from "@/lib/customer-account-actions";
 import { requestReturnAction } from "@/lib/account/order-actions";
-import { submitSupportTicketAction } from "@/lib/account/support-actions";
 import { PAY_RESUME_KEY } from "@/components/chat/CheckoutCard";
 import { RETURN_CHOICES } from "@/components/chat/ChatBlocks";
 import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
@@ -688,7 +687,7 @@ export function ChatWidget() {
         const result = await requestCancelOrderAction({ orderId: block.orderId, reason: "Other" });
         if (!result.ok) { say(result.error, { blocks: [{ type: "notice", tone: "error", text: result.error }] }); throw new Error(result.error); }
         resolveAction(block, "confirmed");
-        say(`Cancel request bhej di. Reference: **${result.ticketNo}**`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Team order cancel karke poora refund karegi. Jaldi chahiye toh WhatsApp karein." }, { type: "handoff", reason: "Turant baat karni ho toh:" }] });
+        say(`Cancellation request sent. Reference: **${result.ticketNo}**`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Our team will cancel the order and refund you in full." }] });
         return;
       }
       // Return: the existing return request (all items), plus a photo ticket when photos were added.
@@ -696,19 +695,18 @@ export function ChatWidget() {
       const data = await readJson<{ order?: OrderDetail & { items?: { variantKey: string; qty: number }[] } }>(response);
       const items = data.order?.items ?? [];
       if (!items.length) throw new Error("no items");
-      const expired = reason === RETURN_CHOICES[1];
-      const returnReason = expired ? "Other" : (reason as "Damaged or leaking" | "Wrong item received" | "Item missing" | "Quality not as expected");
-      const note = [expired ? "Expired on arrival." : "", extras?.note ?? ""].filter(Boolean).join(" ").slice(0, 500) || undefined;
-      const result = await requestReturnAction({ orderId: block.orderId, items: items.map((item) => ({ variantKey: item.variantKey, qty: item.qty })), reason: returnReason, ...(note ? { note } : {}) });
+      const returnReason = reason === RETURN_CHOICES[1] ? RETURN_CHOICES[1] : RETURN_CHOICES[0];
+      const note = extras?.note?.slice(0, 500) || undefined;
+      const result = await requestReturnAction({
+        orderId: block.orderId,
+        items: items.map((item) => ({ variantKey: item.variantKey, qty: item.qty })),
+        reason: returnReason,
+        ...(note ? { note } : {}),
+        media: extras?.photos ?? [],
+      });
       if (!result.ok) { say(result.error, { blocks: [{ type: "notice", tone: "error", text: result.error }, { type: "handoff" }] }); throw new Error(result.error); }
-      let reference = "";
-      if (extras?.photos?.length) {
-        const issue = reason === "Wrong item received" ? "wrong_item" : reason === "Item missing" ? "missing_item" : reason === "Quality not as expected" || expired ? "quality" : "damaged";
-        const ticket = await submitSupportTicketAction({ orderId: block.orderId, issue, message: note ?? reason, contactPref: "whatsapp", photos: extras.photos });
-        if (ticket.ok) reference = ticket.ticket.ticketNo;
-      }
       resolveAction(block, "confirmed");
-      say(`Return request bhej di${reference ? `. Reference: **${reference}**` : ""}.`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Team photo dekh kar replacement ya refund karegi." }, { type: "handoff", reason: "Jaldi baat karni ho toh:" }] });
+      say(`Return request sent. Reference: **${result.ticketNo}**.`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Our team will review your video and arrange a replacement or refund." }] });
     },
   };
 

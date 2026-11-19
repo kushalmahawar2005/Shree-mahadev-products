@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useContext, useDeferredValue, useMemo, useState } from "react";
-import { ArrowDown, MessageCircle, Search, X } from "lucide-react";
+import { ArrowDown, LifeBuoy, Search, X } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
 import { faqPlain, type FaqEntry } from "@/content/faqs";
-import { whatsappLink } from "@/data/site";
+import { Highlight, Md } from "./Md";
 
 type Ctx = { q: string; term: string; setQ: (v: string) => void; matches: FaqEntry[] | null };
 const SearchCtx = createContext<Ctx>({ q: "", term: "", setQ: () => {}, matches: null });
@@ -22,7 +23,10 @@ export function HelpSearchProvider({ faqs, children }: { faqs: FaqEntry[]; child
   return <SearchCtx.Provider value={{ q, term, setQ, matches }}>{children}</SearchCtx.Provider>;
 }
 
-export function HelpSearchBox({ name }: { name: string }) {
+/** Answers shown right under the search box; the rest are in the FAQ card. */
+const SHOWN = 4;
+
+export function HelpSearchBox() {
   const { q, setQ, matches, term } = useHelpSearch();
   return (
     <div className="mb-5">
@@ -55,28 +59,47 @@ export function HelpSearchBox({ name }: { name: string }) {
       </div>
       <div id="help-search-count" aria-live="polite" className="min-h-0">
         {term && matches && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 px-1 text-sm">
+          <div className="mt-2 overflow-hidden rounded-2xl border border-line bg-white shadow-co-card">
             {matches.length ? (
               <>
-                <span className="text-ink-muted">
-                  {matches.length} {matches.length === 1 ? "answer" : "answers"} found
-                </span>
-                <a href="#help-faq" className="inline-flex min-h-11 items-center gap-1 font-semibold text-forest-text hover:underline">
-                  Jump to answers <ArrowDown className="size-3.5" />
-                </a>
+                <p className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5 text-sm text-ink-muted">
+                  <span>
+                    {matches.length} {matches.length === 1 ? "answer" : "answers"} for “{q.trim()}”
+                  </span>
+                  {matches.length > SHOWN && (
+                    <a href="#help-faq" className="inline-flex min-h-9 items-center gap-1 font-semibold text-forest-text hover:underline">
+                      See all <ArrowDown className="size-3.5" />
+                    </a>
+                  )}
+                </p>
+                <Accordion type="single" collapsible defaultValue={matches[0]?.id} key={term} className="px-4">
+                  {matches.slice(0, SHOWN).map((f) => (
+                    <AccordionItem key={f.id} value={f.id} className="border-line last:border-b-0">
+                      <AccordionTrigger className="min-h-12 py-3.5 text-left text-[15px] font-semibold text-ink hover:no-underline">
+                        <span>
+                          <Highlight text={f.question} term={term} />
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4 text-[15px] leading-relaxed text-ink-muted">
+                        <p>
+                          <Md text={f.answer} term={term} />
+                        </p>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </>
             ) : (
-              <>
-                <span className="text-ink-muted">No results. Ask us on WhatsApp.</span>
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5 text-sm">
+                <span className="text-ink-muted">No answers for “{q.trim()}”. Raise a request and our team will help.</span>
                 <a
-                  href={whatsappLink(`Hi, I'm ${name}. I have a question: ${q.trim()}`)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-forest px-4 font-semibold text-white hover:bg-forest-mid"
+                  href="#gh-h"
+                  onClick={() => setQ("")}
+                  className="inline-flex h-10 items-center gap-2 rounded-full bg-forest px-4 font-semibold text-white hover:bg-forest-mid"
                 >
-                  <MessageCircle className="size-4" /> Ask on WhatsApp
+                  <LifeBuoy className="size-4" /> Get help
                 </a>
-              </>
+              </div>
             )}
           </div>
         )}

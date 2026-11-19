@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, Clock, MessageCircle, PenLine } from "@/components/icons/duo";
 import { getProducts } from "@/lib/commerce";
-import { whatsappLink } from "@/data/site";
 import { VerifiedReviewForm } from "@/components/reviews/VerifiedReviewForm";
 import { db } from "@/lib/server/db";
 import type { RowDataPacket } from "mysql2/promise";
@@ -65,14 +64,12 @@ function Notice({
         >
           Browse products
         </Link>
-        <a
-          href={whatsappLink("Hi, I'd like to review my order.")}
-          target="_blank"
-          rel="noopener noreferrer"
+        <Link
+          href="/account/orders"
           className="inline-flex h-11 items-center gap-2 rounded-full bg-forest px-5 text-sm font-bold text-white hover:bg-forest-mid"
         >
-          <MessageCircle className="size-4" /> WhatsApp us
-        </a>
+          <MessageCircle className="size-4" /> My orders
+        </Link>
       </div>
     </div>
   );

@@ -58,6 +58,6 @@ export function maxForLine(lines: Line[], handle: string, variant: V & { id: str
 
 /** Bulk-order form link, prefilled with the product, the pack size and the per-order limit they hit. */
 export function bulkOrderHref(productTitle: string, sizeTitle: string, max: number) {
-  const p = new URLSearchParams({ product: productTitle.replace(/^(Wood|Cold)-Pressed\s+/, ""), size: sizeTitle, max: String(max) });
+  const p = new URLSearchParams({ product: productTitle.replace(/^(Wood|Cold)-Pressed\s+/, "").replace(/,\s*Wood-Pressed.*$/i, ""), size: sizeTitle, max: String(max) });
   return `/bulk-orders?${p}`;
 }

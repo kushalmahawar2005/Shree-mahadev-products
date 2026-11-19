@@ -8,7 +8,7 @@ import * as Duo from "@/components/icons/duo";
 import { RichText } from "@/components/chat/ChatParts";
 import { rise, staggerParent, tap } from "@/components/chat/motion";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/shadcn/accordion";
-import { site, whatsappLink } from "@/data/site";
+import { helpLink, site } from "@/data/site";
 
 type HelpData = {
   faqs: { id: string; category: string; question: string; answer: string }[];
@@ -40,12 +40,9 @@ export default function HelpTab({ onAsk }: { onAsk: (text: string) => void }) {
 
   return (
     <motion.div initial="hidden" animate="show" variants={staggerParent(0.05)} className="space-y-4 px-3.5 py-3.5">
-      <motion.div variants={rise} className="grid grid-cols-2 gap-2">
-        <motion.a {...tap} href={whatsappLink("Namaste, mujhe madad chahiye.")} target="_blank" rel="noreferrer" className="flex min-h-14 items-center gap-2.5 rounded-2xl border border-line bg-white px-3 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
-          <Duo.WhatsApp size={26} /><span><span className="block text-sm font-semibold text-ink">WhatsApp</span><span className="block text-[12.5px] text-ink-muted">Team se baat</span></span>
-        </motion.a>
-        <motion.a {...tap} href={site.phoneHref} className="flex min-h-14 items-center gap-2.5 rounded-2xl border border-line bg-white px-3 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
-          <Phone size={22} className="text-forest" /><span><span className="block text-sm font-semibold text-ink">Call</span><span className="block text-[12.5px] text-ink-muted">{site.supportHours}</span></span>
+      <motion.div variants={rise}>
+        <motion.a {...tap} href={helpLink()} className="flex min-h-14 items-center gap-2.5 rounded-2xl border border-line bg-white px-3 shadow-[0_1px_2px_rgba(0,0,0,.04)]">
+          <Phone size={22} className="text-forest" /><span><span className="block text-sm font-semibold text-ink">Help &amp; support</span><span className="block text-[12.5px] text-ink-muted">Raise a request or ask for a call back · {site.supportHours}</span></span>
         </motion.a>
       </motion.div>
 

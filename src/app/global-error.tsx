@@ -25,7 +25,7 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
             </a>
           </div>
           <p style={{ marginTop: 24, fontSize: 14, color: "#5b6b62" }}>
-            Need help? WhatsApp us on <a href="https://wa.me/918440099585" style={{ color: "#0c3c24", fontWeight: 600 }}>+91-8440099585</a>.
+            Need help? <a href="/contact" style={{ color: "#0c3c24", fontWeight: 600 }}>Contact us</a>.
           </p>
           {digest && <p style={{ marginTop: 8, fontSize: 12, color: "#8a968f" }}>Ref: {digest}</p>}
         </main>

@@ -7,8 +7,8 @@ import Link from "next/link";
 import type { MyTrackableOrder, TrackingSummary } from "@/lib/server/tracking";
 import { formatMoney } from "@/lib/utils/money";
 import { Check, ChevronDown, ExternalLink, Loader2, PackageSearch } from "lucide-react";
-import { MapPin, MessageCircle, PackageCheck, Phone, Truck } from "@/components/icons/duo";
-import { site, whatsappLink } from "@/data/site";
+import { MapPin, MessageCircle, PackageCheck, Truck } from "@/components/icons/duo";
+import { helpLink, site } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 
 const toDate = (value: string) => new Date(value.replace(" ", "T"));
@@ -82,7 +82,7 @@ function CopyAwb({ awb }: { awb: string }) {
 }
 
 function TrackingDetails({ tracking }: { tracking: TrackingSummary }) {
-  const helpUrl = whatsappLink(`Hi, I need help with order ${tracking.orderNo}.`);
+  const helpUrl = helpLink(tracking.orderNo);
   const externalTracking = tracking.trackingUrl?.startsWith("https://") ? tracking.trackingUrl : null;
   const head = headline(tracking);
   const stage = tracking.stage;
@@ -229,17 +229,12 @@ function TrackingDetails({ tracking }: { tracking: TrackingSummary }) {
         <div className="mt-6 rounded-2xl bg-subtle p-4">
           <p className="text-sm font-semibold text-ink">Need help with this order?</p>
           <p className="text-xs text-ink-muted">We reply {site.supportHours}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-3 flex">
             <a
               href={helpUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-forest px-4 text-sm font-bold text-white hover:bg-forest-mid"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-forest px-5 text-sm font-bold text-white hover:bg-forest-mid"
             >
-              <MessageCircle className="size-4" /> WhatsApp
-            </a>
-            <a href={site.phoneHref} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold text-forest-text hover:border-forest/40">
-              <Phone className="size-4" /> Call
+              <MessageCircle className="size-4" /> Get help with this order
             </a>
           </div>
         </div>

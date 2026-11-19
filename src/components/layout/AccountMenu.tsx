@@ -292,14 +292,14 @@ function SignedInPanel({ summary, reduce, onNavigate }: { summary: Summary | nul
               exit={{ opacity: 0, transition: { duration: 0.1 } }}
               className="flex h-11 items-center gap-2 px-4"
             >
-              <span className="flex-1 text-[14px] font-medium text-ink">Log out karein?</span>
+              <span className="flex-1 text-[14px] font-medium text-ink">Log out?</span>
               <form action={logoutCustomerAction}>
                 <button type="submit" role="menuitem" autoFocus className="h-8 rounded-full bg-red-600 px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:outline-none">
-                  Haan
+                  Yes
                 </button>
               </form>
               <button type="button" role="menuitem" onClick={() => setConfirm(false)} className="h-8 rounded-full border border-line px-3.5 text-[13px] font-semibold text-ink transition-colors hover:bg-ivory focus-visible:ring-2 focus-visible:ring-forest/30 focus-visible:outline-none">
-                Nahi
+                No
               </button>
             </motion.div>
           ) : (

@@ -16,6 +16,14 @@ export const supportConfig = {
     formats: ["jpg", "jpeg", "png", "webp", "heic", "heif"] as const,
     mime: ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const,
   },
+  /** Unboxing video: required for damage / expiry claims (see /policies/refund-return). */
+  video: {
+    max: 1,
+    /** Cloudinary's single-request upload limit on our plan. */
+    maxBytes: 100 * 1024 * 1024,
+    formats: ["mp4", "mov", "webm", "3gp", "m4v"] as const,
+    mime: ["video/mp4", "video/quicktime", "video/webm", "video/3gpp", "video/x-m4v"] as const,
+  },
   /** New help requests per customer per hour. */
   ticketsPerHour: 5,
 } as const;

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { WifiOff } from "lucide-react";
-import { site } from "@/data/site";
 
 export const metadata: Metadata = { title: "You're offline", robots: { index: false, follow: false } };
 
@@ -20,7 +19,7 @@ export default function OfflinePage() {
         </button>
       </form>
       <p className="mt-6 text-sm text-ink-muted">
-        Need help? Call <a href={`tel:${site.phone.replace(/[^\d+]/g, "")}`} className="font-semibold text-forest">{site.phone}</a>
+        Need help? Visit our <a href="/contact" className="font-semibold text-forest">contact page</a> once you are back online.
       </p>
     </section>
   );

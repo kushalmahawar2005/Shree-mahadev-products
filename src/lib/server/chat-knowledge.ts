@@ -225,7 +225,7 @@ export async function getChatKnowledge(): Promise<KnowledgeEntry[]> {
   const siteEntry: KnowledgeEntry = {
     title: "About Swadeshi Mahadev Products",
     href: "/contact",
-    excerpt: `${site.name}. ${site.description}. Phone and WhatsApp ${site.phone}. Email ${site.email}. Support hours ${site.supportHours}. Address ${site.address.line1}, ${site.address.city}, ${site.address.district}, ${site.address.state} ${site.address.postalCode}. FSSAI ${site.fssai}.`,
+    excerpt: `${site.name}. ${site.description}. For help, customers who ordered raise a request in Help & support (/account/help); others see the Contact page (/contact). Email ${site.email}. Support hours ${site.supportHours}. Address ${site.address.line1}, ${site.address.city}, ${site.address.district}, ${site.address.state} ${site.address.postalCode}. FSSAI ${site.fssai}.`,
     terms: ["contact", "phone", "whatsapp", "email", "address", "fssai", "support", "about", site.name],
   };
 

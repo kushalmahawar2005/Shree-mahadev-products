@@ -218,7 +218,7 @@ export default async function HomePage() {
           codAvailable={settings.shipping.codEnabled}
         />
       )}
-      <ServiceHighlights phone={settings.business.phone} />
+      <ServiceHighlights />
     </>
   );
 }

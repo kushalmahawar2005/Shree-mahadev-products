@@ -17,7 +17,7 @@ export default function AccountLayout({
 }) {
   return (
     <div className="co-theme bg-page text-ink">
-      <div className="mx-auto max-w-6xl px-4 pt-4 pb-12 md:px-6 lg:pt-10">
+      <div className="mx-auto max-w-7xl px-4 pt-4 pb-12 md:px-6 lg:pt-10">
         <Suspense fallback={<ShellSkeleton />}>
           <Shell>{children}</Shell>
         </Suspense>

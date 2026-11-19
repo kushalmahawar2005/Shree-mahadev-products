@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion } from "motion/react";
 import { Check, Languages, MessageCircle, MoreHorizontal, Package, RotateCcw, ShoppingBag, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/shadcn/dropdown-menu";
 import { ease, spring } from "@/components/chat/motion";
-import { whatsappLink } from "@/data/site";
+import { helpLink } from "@/data/site";
 
 export type ChatLanguage = "auto" | "English" | "Hinglish" | "Hindi";
 const LANGUAGES: { value: ChatLanguage; label: string }[] = [
@@ -84,7 +85,7 @@ export function ChatHeader({ cartCount, language, onCart, onNewChat, onLanguage,
             <DropdownMenuItem onSelect={onOrders} className="h-10 gap-2"><Package className="size-4" />Mere orders</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild className="h-10 gap-2">
-              <a href={whatsappLink("Namaste, mujhe madad chahiye.")} target="_blank" rel="noreferrer"><MessageCircle className="size-4" />WhatsApp support</a>
+              <Link href={helpLink()}><MessageCircle className="size-4" />Help &amp; support</Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

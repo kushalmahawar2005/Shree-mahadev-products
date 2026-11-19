@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CheckCircle2, ExternalLink, Loader2, MessageCircle, PhoneCall, Truck } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, PhoneCall, Send, Truck } from "lucide-react";
 import { CancelOrderButton } from "@/components/account/OrderDetailClient";
 import { OrderStatusBadge } from "@/components/account/shared";
 import { supportConfig } from "@/config/support";
@@ -18,6 +18,7 @@ import { formatMoney } from "@/lib/utils/money";
 import {
   ISSUES,
   PHOTO_ISSUES,
+  VIDEO_ISSUES,
   issuesFor,
   type HelpOrderDetail,
   type HelpOrderOption,
@@ -26,7 +27,7 @@ import {
 } from "./help-lib";
 import { MyRequests } from "./MyRequests";
 import { OrderPicker } from "./OrderPicker";
-import { PhotoPicker, type HelpPhoto } from "./PhotoPicker";
+import { PhotoPicker, hasVideo, type HelpPhoto } from "./PhotoPicker";
 
 type Done = { ticket: HelpTicket; whatsappUrl: string; phone: string };
 
@@ -106,6 +107,8 @@ export function HelpFlow({
     startSend(async () => {
       if (!issue || order === undefined) return;
       setError(null);
+      if (VIDEO_ISSUES.includes(issue) && !hasVideo(photos))
+        return setError("Please add your unboxing video. Damage and expiry claims need it.");
       const r = await submitSupportTicketAction({
         orderId: order?.id ?? null,
         issue,
@@ -120,7 +123,6 @@ export function HelpFlow({
       if (!r.ok) return setError(r.error);
       setDone(r as Done);
       setTickets((t) => [r.ticket as HelpTicket, ...t]);
-      if (pref === "whatsapp") window.open(r.whatsappUrl, "_blank", "noopener,noreferrer");
     });
 
   const reset = () => {
@@ -153,14 +155,9 @@ export function HelpFlow({
               <p className="mt-1 text-sm text-ink-muted">
                 {pref === "call"
                   ? `We'll call you on ${done.phone} between ${done.ticket.callbackSlot ?? slot}.`
-                  : "WhatsApp opened with your ticket. Send the message there so we can reply."}
+                  : "Our support team has your request and will get back to you during working hours. You can follow it under My requests below."}
               </p>
               <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
-                {pref === "whatsapp" && (
-                  <a href={done.whatsappUrl} target="_blank" rel="noopener noreferrer" className={cn(primaryBtn, "sm:w-auto sm:px-5")}>
-                    <MessageCircle className="size-4" /> Open WhatsApp again
-                  </a>
-                )}
                 <button type="button" onClick={reset} className={cn(secondaryBtn, "sm:w-auto sm:px-5")}>
                   Ask about something else
                 </button>
@@ -270,18 +267,15 @@ export function HelpFlow({
                   </label>
                   {PHOTO_ISSUES.includes(issue) && (
                     <div>
-                      <PhotoPicker photos={photos} setPhotos={setPhotos} />
-                      <p className="mt-1.5 text-xs text-ink-muted">
-                        Photos of the bottle/box and the label help us resolve it faster.
-                      </p>
+                      <PhotoPicker photos={photos} setPhotos={setPhotos} video={VIDEO_ISSUES.includes(issue)} />
                     </div>
                   )}
                   <fieldset>
-                    <legend className="text-sm font-medium text-ink">How should we reach you?</legend>
+                    <legend className="text-sm font-medium text-ink">How would you like us to help?</legend>
                     <div role="radiogroup" className="mt-2 grid grid-cols-2 gap-2">
                       {(
                         [
-                          ["whatsapp", "WhatsApp", MessageCircle],
+                          ["whatsapp", "Send request", Send],
                           ["call", "Call me back", PhoneCall],
                         ] as const
                       ).map(([k, label, Icon]) => (
@@ -320,7 +314,7 @@ export function HelpFlow({
                   )}
                   <button type="button" onClick={submit} disabled={sending || uploading} className={primaryBtn}>
                     {(sending || uploading) && <Loader2 className="size-4 animate-spin" />}
-                    {uploading ? "Uploading photos…" : "Send to support"}
+                    {uploading ? "Uploading…" : "Send to support"}
                   </button>
                 </div>
               )}

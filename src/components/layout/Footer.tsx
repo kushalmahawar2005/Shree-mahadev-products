@@ -6,6 +6,9 @@ import { FooterHarvestArt } from "./FooterHarvestArt";
 import { PaymentLogos } from "./PaymentLogos";
 import Link from "next/link";
 import { footerNav, site, whatsappLink } from "@/data/site";
+
+/** Updates go to the one-way WhatsApp Channel, so joining doesn't open a chat with the store number. */
+const WA_CHANNEL = "https://whatsapp.com/channel/0029VbBp1pa77qVWi7VElf3W";
 import { getCollections } from "@/lib/commerce";
 import { getStoreSettings } from "@/lib/server/store-settings";
 
@@ -39,7 +42,7 @@ export async function Footer() {
               <p className="mt-1 max-w-md text-[13px] text-white/75 sm:mt-1.5 sm:text-sm">New batches, offers and recipes straight on WhatsApp. No spam.</p>
             </div>
             <a
-              href={whatsappLink("Hi, please add me to the Swadeshi Mahadev updates list.")}
+              href={WA_CHANNEL}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-shine relative mt-3.5 inline-flex h-10 shrink-0 items-center gap-2 overflow-hidden rounded-full bg-co-gold px-4 text-[13px] sm:mt-5 sm:gap-2.5 sm:px-5 sm:text-sm sm:h-12 sm:px-6 font-bold text-forest-deep transition-colors hover:bg-white md:mt-0"
@@ -64,7 +67,7 @@ export async function Footer() {
                 <ul className="mt-5 flex gap-2">
                   {socials.map((s) => (
                     <li key={s.href}>
-                      <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-10 place-items-center rounded-full border border-line bg-white/70 text-forest transition-colors hover:bg-forest hover:text-white">
+                      <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} className="grid size-10 place-items-center rounded-full border border-line bg-white shadow-[0_1px_2px_rgba(0,0,0,.05)] transition-transform hover:-translate-y-0.5 hover:shadow-md">
                         <SocialIcon label={s.label} />
                       </a>
                     </li>
@@ -167,20 +170,51 @@ async function CopyrightYear() {
   return <>{new Date().getFullYear()}</>;
 }
 
+/** Official brand marks in their own colours (Instagram gradient, Facebook blue, YouTube red, WhatsApp green). */
 function SocialIcon({ label }: { label: string }) {
   const l = label.toLowerCase();
-  const d = l.includes("insta")
-    ? "M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm5 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm5.25-1.25a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z"
-    : l.includes("face")
-      ? "M14 8h3V4h-3a4 4 0 0 0-4 4v2H8v4h2v8h4v-8h3l1-4h-4V8Z"
-      : l.includes("whatsapp")
-        ? "M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.7.63.71.22 1.36.2 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35ZM12.05 21.8h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88Zm8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.89a11.82 11.82 0 0 0-3.48-8.41Z"
-        : l.includes("you")
-        ? "M21.6 7.2a2.6 2.6 0 0 0-1.8-1.8C18.2 5 12 5 12 5s-6.2 0-7.8.4A2.6 2.6 0 0 0 2.4 7.2 27 27 0 0 0 2 12a27 27 0 0 0 .4 4.8 2.6 2.6 0 0 0 1.8 1.8c1.6.4 7.8.4 7.8.4s6.2 0 7.8-.4a2.6 2.6 0 0 0 1.8-1.8A27 27 0 0 0 22 12a27 27 0 0 0-.4-4.8ZM10 15V9l5.2 3L10 15Z"
-        : "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Z";
+  if (l.includes("insta"))
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <defs>
+          <radialGradient id="ig-grad" cx="30%" cy="107%" r="150%">
+            <stop offset="0" stopColor="#fdf497" />
+            <stop offset=".05" stopColor="#fdf497" />
+            <stop offset=".45" stopColor="#fd5949" />
+            <stop offset=".6" stopColor="#d6249f" />
+            <stop offset=".9" stopColor="#285AEB" />
+          </radialGradient>
+        </defs>
+        <rect width="24" height="24" rx="6.5" fill="url(#ig-grad)" />
+        <rect x="5.5" y="5.5" width="13" height="13" rx="4" fill="none" stroke="#fff" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="3.1" fill="none" stroke="#fff" strokeWidth="1.8" />
+        <circle cx="16.1" cy="7.9" r="1" fill="#fff" />
+      </svg>
+    );
+  if (l.includes("face"))
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <circle cx="12" cy="12" r="12" fill="#1877F2" />
+        <path fill="#fff" d="M15.12 15.47 15.65 12h-3.33V9.75c0-.95.47-1.87 1.96-1.87h1.51V4.93s-1.37-.23-2.68-.23c-2.74 0-4.53 1.66-4.53 4.66V12H5.53v3.47h3.05V24h3.74v-8.53h2.8Z" />
+      </svg>
+    );
+  if (l.includes("you"))
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <path fill="#FF0000" d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19 31.4 31.4 0 0 0 0 12a31.4 31.4 0 0 0 .5 5.81 3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14A31.4 31.4 0 0 0 24 12a31.4 31.4 0 0 0-.5-5.81Z" />
+        <path fill="#fff" d="m9.6 15.57 6.27-3.57L9.6 8.43v7.14Z" />
+      </svg>
+    );
+  if (l.includes("whatsapp"))
+    return (
+      <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
+        <path fill="#25D366" d="M.06 24l1.69-6.16A11.87 11.87 0 0 1 .16 11.9C.16 5.34 5.5 0 12.05 0a11.82 11.82 0 0 1 8.41 3.49 11.82 11.82 0 0 1 3.48 8.41c0 6.55-5.34 11.89-11.89 11.89a11.9 11.9 0 0 1-5.68-1.45L.06 24Z" />
+        <path fill="#fff" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.47-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.7.63.71.22 1.36.2 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35Z" />
+      </svg>
+    );
   return (
-    <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden>
-      <path d={d} />
+    <svg viewBox="0 0 24 24" className="size-4 text-forest" fill="currentColor" aria-hidden>
+      <circle cx="12" cy="12" r="10" />
     </svg>
   );
 }

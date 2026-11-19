@@ -43,6 +43,13 @@ export const site = {
 
 export const fullAddress = `${site.address.line1}, ${site.address.city} ${site.address.postalCode}, Dist. ${site.address.district}, ${site.address.state}`;
 
+/**
+ * Where a shopper goes for help. Store rule (2026-11-19): the support number is shown only on the
+ * Contact page and in the footer; everywhere else help goes through a request in Help & support
+ * (logged-in customers; the team handles it in admin).
+ */
+export const helpLink = (orderNo?: string) => (orderNo ? `/account/help?order=${encodeURIComponent(orderNo.replace(/^#/, ""))}` : "/account/help");
+
 export function whatsappLink(message?: string) {
   const base = `https://wa.me/${site.whatsapp}`;
   return message ? `${base}?text=${encodeURIComponent(message)}` : base;

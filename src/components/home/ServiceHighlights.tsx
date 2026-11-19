@@ -9,20 +9,19 @@ type Highlight = { icon: PhosphorIcon; title: string; text: React.ReactNode };
  * white card split into cells by hairlines (gap-px over a line-coloured background), so it reads
  * clearly against the cream page. 2x2 on phones, 4 across on desktop.
  */
-export function ServiceHighlights({ phone }: { phone: string }) {
-  const tel = `tel:${phone.replace(/[^\d+]/g, "")}`;
+export function ServiceHighlights() {
   const items: Highlight[] = [
     { icon: Truck, title: "Fast shipping", text: "Delivered to your door, anywhere in India." },
     { icon: Plant, title: "Pure & natural", text: "Nothing added, nothing taken out." },
-    { icon: ShieldCheck, title: "Secure payment", text: "UPI, cards and netbanking via PayU." },
+    { icon: ShieldCheck, title: "Secure payment", text: "UPI, cards and netbanking, fully secured." },
     {
       icon: Headset,
       title: "Real people, real help",
       text: (
         <>
-          9am–6pm at{" "}
-          <a href={tel} className="font-semibold whitespace-nowrap text-forest-text underline-offset-2 hover:underline">
-            {phone}
+          9am–6pm,{" "}
+          <a href="/contact" className="font-semibold whitespace-nowrap text-forest-text underline-offset-2 hover:underline">
+            contact us
           </a>
         </>
       ),

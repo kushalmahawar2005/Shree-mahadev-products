@@ -64,9 +64,24 @@ const HONEY: Story = {
     title: "Know raw honey at home",
     intro: "Raw honey is not processed to look the same in every jar.",
     items: [
-      { icon: "cold", title: "It may crystallise", body: "In cold weather raw honey can turn grainy. Warm the jar in water and it turns liquid again." },
-      { icon: "pour", title: "Slow, thick pour", body: "Raw honey pours slowly and folds over itself on the spoon." },
-      { icon: "taste", title: "Taste the flower", body: "Each batch tastes of the flowers the bees visited, so it can vary a little." },
+      {
+        image: "/images/product-story/check-honey-crystallise-v1.webp",
+        icon: "cold",
+        title: "It may crystallise",
+        body: "In cold weather raw honey can turn grainy. Warm the jar in water and it turns liquid again.",
+      },
+      {
+        image: "/images/product-story/check-honey-pour-v1.webp",
+        icon: "pour",
+        title: "Slow, thick pour",
+        body: "Raw honey pours slowly and folds over itself on the spoon.",
+      },
+      {
+        image: "/images/product-story/check-honey-flowers-v1.webp",
+        icon: "taste",
+        title: "Taste the flower",
+        body: "Each batch tastes of the flowers the bees visited, so it can vary a little.",
+      },
     ],
   },
 };

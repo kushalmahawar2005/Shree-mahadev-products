@@ -64,7 +64,7 @@ export function RequestCallback({
             className,
           )}
         >
-          <PhoneCall className="size-4" /> Request a call back
+          <PhoneCall className="size-4 shrink-0" /> Request a call back
         </button>
       </DialogTrigger>
       <DialogContent className="max-w-md rounded-3xl">

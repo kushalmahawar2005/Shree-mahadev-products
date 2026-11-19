@@ -244,7 +244,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
               ["Country of origin", "India"],
               ["Manufactured & packed by", `${site.name}, ${fullAddress}`],
               ["FSSAI Lic. No.", site.fssai],
-              ["Customer care", `${site.phone} · ${site.email}`],
+              ["Customer care", site.email],
             ] as [string, string | undefined][]
           )
             .filter((row): row is [string, string] => !!row[1])

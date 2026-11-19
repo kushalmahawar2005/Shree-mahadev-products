@@ -6,6 +6,9 @@ import { z } from "zod";
 import { accountConfig } from "@/config/account";
 import { requireCustomer } from "@/lib/server/customer-auth";
 import { db } from "@/lib/server/db";
+import { isSupportVideo } from "@/components/account/help/help-lib";
+import { supportConfig } from "@/config/support";
+import { createSupportTicket, queueSupportAlert, verifySupportPhoto } from "@/lib/server/support-tickets";
 import { RETURN_REASONS } from "./returns";
 
 const ReturnInput = z
@@ -17,8 +20,20 @@ const ReturnInput = z
       .max(30),
     reason: z.enum(RETURN_REASONS),
     note: z.string().trim().max(500).optional(),
+    /** Unboxing video (required) + optional photos, already uploaded to Cloudinary by the browser. */
+    media: z
+      .array(z.object({ url: z.string().url().max(500), publicId: z.string().min(1).max(200) }).strict())
+      .max(supportConfig.photos.max + supportConfig.video.max),
   })
-  .strict();
+  .strict()
+  .refine((v) => v.media.filter((m) => isSupportVideo(m.url)).length === 1, {
+    message: "Please add your unboxing video. Refunds for damage or expiry need it.",
+    path: ["media"],
+  })
+  .refine((v) => v.media.filter((m) => !isSupportVideo(m.url)).length <= supportConfig.photos.max, {
+    message: `Add up to ${supportConfig.photos.max} photos.`,
+    path: ["media"],
+  });
 
 /**
  * Shopper asks to return delivered items. Checks ownership, the return window, eligible
@@ -29,7 +44,7 @@ export async function requestReturnAction(raw: unknown) {
   const parsed = ReturnInput.safeParse(raw);
   if (!parsed.success)
     return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Please check the form." };
-  const { orderId, items, reason, note } = parsed.data;
+  const { orderId, items, reason, note, media } = parsed.data;
 
   const [[o]] = await db().query<RowDataPacket[]>(
     // Delivery date: courier's delivered_at, else when the order was marked delivered (admin / no shipment).
@@ -45,7 +60,7 @@ export async function requestReturnAction(raw: unknown) {
   if (o.days == null || Number(o.days) > accountConfig.returnWindowDays)
     return {
       ok: false as const,
-      error: `The ${accountConfig.returnWindowDays}-day return window has closed. Message us on WhatsApp and we'll help.`,
+      error: `The ${accountConfig.returnWindowDays}-day return window has closed. Please raise a request in Help & support.`,
     };
 
   const [lines] = await db().query<RowDataPacket[]>(
@@ -62,6 +77,11 @@ export async function requestReturnAction(raw: unknown) {
       return { ok: false as const, error: "One of the items can't be returned." };
   }
 
+  for (const m of media) {
+    const err = await verifySupportPhoto(m);
+    if (err) return { ok: false as const, error: err };
+  }
+
   try {
     await db().query(
       "INSERT INTO order_returns (order_id, customer_id, items, reason, note) VALUES (?, ?, ?, ?, ?)",
@@ -76,6 +96,34 @@ export async function requestReturnAction(raw: unknown) {
     "INSERT INTO order_events (order_id, from_status, to_status, actor, note) VALUES (?, 'delivered', 'return_requested', 'customer', ?)",
     [orderId, `Return requested: ${reason}`],
   );
+
+  // The video and photos go to the helpdesk as a ticket, so the team reviews everything in admin.
+  const [[on]] = await db().query<RowDataPacket[]>("SELECT order_no FROM orders WHERE id=?", [orderId]);
+  const issue = reason === "Expired on arrival" ? "expired" : "damaged";
+  const message = [`Return request: ${reason}.`, note ?? ""].filter(Boolean).join(" ").slice(0, supportConfig.messageMax);
+  const { id, ticketNo } = await createSupportTicket({
+    customerId: customer.id,
+    orderId,
+    issue,
+    message,
+    utr: null,
+    contactPref: "whatsapp",
+    callbackSlot: null,
+    photos: media,
+  });
+  await queueSupportAlert({
+    ticketId: id,
+    ticketNo,
+    customer: { name: customer.name, phone: customer.phone },
+    orderId,
+    orderNo: on ? String(on.order_no) : null,
+    issue,
+    message,
+    utr: null,
+    contactPref: "whatsapp",
+    callbackSlot: null,
+    photos: media.map((m) => m.url),
+  });
   revalidatePath(`/account/orders/${orderId}`);
-  return { ok: true as const };
+  return { ok: true as const, ticketNo };
 }

@@ -40,40 +40,41 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
   const faqs = buildFaqs(settings.shipping);
   const images = Object.fromEntries(products.map((p) => [p.handle, p.images[0]?.url ?? ""]));
   const wa = whatsappLink(`Hi, I'm ${formatName(c.name)} (${formatPhone(c.phone)}). I need help with…`);
+  // Store rule: direct contact details (number, WhatsApp, email) only for customers who have placed an
+  // order. Everyone else uses the request flow and FAQs; the public number lives on /contact and the footer.
+  const hasOrdered = page.orders.some((o) => !["pending_payment", "payment_failed"].includes(o.status));
 
   return (
-    <div className="pb-[calc(8rem+env(safe-area-inset-bottom))] lg:pb-0">
+    <div className={cn(hasOrdered && "pb-[calc(8rem+env(safe-area-inset-bottom))]", "lg:pb-0")}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(faqJsonLd(faqs)) }} />
       <PageHeader eyebrow="मदद" title="Help & support" subtitle="Quick answers, help with an order, and how to reach us." />
       <HelpSearchProvider faqs={faqs}>
         <div className="mb-5 lg:mb-6">
-          <HelpSearchBox name={c.name} />
+          <HelpSearchBox />
         </div>
-        {/* Inside the account layout (sidebar + content) two columns only fit on wide screens. */}
-        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-12 xl:gap-6">
-          <div className="space-y-5 xl:col-span-8 xl:space-y-6">
-            <HelpFlow
-              orders={page.orders.slice(0, 5).map(toHelpOption)}
-              hasMore={page.orders.length > 5 || page.nextCursor !== null}
-              preselect={preselect}
-              images={images}
-              tickets={tickets}
-            />
-            <HelpFaq faqs={faqs} />
-          </div>
-          <aside className="space-y-5 lg:space-y-6 xl:sticky xl:top-24 xl:col-span-4 xl:self-start">
-            <ContactCard name={c.name} phone={c.phone} />
-            <PolicyLinks />
-          </aside>
+        {/* One column: the account sidebar already takes the left side, so cards get the full width. */}
+        <div className="space-y-5 xl:space-y-6">
+          <HelpFlow
+            orders={page.orders.slice(0, 5).map(toHelpOption)}
+            hasMore={page.orders.length > 5 || page.nextCursor !== null}
+            preselect={preselect}
+            images={images}
+            tickets={tickets}
+          />
+          {hasOrdered && <ContactCard name={c.name} phone={c.phone} />}
+          <HelpFaq faqs={faqs} />
+          <PolicyLinks />
         </div>
       </HelpSearchProvider>
 
-      {/* Phone: always-reachable WhatsApp */}
+      {/* Phone: always-reachable WhatsApp (customers with an order only) */}
+      {hasOrdered && (
       <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-40 border-t border-line bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
         <a href={wa} target="_blank" rel="noopener noreferrer" className={cn(primaryBtn, "whitespace-nowrap")}>
           <MessageCircle className="size-4" /> Chat on WhatsApp
         </a>
       </div>
+      )}
     </div>
   );
 }

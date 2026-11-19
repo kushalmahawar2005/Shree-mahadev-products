@@ -33,6 +33,7 @@ export type SpotItem = {
     position?: string;
     mobileUrl?: string;
     mobileTint?: string;
+    tabletPortrait?: boolean;
   };
   rating?: number;
   reviewCount?: number;
@@ -87,6 +88,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
   }, [i, reduce]);
 
   if (!s) return null;
+  const isJamunHoney = s.handle === "jamun-raw-honey";
   const background = s.photo?.bg ?? `linear-gradient(135deg, ${s.color} 0%, ${s.color}e6 55%, #041d10 100%)`;
   const mobileTint = s.photo?.mobileTint ?? s.color;
   const { variant } = s;
@@ -134,6 +136,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
           <div
             className={cn(
               "pointer-events-none absolute inset-0 md:left-auto md:w-[62%]",
+              s.photo?.tabletPortrait && "md:max-lg:w-1/2",
               !s.photo && "hidden",
             )}
           >
@@ -149,7 +152,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                 >
                   <picture>
                     {s.photo.mobileUrl && (
-                      <source media="(width < 48rem)" srcSet={s.photo.mobileUrl} type="image/webp" />
+                      <source media={s.photo.tabletPortrait ? "(width < 64rem)" : "(width < 48rem)"} srcSet={s.photo.mobileUrl} type="image/webp" />
                     )}
                     <SmartImage
                       src={s.photo.url}
@@ -157,7 +160,10 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
                       fill
                       unoptimized={s.photo.url.startsWith("/") && s.photo.url.endsWith(".webp")}
                       sizes="(min-width: 768px) 62vw, 100vw"
-                      className="object-cover object-top md:[mask-image:linear-gradient(to_right,transparent_0%,black_38%)] md:[object-position:var(--spotlight-desktop-position)]"
+                      className={cn(
+                        "object-cover object-top md:[mask-image:linear-gradient(to_right,transparent_0%,black_38%)] md:[object-position:var(--spotlight-desktop-position)]",
+                        s.photo.tabletPortrait && "md:max-lg:object-top md:max-lg:[mask-image:linear-gradient(to_right,transparent_0%,black_16%)]",
+                      )}
                       style={{ "--spotlight-desktop-position": s.photo.position ?? "70% center" } as CSSProperties}
                     />
                   </picture>
@@ -165,7 +171,12 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               )}
             </AnimatePresence>
           </div>
-          {s.photo && <div aria-hidden className="aspect-[3/2] max-h-[19rem] md:hidden" />}
+          {s.photo && (
+            <div
+              aria-hidden
+              className={cn("aspect-[3/2] max-h-[19rem] md:hidden", isJamunHoney && "min-[520px]:max-h-[24rem]")}
+            />
+          )}
           <span aria-hidden className="pointer-events-none absolute inset-0 opacity-20 mix-blend-overlay [background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.9%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E')]" />
           {/* Standalone product shot for slides without a lifestyle photo. */}
           {s.image && !s.photo && (
@@ -218,6 +229,7 @@ export function SpotlightStage({ items }: { items: SpotItem[] }) {
               className={cn(
                 "relative flex min-w-0 flex-col items-start",
                 s.photo && "max-md:isolate max-md:transform-none! max-md:px-3 max-md:pt-1 max-md:pb-3 sm:max-md:px-4 md:max-w-[58%]",
+                isJamunHoney && s.photo && "md:max-xl:max-w-[50%]",
               )}
             >
               {s.photo && (

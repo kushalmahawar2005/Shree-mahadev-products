@@ -1,9 +1,9 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { MessageCircle } from "@/components/icons/duo";
 import { LabReportsBrowser } from "@/components/proof/LabReportsBrowser";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/shadcn/breadcrumb";
 import { proof } from "@/data/home";
-import { whatsappLink } from "@/data/site";
 import { pageMetadata } from "@/lib/utils/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -42,16 +42,14 @@ export default function LabReportsPage() {
         <div className="mt-12 flex flex-col items-start justify-between gap-4 rounded-3xl border border-line bg-white p-6 sm:flex-row sm:items-center">
           <div>
             <p className="font-bold text-forest-text">Need a report that isn&apos;t listed?</p>
-            <p className="text-sm text-ink-muted">Ask us for the latest report on any product and we&apos;ll share it on WhatsApp.</p>
+            <p className="text-sm text-ink-muted">Ask us for the latest report on any product and we&apos;ll share it with you.</p>
           </div>
-          <a
-            href={whatsappLink("Hi, can you share the lab report for ")}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/contact"
             className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-forest px-5 text-sm font-bold text-white hover:bg-forest-mid"
           >
-            <MessageCircle className="size-4" /> Ask on WhatsApp
-          </a>
+            <MessageCircle className="size-4" /> Contact us
+          </Link>
         </div>
       </div>
     </div>

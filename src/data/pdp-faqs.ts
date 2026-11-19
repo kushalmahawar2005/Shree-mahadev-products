@@ -22,8 +22,8 @@ const OIL: Faq[] = [
     a: "Keep the cap closed and store it in a cool, dry place away from direct sunlight. It is best used within 10 months of packaging.",
   },
   {
-    q: "What if my order arrives damaged or leaking?",
-    a: "Message us on WhatsApp with a photo of the parcel as soon as you receive it and we will replace it or refund you.",
+    q: "What if my order arrives damaged, leaking or expired?",
+    a: "Please record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days with that unboxing video and we will replace it or refund you.",
   },
 ];
 
@@ -45,8 +45,8 @@ const HONEY: Faq[] = [
     a: "No. Do not give honey to children under 1 year of age.",
   },
   {
-    q: "What if my order arrives damaged?",
-    a: "Message us on WhatsApp with a photo of the parcel as soon as you receive it and we will replace it or refund you.",
+    q: "What if my order arrives damaged or expired?",
+    a: "Please record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days with that unboxing video and we will replace it or refund you.",
   },
 ];
 
@@ -64,8 +64,8 @@ const SWEETENER: Faq[] = [
     a: "Keep it in an airtight container in a cool, dry place. If it hardens with moisture, break it up; it is still fine to use.",
   },
   {
-    q: "What if my order arrives damaged?",
-    a: "Message us on WhatsApp with a photo of the parcel as soon as you receive it and we will replace it or refund you.",
+    q: "What if my order arrives damaged or expired?",
+    a: "Please record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days with that unboxing video and we will replace it or refund you.",
   },
 ];
 

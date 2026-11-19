@@ -22,7 +22,8 @@ export const scenes = {
 export const compare = {
   // v2: the painted sun (a white disc top-left on narrow crops) painted out.
   refined: art("swadeshi-mahadev/static/brand/compare/refined-v2.webp", 1672, 941),
-  ghani: art("v1794397473/swadeshi-mahadev/static/brand/compare/ghani.webp", 1672, 941),
+  // v3 (2026-11-19, client): our own process, seeds → cleaning → kolhu → settling → bottling.
+  ghani: art("v1795105574/swadeshi-mahadev/static/brand/compare/ghani-process.webp", 1944, 809),
 } as const;
 
 /** Styled stage photos for the category showcase (pack on stone, sunlit wall, left half empty). */

@@ -1,5 +1,4 @@
 import { supportConfig } from "@/config/support";
-import { site } from "@/data/site";
 import type { StoreSettings } from "@/lib/store-settings";
 import { formatMoney } from "@/lib/utils/money";
 
@@ -123,11 +122,19 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
 
     /* Returns */
     {
+      id: "unboxing-video",
+      category: "returns",
+      question: "Why do I need an unboxing video?",
+      answer:
+        "Refunds and replacements are given only for products that arrive **damaged** or **expired**. Please record one continuous video while opening the sealed parcel, showing the shipping label, the product and the damage or expiry date. Without this video we can't approve a claim. [Refund & returns policy](/policies/refund-return).",
+      keywords: ["unboxing", "video", "proof", "refund", "damage", "expired"],
+    },
+    {
       id: "damaged",
       category: "returns",
       question: "My item arrived damaged, leaking or expired. What now?",
-      answer: "Report it as soon as you can after delivery. Pick the order in [Help & support](/account/help), choose the issue and add photos of the bottle/box and the label. We replace or refund it as per our [refund & returns policy](/policies/refund-return).",
-      keywords: ["damaged", "leak", "leaking", "broken", "wrong item", "missing", "replacement"],
+      answer: "Report it within 7 days of delivery. Pick the order in [Help & support](/account/help), choose **Damaged or leaked** or **Expired product** and upload your **unboxing video** (one continuous video of opening the sealed parcel). Claims without the video can't be approved. See our [refund & returns policy](/policies/refund-return).",
+      keywords: ["damaged", "leak", "leaking", "broken", "expired", "expiry", "unboxing", "video", "replacement"],
     },
     {
       id: "return-opened",
@@ -141,7 +148,7 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
       id: "return-how",
       category: "returns",
       question: "How do I request a return?",
-      answer: "Only damaged or expired products qualify. Open the delivered order in [My orders](/account/orders) and use **Request a return** with photos. Our team reviews it and replies on WhatsApp.",
+      answer: "Only damaged or expired products qualify, and you need an **unboxing video**. Open the delivered order in [My orders](/account/orders), tap **Request return** and upload the video. Our team reviews it and gets back to you.",
       keywords: ["return request", "return window", "how to return"],
       accountOnly: true,
     },
@@ -203,7 +210,7 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
       id: "contact",
       category: "account",
       question: "How can I reach you?",
-      answer: `WhatsApp or call **${site.phone}** (${supportConfig.hours.label}), or email ${site.email}. [All contact options](/contact).`,
+      answer: `Raise a request in [Help & support](/account/help) and our team gets back to you (${supportConfig.hours.label}). You can also ask for a call back there. [Contact page](/contact).`,
       keywords: ["contact", "phone", "whatsapp", "email", "support"],
     },
   ];

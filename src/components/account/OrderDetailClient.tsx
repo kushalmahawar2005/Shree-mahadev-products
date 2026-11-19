@@ -40,6 +40,7 @@ import { requestReturnAction } from "@/lib/account/order-actions";
 import { RETURN_REASONS } from "@/lib/account/returns";
 import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
 import { PAID_CANCEL_MESSAGE } from "@/components/account/help/help-lib";
+import { PhotoPicker, hasVideo, type HelpPhoto } from "@/components/account/help/PhotoPicker";
 import { cn } from "@/lib/utils/cn";
 import { ConfirmDialog } from "./shared";
 
@@ -120,20 +121,20 @@ export function CancelOrderButton({ orderId, orderNo, paidOnline = false }: { or
       toast.error(r.error);
       return;
     }
-    toast.success(`Request bhej di (${r.ticketNo}). Team jaldi cancel + refund karke aapko batayegi.`);
+    toast.success(`Request sent (${r.ticketNo}). Our team will cancel and refund it shortly, and let you know.`);
     router.refresh();
   };
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={cn(secondaryBtn, "text-co-danger")}>
-        <PackageX className="size-4" /> {requestMode ? "Cancel request bhejein" : "Cancel order"}
+        <PackageX className="size-4" /> {requestMode ? "Request cancellation" : "Cancel order"}
       </button>
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
         title={requestMode ? `Cancel request for ${orderNo}` : `Cancel order ${orderNo}?`}
         description={requestMode ? PAID_CANCEL_MESSAGE : "Items go back to stock. This can't be undone."}
-        confirmLabel={requestMode ? "Cancel request bhejein" : "Cancel order"}
+        confirmLabel={requestMode ? "Request cancellation" : "Cancel order"}
         cancelLabel="Keep order"
         danger
         onConfirm={async () => {
@@ -187,8 +188,10 @@ export function ReturnRequest({
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [reason, setReason] = useState<(typeof RETURN_REASONS)[number] | null>(null);
   const [note, setNote] = useState("");
+  const [media, setMedia] = useState<HelpPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const uploading = media.some((m) => m.state === "uploading");
 
   const chosen = Object.entries(picked).filter(([, q]) => q > 0);
   const submit = () =>
@@ -196,14 +199,16 @@ export function ReturnRequest({
       setError(null);
       if (!chosen.length) return setError("Pick at least one item.");
       if (!reason) return setError("Choose a reason.");
+      if (!hasVideo(media)) return setError("Please add your unboxing video. Refunds for damage or expiry need it.");
       const r = await requestReturnAction({
         orderId,
         items: chosen.map(([variantKey, qty]) => ({ variantKey, qty })),
         reason,
         note: note.trim() || undefined,
+        media: media.filter((m) => m.state === "done" && m.url && m.publicId).map((m) => ({ url: m.url!, publicId: m.publicId! })),
       });
       if (!r.ok) return setError(r.error);
-      toast.success("Return requested. We'll WhatsApp you within a day.");
+      toast.success(`Return requested (${r.ticketNo}). Our team will review your video and get back to you.`);
       setOpen(false);
       router.refresh();
     });
@@ -290,17 +295,22 @@ export function ReturnRequest({
           className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-base font-normal text-ink outline-none focus-visible:border-forest"
         />
       </label>
-      <p className="text-xs text-ink-muted">
-        Have photos of the damage? Send them on WhatsApp after submitting, it speeds up the refund.
+      <PhotoPicker photos={media} setPhotos={setMedia} video />
+      <p className="rounded-xl bg-page px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
+        Refunds are given only for products that arrive <strong className="text-ink">damaged</strong> or{" "}
+        <strong className="text-ink">expired</strong>, with an unboxing video.{" "}
+        <a href="/policies/refund-return" target="_blank" className="font-semibold text-forest underline-offset-2 hover:underline">
+          Refund policy
+        </a>
       </p>
       {error && (
         <p role="alert" className="text-sm font-medium text-co-danger">
           {error}
         </p>
       )}
-      <button type="button" onClick={submit} disabled={pending} className={primaryBtn}>
-        {pending && <Loader2 className="size-4 animate-spin" />}
-        Submit return request
+      <button type="button" onClick={submit} disabled={pending || uploading} className={primaryBtn}>
+        {(pending || uploading) && <Loader2 className="size-4 animate-spin" />}
+        {uploading ? "Uploading…" : "Submit return request"}
       </button>
     </div>
   );
@@ -410,7 +420,7 @@ export function MoreMenu({
           </DropdownMenuItem>
         )}
         <DropdownMenuItem asChild>
-          <a href={helpHref} target="_blank" rel="noopener noreferrer" className="h-10">
+          <a href={helpHref} className="h-10">
             <MessageCircle className="size-4" /> Need help
           </a>
         </DropdownMenuItem>
