@@ -27,7 +27,7 @@ export const compare = {
   refinedMobile: art("v1795193495/swadeshi-mahadev/static/brand/compare/refined-mobile.webp", 1024, 1298),
   ghaniMobile: art("v1795193496/swadeshi-mahadev/static/brand/compare/ghani-mobile.webp", 1024, 1365),
   // v3 (2026-11-19, client): our own process, seeds → cleaning → kolhu → settling → bottling.
-  ghani: art("v1795105574/swadeshi-mahadev/static/brand/compare/ghani-process.webp", 1944, 809),
+  ghani: art("v1795195099/swadeshi-mahadev/static/brand/compare/ghani-process-official-logo.webp", 1944, 809),
 } as const;
 
 /** Styled stage photos for the category showcase (pack on stone, sunlit wall, left half empty). */
