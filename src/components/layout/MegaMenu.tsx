@@ -40,7 +40,7 @@ const PANELS: Record<MenuGroup, { all: [string, string]; useLinks: boolean; prom
   sweeteners: {
     all: ["All sweeteners", "/collections/natural-sweeteners"],
     useLinks: false,
-    promo: { title: "Bulk orders", text: "Family packs and shop orders, at tin prices.", cta: "Get a quote", href: "/bulk-orders", img: "/illustrations/process/5-bottled.webp" },
+    promo: { title: "Bulk orders", text: "Family packs and shop orders, at tin prices.", cta: "Get a quote", href: "/bulk-orders", img: "/illustrations/bulk-sweeteners.webp" },
   },
 };
 
@@ -183,8 +183,9 @@ function Tile({ o, onNavigate }: { o: MenuProduct; onNavigate: () => void }) {
 function PromoCard({ p, onNavigate }: { p: Promo; onNavigate: () => void }) {
   return (
     <Link href={p.href} onClick={onNavigate} className="group/p mt-auto flex items-center gap-3 overflow-hidden rounded-2xl bg-forest p-3 text-white">
-      <span className="grid size-16 shrink-0 place-items-center rounded-xl bg-khaki-soft">
-        <Image src={p.img} alt="" width={64} height={64} className="size-14 object-contain" />
+      <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-khaki-soft">
+        {/* Square artwork fills the tile edge to edge; it is drawn on the same cream as the tile. */}
+        <Image src={p.img} alt="" width={64} height={64} className="size-16 object-cover" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{p.title}</span>

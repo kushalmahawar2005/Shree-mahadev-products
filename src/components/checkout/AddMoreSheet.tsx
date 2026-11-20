@@ -5,6 +5,7 @@ import { useMemo, useRef, useState } from "react";
 import NumberFlow from "@number-flow/react";
 import {
   Check,
+  ChevronDown,
   Loader2,
   Minus,
   PartyPopper,
@@ -199,7 +200,7 @@ export function AddMoreSheet({
             )}
           </div>
           <div
-            className="mt-2 flex gap-1.5"
+            className="-mx-5 mt-2 flex gap-1.5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="group"
             aria-label="Browse by category"
           >
@@ -210,7 +211,7 @@ export function AddMoreSheet({
                 aria-pressed={chip === c.id}
                 onClick={() => setChip(c.id)}
                 className={cn(
-                  "h-8 rounded-full border px-3.5 text-xs font-semibold transition-colors",
+                  "h-8 shrink-0 rounded-full border px-3.5 text-xs font-semibold whitespace-nowrap transition-colors",
                   chip === c.id
                     ? "border-forest bg-co-brand-soft text-forest"
                     : "border-line text-ink-muted hover:border-co-border-strong",
@@ -372,36 +373,43 @@ function Row({
             </span>
           )}
         </p>
-        <div className="mt-1 flex items-center gap-2">
+        {/* Wraps onto a second line on narrow phones / large font sizes instead of running under the button. */}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
           {sizes.length > 1 ? (
-            <select
-              value={v.id}
-              onChange={(e) => setPicked(e.target.value)}
-              aria-label={`Size for ${p.title}`}
-              className="h-7 rounded-full border border-line bg-white pr-6 pl-2.5 text-xs text-ink outline-none focus-visible:border-forest"
-            >
-              {sizes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.title}
-                </option>
-              ))}
-            </select>
+            <span className="relative inline-flex shrink-0">
+              <select
+                value={v.id}
+                onChange={(e) => setPicked(e.target.value)}
+                aria-label={`Size for ${p.title}`}
+                className="h-7 appearance-none rounded-full border border-line bg-white pr-7 pl-3 text-xs text-ink outline-none focus-visible:border-forest"
+              >
+                {sizes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+              {/* Own chevron, inset from the rounded edge (the native arrow sat on the border). */}
+              <ChevronDown aria-hidden className="pointer-events-none absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 text-ink-muted" />
+            </span>
           ) : (
             <span className="text-xs text-ink-muted">{v.title}</span>
           )}
-          <span className="text-sm font-semibold text-ink tabular-nums">
-            {formatMoney(v.price)}
+          <span className="inline-flex items-baseline gap-1.5 whitespace-nowrap">
+            <span className="text-sm font-semibold text-ink tabular-nums">
+              {formatMoney(v.price)}
+            </span>
+            {off > 0 && (
+              <>
+                <s className="text-xs text-ink-muted/70 tabular-nums">
+                  {formatMoney(v.mrp!)}
+                </s>
+                <span className="text-[11px] font-bold text-co-success">
+                  {off}% off
+                </span>
+              </>
+            )}
           </span>
-          {off > 0 && (
-            <>
-              <s className="text-xs text-ink-muted/70 tabular-nums">
-                {formatMoney(v.mrp!)}
-              </s>
-              <span className="text-[11px] font-bold text-co-success">
-                {off}% off
-              </span>
-            </>
-          )}
         </div>
       </div>
       {line ? (

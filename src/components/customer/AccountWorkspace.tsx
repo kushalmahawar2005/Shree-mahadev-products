@@ -12,6 +12,8 @@ import { helpLink } from "@/data/site";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
 import { logoutCustomerAction, reorderAction, requestCustomerOtpAction, saveCustomerAddressAction, setCustomerNameAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
+import { completeEmailSignupAction, requestEmailOtpAction, verifyEmailOtpAction } from "@/lib/customer-email-login-actions";
+import { LoginMethodToggle, type LoginMethod } from "@/components/account/LoginMethodToggle";
 import { INDIAN_STATES } from "@/lib/checkout";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
@@ -49,33 +51,44 @@ export function AccountWorkspace({ customer, orders = [], addresses = [] }: { cu
 /** Phone + OTP sign-in (shadcn input-otp). `next`: where to go after signing in. */
 export function SignIn({ next }: { next?: string } = {}) {
   const [pending, start] = useTransition();
+  const [method, setMethod] = useState<LoginMethod>("whatsapp");
   const [phone, setPhone] = useState("");
-  const [sent, setSent] = useState(false);
-  // After the OTP: new accounts are asked for their name once, returning shoppers go straight in.
-  const [askName, setAskName] = useState(false);
+  const [email, setEmail] = useState("");
+  // first → otp → (email sign-up) phone → (new account) name
+  const [step, setStep] = useState<"first" | "otp" | "phone" | "name">("first");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  // Local dev only: the mock OTP the server returned (no SMS gateway yet).
+  // Local dev only: the mock OTP the server returned (no gateway yet).
   const [devCode, setDevCode] = useState("");
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 
   const send = () =>
     start(async () => {
       setError("");
-      const r = await requestCustomerOtpAction({ phone });
+      const r = method === "email" ? await requestEmailOtpAction({ email }) : await requestCustomerOtpAction({ phone });
       if (!r.ok) return setError(r.error ?? "Couldn't send the OTP.");
-      setPhone(r.phone ?? phone);
+      if ("phone" in r && r.phone) setPhone(r.phone);
       const mockCode = "devCode" in r ? (r.devCode ?? "") : "";
       setDevCode(mockCode);
       setCode(mockCode);
-      setSent(true);
+      setStep("otp");
     });
   const verify = () =>
     start(async () => {
       setError("");
-      const r = await verifyCustomerOtpAction({ phone, code });
+      const r = method === "email" ? await verifyEmailOtpAction({ email, code }) : await verifyCustomerOtpAction({ phone, code });
       if (!r.ok) return setError(r.error ?? "That code didn't work.");
-      if ("needsName" in r && r.needsName) return setAskName(true);
+      if ("needsPhone" in r && r.needsPhone) return (setPhone(""), setStep("phone"));
+      if ("needsName" in r && r.needsName) return setStep("name");
+      done();
+    });
+  const savePhone = () =>
+    start(async () => {
+      setError("");
+      const r = await completeEmailSignupAction({ phone });
+      if (!r.ok) return setError(r.error);
+      if (r.needsName) return setStep("name");
       done();
     });
   // Full load so the header (account + cart) reflects the new session.
@@ -89,19 +102,35 @@ export function SignIn({ next }: { next?: string } = {}) {
       done();
     });
 
+  const title =
+    step === "name" ? "Welcome! What's your name?" : step === "phone" ? "Add your mobile number" : step === "otp" ? "Enter the OTP" : "Sign in";
+  const disabled =
+    pending ||
+    (step === "name"
+      ? name.trim().length < 2
+      : step === "phone"
+        ? phone.length !== 10
+        : step === "otp"
+          ? code.length !== 6
+          : method === "email"
+            ? !emailOk
+            : phone.length !== 10);
+
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-line bg-white p-6 shadow-[0_24px_48px_-36px_rgba(7,47,27,0.5)] md:p-8">
       <span className="shrink-0 text-forest">
         <UserRound className="size-10" />
       </span>
-      <h2 className="mt-4 text-2xl">{askName ? "Welcome! What's your name?" : sent ? "Enter the OTP" : "Sign in with your phone"}</h2>
+      <h2 className="mt-4 text-2xl">{title}</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        {askName ? (
-          "Your number is verified. We'll use your name on orders and delivery updates."
-        ) : sent ? (
+        {step === "name" ? (
+          "You're verified. We'll use your name on orders and delivery updates."
+        ) : step === "phone" ? (
+          "Your email is verified. Add the mobile number for delivery and order updates."
+        ) : step === "otp" ? (
           <>
-            We sent a 6-digit code to <span className="font-semibold text-ink">+91 {phone}</span>.{" "}
-            <button type="button" onClick={() => (setSent(false), setCode(""))} className="font-semibold text-forest underline-offset-2 hover:underline">
+            We sent a 6-digit code to <span className="font-semibold break-all text-ink">{method === "email" ? email : `+91 ${phone}`}</span>.{" "}
+            <button type="button" onClick={() => (setStep("first"), setCode(""), setError(""))} className="font-semibold text-forest underline-offset-2 hover:underline">
               Change
             </button>
           </>
@@ -110,32 +139,28 @@ export function SignIn({ next }: { next?: string } = {}) {
         )}
       </p>
 
+      {step === "first" && (
+        <LoginMethodToggle
+          value={method}
+          onChange={(m) => (setMethod(m), setError(""))}
+          layoutId="login-method-page"
+          className="mt-5"
+        />
+      )}
+
       <form
-        className="mt-6 space-y-4"
+        className="mt-4 space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          if (askName) saveName();
-          else if (sent) verify();
+          if (step === "name") saveName();
+          else if (step === "phone") savePhone();
+          else if (step === "otp") verify();
           else send();
         }}
       >
-        {askName ? (
+        {step === "name" ? (
           <input value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={80} autoFocus placeholder="Your full name" autoComplete="name" className={field} />
-        ) : !sent ? (
-          <label className="relative block">
-            <span className="sr-only">Mobile number</span>
-            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[15px] font-semibold text-ink-muted">+91</span>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-              required
-              inputMode="numeric"
-              autoComplete="tel-national"
-              placeholder="10-digit mobile number"
-              className={cn(field, "pl-14 tracking-wide")}
-            />
-          </label>
-        ) : (
+        ) : step === "otp" ? (
           <>
             <InputOTP maxLength={6} value={code} onChange={setCode} onComplete={() => undefined} containerClassName="justify-center" autoFocus>
               <InputOTPGroup className="gap-2">
@@ -146,10 +171,37 @@ export function SignIn({ next }: { next?: string } = {}) {
             </InputOTP>
             {devCode && (
               <p className="rounded-xl border border-dashed border-warm-line bg-warm px-3 py-2 text-center text-xs text-ink-muted">
-                Test mode: no WhatsApp message is sent. Your OTP is <span className="font-bold tracking-widest text-ink">{devCode}</span> (filled in for you).
+                Test mode: nothing is sent. Your OTP is <span className="font-bold tracking-widest text-ink">{devCode}</span> (filled in for you).
               </p>
             )}
           </>
+        ) : method === "email" && step === "first" ? (
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value.trim())}
+            required
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            maxLength={160}
+            className={field}
+          />
+        ) : (
+          <label className="relative block">
+            <span className="sr-only">{step === "phone" ? "Mobile number" : "WhatsApp number"}</span>
+            <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-[15px] font-semibold text-ink-muted">+91</span>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              required
+              autoFocus={step === "phone"}
+              inputMode="numeric"
+              autoComplete="tel-national"
+              placeholder={step === "phone" ? "10-digit mobile number" : "10-digit WhatsApp number"}
+              className={cn(field, "pl-14 tracking-wide")}
+            />
+          </label>
         )}
         {error && (
           <p role="alert" className="rounded-xl bg-alert-soft px-3 py-2 text-sm text-alert">
@@ -158,12 +210,17 @@ export function SignIn({ next }: { next?: string } = {}) {
         )}
         <button
           type="submit"
-          disabled={pending || (askName ? name.trim().length < 2 : !sent ? phone.length !== 10 : code.length !== 6)}
+          disabled={disabled}
           className="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-forest text-sm font-bold text-white hover:bg-forest-mid disabled:opacity-50"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
-          {askName ? "Continue" : sent ? "Verify & sign in" : "Send OTP"}
+          {step === "name" ? "Continue" : step === "phone" ? "Continue" : step === "otp" ? "Verify & sign in" : "Send OTP"}
         </button>
+        {step === "first" && (
+          <p className="text-center text-xs text-ink-muted">
+            {method === "whatsapp" ? "The OTP comes on WhatsApp. No WhatsApp? Switch to Email." : "We'll email you a 6-digit code."}
+          </p>
+        )}
       </form>
       <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-ink-muted">
         <ShieldCheck className="size-3.5 text-forest" /> Guest checkout still works without an account.

@@ -156,7 +156,7 @@ export const products: Product[] = [
     ],
     rating: 4.7,
     reviewCount: 38,
-    tags: ["cooking", "daily-cooking", "pickles-tadka", "hair-skin", "bulk"],
+    tags: ["cooking", "daily-cooking", "pickles-tadka", "hair-skin", "baby-massage", "bulk"],
     faqs: oilFaqs("Yellow mustard oil"),
   }),
   product({
@@ -184,7 +184,7 @@ export const products: Product[] = [
     ],
     rating: 4.6,
     reviewCount: 21,
-    tags: ["cooking", "pickles-tadka", "hair-skin", "baby-massage"],
+    tags: ["cooking", "pickles-tadka", "hair-skin", "joint-massage"],
     faqs: oilFaqs("Black mustard oil"),
   }),
   product({
@@ -195,7 +195,7 @@ export const products: Product[] = [
     swatch: "#5B3A1E",
     shortDescription: "Rich, dark til oil for massage and wellness.",
     description:
-      "Pressed from black til. Deep in colour and aroma. Traditionally used for oil pulling, abhyanga and hair care.",
+      "Pressed from jet-black til sourced from Gujarat. Deep in colour and aroma. Traditionally used for oil pulling, abhyanga and hair care.",
     benefits: [
       "Traditionally used for abhyanga (self-massage)",
       "Popular for hair and scalp care",
@@ -239,14 +239,14 @@ export const products: Product[] = [
     titleHi: "भूरे तिल का तेल",
     swatch: "#9C6A2F",
     shortDescription: "Everyday til oil with a toasty aroma.",
-    description: "Pressed from brown sesame seeds. TODO(client): product story.",
+    description: "Pressed from desi brown sesame, the Marwari seed grown by farmers in Marwar, Rajasthan. Warm, toasty til aroma for daily cooking, pickles and winter malish.",
     benefits: ["Toasty til aroma", "Suited to cooking and massage", "Unrefined"],
     bestFor: ["Daily cooking", "Massage"],
     sizes: [
       ["500ml", null, null],
       ["1L", null, null],
     ],
-    tags: ["cooking", "daily-cooking", "hair-skin"],
+    tags: ["cooking", "daily-cooking"],
     faqs: oilFaqs("Brown sesame oil"),
   }),
   product({
@@ -274,7 +274,7 @@ export const products: Product[] = [
     ],
     rating: 4.6,
     reviewCount: 12,
-    tags: ["wellness"],
+    tags: ["wellness", "hair-skin"],
     faqs: oilFaqs("Flaxseed oil"),
   }),
   product({
@@ -314,8 +314,8 @@ export const products: Product[] = [
   product({
     ...oilBase(),
     handle: "almond-oil",
-    // TODO(client): confirm almond process. Named "Cold-Pressed" per old site until confirmed.
-    title: "Cold-Pressed Almond Oil",
+    // Same wooden Kolhu as every other oil (owner, 20 Nov 2026).
+    title: "Wood-Pressed Almond Oil",
     titleHi: "बादाम तेल",
     swatch: "#E8CF8A",
     shortDescription: "Badam rogan for hair, skin and baby massage.",
@@ -352,7 +352,7 @@ export const products: Product[] = [
       ["100ml", null, null],
       ["250ml", null, null],
     ],
-    tags: ["wellness", "hair-skin"],
+    tags: ["wellness", "hair-skin", "joint-massage"],
     faqs: oilFaqs("Walnut oil"),
   }),
   product({
@@ -369,7 +369,7 @@ export const products: Product[] = [
       ["100ml", null, null],
       ["250ml", null, null],
     ],
-    tags: ["wellness", "hair-skin"],
+    tags: ["wellness", "hair-skin", "joint-massage"],
     faqs: oilFaqs("Castor oil"),
   }),
 

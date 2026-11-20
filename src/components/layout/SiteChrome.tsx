@@ -1,4 +1,4 @@
-import { CartDrawer } from "@/components/cart/CartDrawer";
+import { CartDrawerLazy } from "@/components/cart/CartDrawerLazy";
 import { getCollections, getProducts, type Product } from "@/lib/commerce";
 import { oilShelfOrder } from "@/data/products";
 import { mainNav } from "@/data/site";
@@ -63,5 +63,5 @@ function idx(h: string) {
 
 export async function SiteCartDrawer() {
   const [upsells, catalog] = await Promise.all([getProducts({ collection: "bestsellers", first: 4 }), getProducts()]);
-  return <CartDrawer upsells={upsells} catalog={catalog} />;
+  return <CartDrawerLazy upsells={upsells} catalog={catalog} />;
 }

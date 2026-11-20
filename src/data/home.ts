@@ -7,13 +7,14 @@ import type { shopByUse } from "./site";
 
 export const shopByUseScenes: Record<
   (typeof shopByUse)[number]["tag"],
-  { src: string; portraitSrc: string; alt: string; tone: string; firstProduct?: string }
+  { src: string; portraitSrc: string; alt: string; tone: string; /** Product order for this use (handles); products not listed follow. */ order?: string[] }
 > = {
   "daily-cooking": {
     src: "/images/shop-by-use/daily-cooking.webp",
     portraitSrc: "/images/shop-by-use/daily-cooking-portrait.webp",
     alt: "Dadi stirring sabzi beside dal, rotis and a bottle of Mahadev Yellow Mustard Oil",
     tone: "#3d281a",
+    order: ["groundnut-oil", "yellow-mustard-oil", "white-sesame-oil", "coconut-oil"],
   },
   "deep-frying": {
     src: "/images/shop-by-use/deep-frying.webp",
@@ -32,14 +33,21 @@ export const shopByUseScenes: Record<
     portraitSrc: "/images/shop-by-use/hair-skin-portrait.webp",
     alt: "Dadi giving a young woman a champi beside a brass bowl and Mahadev Coconut Oil",
     tone: "#342a1c",
-    firstProduct: "coconut-oil",
+    order: ["coconut-oil", "almond-oil", "black-sesame-oil", "yellow-mustard-oil", "black-mustard-oil", "walnut-oil", "castor-oil", "flaxseed-oil"],
   },
   "baby-massage": {
     src: "/images/shop-by-use/baby-massage.webp",
     portraitSrc: "/images/shop-by-use/baby-massage-portrait.webp",
-    alt: "Dadi massaging a baby's foot with a bottle of Mahadev Almond Oil on a side table",
+    alt: "Smiling Dadi giving a laughing baby an oil malish on a charpai, with Mahadev Almond Oil on a side table",
     tone: "#4a3424",
-    firstProduct: "almond-oil",
+    order: ["almond-oil", "coconut-oil", "yellow-mustard-oil", "black-sesame-oil"],
+  },
+  "joint-massage": {
+    src: "/images/shop-by-use/joint-massage.webp",
+    portraitSrc: "/images/shop-by-use/joint-massage-portrait.webp",
+    alt: "Dadi in a winter shawl massaging warm oil into her knee, with Mahadev Black Mustard Oil beside a brass katori",
+    tone: "#4a2a1a",
+    order: ["black-mustard-oil", "castor-oil", "walnut-oil"],
   },
 };
 

@@ -11,6 +11,15 @@ const nextConfig: NextConfig = {
   // A separate QA runtime can coexist with the user's normal local dev server.
   distDir: process.env.NEXT_BUILD_DIR || ".next",
   cacheComponents: true,
+  // Short shared-cache life for pages. Hostinger's CDN follows the page Cache-Control
+  // (s-maxage = revalidate, stale-while-revalidate = expire - revalidate). The presets let it serve a page
+  // up to a day old, so after a deploy (or an hPanel-triggered rebuild) visitors kept getting old HTML
+  // whose CSS / server actions no longer exist. With these values a page is at most ~30 min old.
+  // NOTE: "hours" is redefined here (15 min revalidate, 30 min expire); keep-warm crons refresh pages.
+  cacheLife: {
+    default: { stale: 300, revalidate: 900, expire: 1800 },
+    hours: { stale: 300, revalidate: 900, expire: 1800 },
+  },
   // Two root layouts (store + admin): unmatched URLs use app/global-not-found.tsx.
   experimental: { globalNotFound: true },
   partialPrefetching: true,

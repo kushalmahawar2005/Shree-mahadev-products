@@ -25,6 +25,10 @@ if grep -E '^NEXT_PUBLIC_' .env.local | grep -v '^NEXT_PUBLIC_SITE_URL=' | grep 
 # public/ images are served from their Cloudinary mirror (image-loader.ts): sync new/changed ones first.
 node scripts/upload-static.mjs > /tmp/smp-static-sync.log 2>&1 || { cat /tmp/smp-static-sync.log; echo "static image sync failed"; exit 1; }
 tail -1 /tmp/smp-static-sync.log
+# Version-skew protection: a page from an older deploy that talks to this server gets a full reload
+# instead of a broken client navigation / "Server Action not found". Unique per build.
+export NEXT_DEPLOYMENT_ID="$(cd "$R" && git rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)"
+echo "deploymentId: $NEXT_DEPLOYMENT_ID"
 NEXT_PUBLIC_SITE_URL=https://swadeshimahadevproducts.in pnpm build 2>&1 | grep -E "rror|✓ Compiled|✓ Generating"
 rm -f .env.local
 # Hostinger rebuilds on its own (e.g. after saving env vars in hPanel) with its stored "build" command,
@@ -36,6 +40,11 @@ for l in $(cd $S && find . -type l); do t=$(cd "$S/$(dirname $l)" && cd "$(readl
 rm -rf $S/node_modules/@img/sharp-*darwin* 
 cp -R public $S/public
 cp -R .next/static $S/.next/static
+# Keep the CSS/JS of earlier deploys too (they are content-hashed, so names never clash): a page that a
+# CDN or browser still holds from an older build can then load its files instead of rendering blank.
+mkdir -p "$SP/static-history"
+rsync -a --ignore-existing "$SP/static-history/" $S/.next/static/
+rsync -a .next/static/ "$SP/static-history/"
 test -z "$(find $S -type l)"
 for k in DATABASE_PASSWORD PAYU_SALT CLOUDINARY_API_SECRET ADMIN_SESSION_SECRET; do v=$(grep "^$k=" "$R/.env.local"|cut -d= -f2-); [ -n "$v" ] && ! grep -rqF "$v" .next || { echo "SECRET LEAK $k"; exit 1; }; done
 rm -rf node_modules .next/cache

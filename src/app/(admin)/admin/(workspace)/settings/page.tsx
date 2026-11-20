@@ -49,7 +49,7 @@ async function Integrations() {
       keys: "CASHFREE_APP_ID · CASHFREE_SECRET_KEY · CASHFREE_ENV",
       note: !cashfreeConfigured() ? "Optional second gateway. Add keys, then pick it under Online payments." : cashfreeMode() === "production" ? "Live Cashfree keys are configured." : "Sandbox keys: payments are test-only.",
     },
-    { name: "Order email · Resend", ok: mailConfigured(), warning: false, state: mailConfigured() ? "Configured" : "Missing key", keys: "RESEND_API_KEY", note: "Without this key, order emails stay queued until delivery is configured." },
+    { name: "Order email · Resend (+ SMTP backup)", ok: mailConfigured(), warning: false, state: mailConfigured() ? "Configured" : "Missing key", keys: "RESEND_API_KEY · SMTP_HOST/USER/PASS", note: "Resend sends first; SMTP (Nodemailer) is the backup. Without either, order emails stay queued." },
     { name: "Courier rates · NimbusPost", ok: nimbusConfigured(), warning: false, state: nimbusConfigured() ? "Configured" : "Missing keys", keys: "NIMBUSPOST_API_KEY · NIMBUSPOST_API_SECRET", note: "Without these keys, checkout uses the configured flat shipping fee." },
   ];
   const missing = integrations.filter((integration) => !integration.ok).length;

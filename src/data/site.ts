@@ -11,7 +11,7 @@ export const site = {
   whatsapp: process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "918440099585",
   supportHours: "9am–6pm",
   // TODO(client): replace with domain email (e.g. hello@swadeshimahadevproducts.com)
-  email: "info.mahadevproducts@gmail.com",
+  email: "support@swadeshimahadevproducts.com",
   address: {
     line1: "12 B, New Bajrang Colony, Near Teja Chowk",
     city: "Bijainagar",
@@ -143,4 +143,5 @@ export const shopByUse = [
   { label: "Pickles & tadka", labelHi: "अचार और छौंक", tag: "pickles-tadka", note: "Achaar, chhaunk", tip: "Black mustard oil gives achaar its sharp kick. Heat till it just smokes, then cool before pouring." },
   { label: "Hair & skin", labelHi: "बाल और त्वचा", tag: "hair-skin", note: "Champi, body oil", tip: "Warm a few spoons of coconut or sesame oil and massage into the scalp an hour before washing." },
   { label: "Baby massage", labelHi: "बच्चों की मालिश", tag: "baby-massage", note: "Gentle malish", tip: "Use gentle oils like coconut or almond. Do a small patch test first and keep it away from the eyes." },
+  { label: "Joint malish", labelHi: "जोड़ों की मालिश", tag: "joint-massage", note: "Ghutne, edi, kamar, body", tip: "Warm black mustard or castor oil slightly and massage into knees, heels or back before bed. A traditional winter malish." },
 ] as const;

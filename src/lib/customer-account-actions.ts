@@ -14,7 +14,7 @@ import {
   createCustomerSession,
   requireCustomer,
 } from "@/lib/server/customer-auth";
-import { otpConfigured, sendOtpCode } from "@/lib/server/otp-sender";
+import { otpConfigured, otpFailureMessage, sendOtpCodeDetailed } from "@/lib/server/otp-sender";
 import { customerCancelOrder, requestOrderCancel } from "@/lib/server/order-cancel";
 
 const Phone = z.string().regex(/^(?:\+?91|0)?[6-9]\d{9}$/);
@@ -85,11 +85,8 @@ export async function requestCustomerOtpAction(raw: unknown) {
   // The fixed code is shown only in local development, never on a production build.
   if (devMock) return { ok: true, phone, devCode: MOCK_OTP };
   if (testNumber) return { ok: true, phone };
-  if (!(await sendOtpCode(phone, code)))
-    return {
-      ok: false,
-      error: "Could not send the OTP right now. Please try again in a minute.",
-    };
+  const failed = await sendOtpCodeDetailed(phone, code);
+  if (failed) return { ok: false, error: otpFailureMessage(failed) };
   return { ok: true, phone };
 }
 

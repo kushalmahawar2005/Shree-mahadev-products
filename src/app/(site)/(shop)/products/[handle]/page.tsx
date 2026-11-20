@@ -168,13 +168,12 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
   const tagPill = isOil ? "Traditional method · Lakdi kachi ghani" : isHoney ? (product.tags.includes("bestseller") ? "Bestseller" : "Raw honey") : "Naturally Sweet, Traditionally Made";
 
   const description = noTodo(product.descriptionHtml) ?? noTodo(product.shortDescription);
-  // Admin text may carry "TODO(client): …" notes for us; drop those sentences, keep the rest.
-  const processNote = stripTodo(product.processNote);
   // A shelf life with an open TODO is not confirmed yet: don't state it.
   const shelfLife = hasTodo(product.shelfLife) ? undefined : product.shelfLife;
   const howToUse = noTodo(product.howToUse);
   const tabs: DetailTab[] = [
-    // Same order as the admin form: Description → How to use → How it's made.
+    // Same order as the admin form: Description → Benefits → Ingredients → How to use.
+    // No "How it's made" row (client, 20 Nov): the illustrated process steps below the buy box cover it.
     description
       ? {
           id: "about",
@@ -208,13 +207,6 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
               {howToUse && <div dangerouslySetInnerHTML={{ __html: richTextToHtml(howToUse) }} />}
             </div>
           ),
-        }
-      : null,
-    processNote
-      ? {
-          id: "made",
-          title: "How it's made",
-          body: <div className="space-y-3 [&_strong]:text-ink" dangerouslySetInnerHTML={{ __html: richTextToHtml(processNote) }} />,
         }
       : null,
     product.labReportUrl
@@ -679,10 +671,4 @@ async function pairsWellWith(p: Product) {
   const other = priced.filter((x) => x.category !== p.category);
   const same = priced.filter((x) => x.category === p.category && x.tags.some((t) => p.tags.includes(t)));
   return [...same.slice(0, 2), ...other.slice(0, 2)].slice(0, 4);
-}
-
-/** Removes "TODO(client): …" notes (to the end of their sentence/line) from admin text. */
-function stripTodo(text?: string | null) {
-  const out = (text ?? "").replace(/\s*TODO\([^)]*\):[^\n]*?(?:[.!?](?=\s|$)|$)/g, "").trim();
-  return out || undefined;
 }

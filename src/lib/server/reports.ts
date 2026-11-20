@@ -9,7 +9,7 @@ const params = (range: Range) => [PLACED, range.from, range.to];
 
 export async function getReports(range: Range) {
   "use cache";
-  cacheLife({ revalidate: 600 });
+  cacheLife({ revalidate: 600, expire: 1800 });
   cacheTag("reports");
   const [sales, products, places, payments, customers, coupons, carts, utm, inventory] = await Promise.all([
     db().query<Rows>(`SELECT DATE(o.created_at) AS date, COUNT(*) AS orders, SUM(o.total) AS revenue, SUM(o.discount) AS discounts FROM orders o WHERE o.status IN (?) AND DATE(o.created_at) BETWEEN ? AND ? GROUP BY DATE(o.created_at) ORDER BY date`, params(range)),

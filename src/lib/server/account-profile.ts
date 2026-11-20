@@ -5,7 +5,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { site } from "@/data/site";
 import { db } from "./db";
 import { kickOutbox } from "./mail";
-import { otpConfigured, sendOtpCode } from "@/lib/server/otp-sender";
+import { otpConfigured, otpFailureMessage, sendOtpCodeDetailed } from "@/lib/server/otp-sender";
 
 
 /*
@@ -214,8 +214,8 @@ export async function issueAccountOtp(customerId: number, purpose: OtpPurpose, p
     "INSERT INTO account_otps (customer_id, purpose, phone, code_hash, expires_at) VALUES (?,?,?,?,DATE_ADD(NOW(), INTERVAL 5 MINUTE))",
     [customerId, purpose, phone, sha(code)],
   );
-  if (!mock && !(await sendOtpCode(phone, code)))
-    return { ok: false as const, error: "Could not send the OTP right now. Please try again in a minute." };
+  const failed = mock ? null : await sendOtpCodeDetailed(phone, code);
+  if (failed) return { ok: false as const, error: otpFailureMessage(failed) };
   return {
     ok: true as const,
     resendsLeft: MAX_SENDS - sends - 1,

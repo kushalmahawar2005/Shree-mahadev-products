@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { render } from "@react-email/render";
 import { after } from "next/server";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -12,6 +13,7 @@ import {
 } from "@/emails/OrderEmail";
 import { InquiryEmail, type InquiryEmailData } from "@/emails/InquiryEmail";
 import { CartEmail } from "@/emails/CartEmail";
+import { OtpEmail } from "@/emails/OtpEmail";
 import { db } from "./db";
 
 /**
@@ -28,10 +30,21 @@ const siteUrl = () =>
   (
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://swadeshimahadevproducts.in"
   ).replace(/\/$/, "");
-export const mailConfigured = () => Boolean(process.env.RESEND_API_KEY);
-const mailFrom = () =>
-  process.env.MAIL_FROM ||
-  "Swadeshi Mahadev <orders@swadeshimahadevproducts.in>";
+const DEFAULT_FROM = "Swadeshi Mahadev <orders@swadeshimahadevproducts.in>";
+
+/** SMTP backup (Nodemailer): used only when Resend fails. Needs SMTP_HOST, SMTP_USER, SMTP_PASS. */
+const smtpConfigured = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
+export const mailConfigured = () => Boolean(process.env.RESEND_API_KEY) || smtpConfigured();
+
+/**
+ * Sender address. Resend's shared test sender (…@resend.dev) only delivers to the Resend account
+ * owner, so in production it is swapped for our verified domain; otherwise customers get nothing.
+ */
+const mailFrom = () => {
+  const from = process.env.MAIL_FROM || DEFAULT_FROM;
+  return process.env.NODE_ENV === "production" && /@resend\.dev>?\s*$/i.test(from) ? DEFAULT_FROM : from;
+};
 
 function resendUrl() {
   const override = process.env.RESEND_API_URL;
@@ -222,23 +235,35 @@ export async function queueOrderEmail(
   return r.affectedRows ? r.insertId : null;
 }
 
-async function sendOne(row: RowDataPacket) {
+/** One email to send. `key` makes Resend de-duplicate retries of the same message. */
+type Message = { key: string; to: string; subject: string; html: string; text?: string | null; template: string };
+
+const messageOf = (row: RowDataPacket): Message => ({
+  key: `smp-outbox-${row.id}`,
+  to: String(row.to_email),
+  subject: String(row.subject),
+  html: String(row.html),
+  text: row.text_body ? String(row.text_body) : null,
+  template: String(row.template),
+});
+
+async function sendViaResend(m: Message) {
   const res = await fetch(resendUrl(), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       "Content-Type": "application/json",
       // Resend de-duplicates retries of the same message.
-      "Idempotency-Key": `smp-outbox-${row.id}`,
+      "Idempotency-Key": m.key,
     },
     body: JSON.stringify({
       from: mailFrom(),
-      to: [row.to_email],
-      subject: row.subject,
-      html: row.html,
-      text: row.text_body,
+      to: [m.to],
+      subject: m.subject,
+      html: m.html,
+      text: m.text ?? undefined,
       reply_to: site.email,
-      tags: [{ name: "template", value: row.template }],
+      tags: [{ name: "template", value: m.template }],
     }),
     signal: AbortSignal.timeout(15_000),
   });
@@ -250,6 +275,70 @@ async function sendOne(row: RowDataPacket) {
   if (!res.ok || !json.id)
     throw new Error(json.message || json.name || `Resend HTTP ${res.status}`);
   return json.id;
+}
+
+/** Backup path: the same message through any SMTP mailbox (Hostinger mail, Gmail app password…). */
+async function sendViaSmtp(m: Message) {
+  const { createTransport } = await import("nodemailer");
+  const port = Number(process.env.SMTP_PORT || 465);
+  const transport = createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    connectionTimeout: 15_000,
+  });
+  const info = await transport.sendMail({
+    // The mailbox must be allowed to send as this address (usually SMTP_USER itself).
+    from: process.env.SMTP_FROM || mailFrom(),
+    to: m.to,
+    subject: m.subject,
+    html: m.html,
+    text: m.text ?? undefined,
+    replyTo: site.email,
+    headers: { "X-Message-Key": m.key },
+  });
+  return `smtp:${info.messageId}`;
+}
+
+/** Resend first; if it fails (outage, quota, bad key) and SMTP is set up, Nodemailer sends it instead. */
+async function sendMessage(m: Message) {
+  if (process.env.RESEND_API_KEY) {
+    try {
+      return await sendViaResend(m);
+    } catch (error) {
+      if (!smtpConfigured()) throw error;
+      console.error("resend failed, trying SMTP", error instanceof Error ? error.message : error);
+    }
+  }
+  return sendViaSmtp(m);
+}
+
+const sendOne = (row: RowDataPacket) => sendMessage(messageOf(row));
+
+/**
+ * Login code by email. Sent straight away, NOT through the outbox: the code must never be stored
+ * (the outbox keeps the HTML for admins) and a code that arrives minutes later is useless anyway.
+ * Returns false on any failure so the caller can show a message.
+ */
+export async function sendLoginCodeEmail(to: string, code: string, minutes: number) {
+  if (!mailConfigured()) return false;
+  try {
+    const element = OtpEmail({ code, minutes, logoUrl: brand().logoUrl, siteName: site.name });
+    const [html, text] = await Promise.all([render(element), render(element, { plainText: true })]);
+    await sendMessage({
+      key: `smp-login-${createHash("sha256").update(`${to}:${code}:${Date.now()}`).digest("hex").slice(0, 32)}`,
+      to,
+      subject: `${code} is your ${site.name} login code`,
+      html,
+      text,
+      template: "login_otp",
+    });
+    return true;
+  } catch (error) {
+    console.error("login code email failed", error instanceof Error ? error.message : error);
+    return false;
+  }
 }
 
 /** Send due messages. Safe to call often; each row is claimed atomically. */

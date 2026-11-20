@@ -65,7 +65,7 @@ export async function getProductReviews(
   handle: string,
 ): Promise<PublicReview[]> {
   "use cache";
-  cacheLife({ revalidate: 3600 });
+  cacheLife("hours");
   cacheTag("reviews", `reviews:${handle}`);
   // No database (e.g. a preview deploy): no reviews yet, same as store-settings falls back to defaults.
   if (!process.env.DATABASE_NAME) return [];
@@ -80,7 +80,7 @@ export async function getProductReviews(
 
 export async function getFeaturedReviews(): Promise<PublicReview[]> {
   "use cache";
-  cacheLife({ revalidate: 3600 });
+  cacheLife("hours");
   cacheTag("reviews", "reviews:featured");
   if (!process.env.DATABASE_NAME) return [];
   const [rows] = await db().query<RowDataPacket[]>(
@@ -94,7 +94,7 @@ export async function getFeaturedReviews(): Promise<PublicReview[]> {
 /** Best approved 4-5★ reviews from other products (featured first), for a product that has none yet. */
 export async function getOtherProductReviews(excludeHandle: string, limit = 3): Promise<PublicReview[]> {
   "use cache";
-  cacheLife({ revalidate: 3600 });
+  cacheLife("hours");
   cacheTag("reviews");
   if (!process.env.DATABASE_NAME) return [];
   const [rows] = await db().query<RowDataPacket[]>(

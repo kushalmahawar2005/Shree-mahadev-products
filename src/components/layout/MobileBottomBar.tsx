@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSignedIn } from "@/hooks/use-signed-in";
 import { LoginNudge } from "./LoginNudge";
+import { openLoginModal } from "@/components/account/LoginModal";
 import { useCart } from "@/components/cart/CartProvider";
 import { BagIcon, SearchIcon, ShopIcon, UserIcon } from "./icons";
 
@@ -47,7 +48,17 @@ export function MobileBottomBar() {
       </button>
       {/* No prefetch: signed-out visitors get a proxy redirect to /login, which 404s as a prefetch. */}
       {/* Signed out: "Login" with a small gold dot; the nudge bubble explains the perks. */}
-      <Link href="/account" prefetch={false} className={item}>
+      <Link
+        href="/account"
+        prefetch={false}
+        className={item}
+        // Guests get the login popup right here instead of a page change.
+        onClick={(e) => {
+          if (!guest) return;
+          e.preventDefault();
+          openLoginModal();
+        }}
+      >
         <span className="relative">
           <UserIcon className="size-5" />
           {guest && <span aria-hidden className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-co-accent ring-2 ring-white" />}

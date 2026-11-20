@@ -16,7 +16,7 @@ const cookie = `smp_admin=${p}.${createHmac("sha256", process.env.ADMIN_SESSION_
 const KEYS = ["business", "shipping", "announcement", "socials", "low_stock_threshold"];
 const [snapshot] = await db.query("SELECT `key`, CAST(value AS CHAR) AS value FROM settings WHERE `key` IN (?)", [KEYS]);
 const initial = {
-  business: { legalName: "Swadeshi Mahadev Products", gstin: "", fssai: "12226047000007", fssaiExpiry: "", iso: "ISO 9001:2015", phone: "+91-9251005103", whatsapp: "919251005103", email: "info.mahadevproducts@gmail.com", supportHours: "9am–6pm", addressLine1: "12 B, New Bajrang Colony, Near Teja Chowk", city: "Bijainagar", district: "Beawar", state: "Rajasthan", postalCode: "305624" },
+  business: { legalName: "Swadeshi Mahadev Products", gstin: "", fssai: "12226047000007", fssaiExpiry: "", iso: "ISO 9001:2015", phone: "+91-9251005103", whatsapp: "919251005103", email: "support@swadeshimahadevproducts.com", supportHours: "9am–6pm", addressLine1: "12 B, New Bajrang Colony, Near Teja Chowk", city: "Bijainagar", district: "Beawar", state: "Rajasthan", postalCode: "305624" },
   shipping: { freeShippingThreshold: 999, codEnabled: true, codMaxOrder: 0, flatShippingFee: 60, flatCodFee: 0 },
   announcement: { intervalSec: 4, messages: [] },
   socials: [],

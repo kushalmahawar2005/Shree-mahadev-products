@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { Amphora, ArrowRight, Baby as BabyLine, ChevronLeft, ChevronRight, Flame as FlameLine, Flower2, Soup, type LucideIcon } from "lucide-react";
-import { Baby, BowlSteam, Flame, Jar, Lightbulb, Lotus } from "@/components/icons/duo";
+import { Amphora, ArrowRight, Baby as BabyLine, ChevronLeft, ChevronRight, Flame as FlameLine, Flower2, Footprints, Soup, type LucideIcon } from "lucide-react";
+import { Baby, BowlSteam, Droplets, Flame, Jar, Lightbulb, Lotus } from "@/components/icons/duo";
 import { cn } from "@/lib/utils/cn";
 import { PickCard, type PickProduct } from "./PickCard";
 import { TornEdge } from "@/components/ui/TornEdge";
@@ -30,6 +30,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
   "pickles-tadka": Amphora,
   "hair-skin": Flower2,
   "baby-massage": BabyLine,
+  "joint-massage": Footprints,
 };
 
 const ICONS: Record<string, typeof Flame> = {
@@ -38,6 +39,7 @@ const ICONS: Record<string, typeof Flame> = {
   "pickles-tadka": Jar,
   "hair-skin": Lotus,
   "baby-massage": Baby,
+  "joint-massage": Droplets,
 };
 
 /**
@@ -112,7 +114,12 @@ export function ShopByUse({ tabs }: { tabs: UseTab[] }) {
         <div className="lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-center">
           <span aria-hidden className="hidden lg:block" />
           <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 justify-start overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:justify-center md:px-0">
-            <div role="tablist" aria-label="Shop by use" className="flex w-max flex-nowrap gap-2 md:grid md:grid-cols-5 md:gap-1 md:rounded-full md:bg-white/75 md:p-1.5 md:shadow-[0_1px_2px_rgba(7,47,27,0.06)] md:backdrop-blur">
+            <div
+              role="tablist"
+              aria-label="Shop by use"
+              // One column per use, however many there are (only applies from md, where this is a grid).
+              style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+              className="flex w-max flex-nowrap gap-2 md:grid md:gap-1 md:rounded-full md:bg-white/75 md:p-1.5 md:shadow-[0_1px_2px_rgba(7,47,27,0.06)] md:backdrop-blur">
               {tabs.map((t, i) => {
                 const I = TAB_ICONS[t.key] ?? Soup;
                 const on = i === active;

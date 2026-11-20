@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { reportClientErrorAction } from "@/lib/error-actions";
+import { reloadIfStaleBuild } from "@/lib/stale-build";
 
 /**
  * Last-resort error page, shown when even the root layout fails. It replaces the whole document, so
@@ -9,6 +10,7 @@ import { reportClientErrorAction } from "@/lib/error-actions";
  */
 export default function GlobalError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
+    if (reloadIfStaleBuild(error)) return;
     const e = error as { message?: string; stack?: string; digest?: string } | null;
     if (!e?.digest) void reportClientErrorAction({ message: String(e?.message ?? error).slice(0, 1000), path: window.location.pathname, stack: e?.stack?.slice(0, 4000) }).catch(() => {});
   }, [error]);

@@ -36,21 +36,13 @@ export function AppBanner({ placement = "footer" }: { placement?: "footer" | "ho
         !isHome && pathname === "/" && "max-md:hidden",
       )}
     >
-      <div className="relative mx-auto max-w-[1360px] overflow-hidden rounded-3xl bg-gradient-to-br from-[#fbf3de] via-[#f5e4b9] to-[#ecd296] shadow-[0_10px_30px_-12px_rgba(90,60,10,0.35)] ring-1 ring-[#d4b062]/70">
-        {/* Soft decoration: gold glow + dotted arc, purely visual */}
-        <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 size-56 rounded-full bg-[#e2b23a]/25 blur-2xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-12 size-52 rounded-full bg-forest/10 blur-2xl" />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.18] [background-image:radial-gradient(#9a6a12_1px,transparent_1px)] [background-size:14px_14px] [mask-image:linear-gradient(90deg,transparent,black_60%)]"
-        />
-
+      <div className="relative mx-auto max-w-[1360px] overflow-hidden rounded-3xl bg-white shadow-[0_10px_30px_-14px_rgba(7,47,27,0.25)] ring-1 ring-line">
         <div className="relative grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 gap-y-4 p-4 sm:gap-x-5 sm:p-6 md:grid-cols-[auto_minmax(0,1fr)_auto] md:px-8 lg:grid-cols-[auto_minmax(0,0.9fr)_minmax(0,1.3fr)_auto] lg:gap-x-8">
           <div className="relative shrink-0">
             <div className="grid size-14 place-items-center rounded-2xl bg-white shadow-md ring-1 ring-[#d4b062]/50 sm:size-[72px]">
               <Image src={LOGO} alt="" width={72} height={72} unoptimized className="size-11 sm:size-14" />
             </div>
-            <span className="absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full bg-forest-deep text-white ring-2 ring-[#fbf3de] sm:size-7">
+            <span className="absolute -right-1.5 -bottom-1.5 grid size-6 place-items-center rounded-full bg-forest-deep text-white ring-2 ring-white sm:size-7">
               <Smartphone className="size-3.5" />
             </span>
           </div>

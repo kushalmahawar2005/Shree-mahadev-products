@@ -15,13 +15,17 @@ import { useCart } from "@/components/cart/CartProvider";
 import type { MenuGroup, NavItem } from "@/data/site";
 import { cn } from "@/lib/utils/cn";
 import { BagIcon, ChevronDown, MenuIcon } from "./icons";
-import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
+import type { MenuData, MenuProduct } from "./MegaMenu";
 import { SearchBox } from "./SearchBox";
 import dynamic from "next/dynamic";
 
 // cmdk (~100 KB) loads only when the search overlay is first opened, not on every page view.
 const SearchCommand = dynamic(() => import("./SearchCommand").then((m) => m.SearchCommand), { ssr: false });
-import { MobileNav } from "./MobileNav";
+// Menus are only needed once the shopper hovers / taps, so their code is split out of the first load
+// and fetched when the browser is idle (or on first use).
+const MegaMenu = dynamic(() => import("./MegaMenu").then((m) => m.MegaMenu), { ssr: false });
+const MobileNav = dynamic(() => import("./MobileNav").then((m) => m.MobileNav), { ssr: false });
+import { useIdleReady } from "@/hooks/use-idle-ready";
 
 const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
 const OPEN_DELAY = 100; // hover intent before a mega menu opens
@@ -59,6 +63,7 @@ export function Header({
     setSearchOpenState(v);
   };
   const pathname = usePathname();
+  const idle = useIdleReady();
 
   // Close menus on navigation
   const [lastPath, setLastPath] = useState(pathname);
@@ -83,7 +88,7 @@ export function Header({
       </StickyHeader>
 
       {(searchOpen || searchUsed) && <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} products={allProducts} recommended={recommended} />}
-      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} menus={menus} nav={nav} />
+      {(idle || menuOpen) && <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} menus={menus} nav={nav} />}
     </>
   );
 }
@@ -108,6 +113,7 @@ function HeaderBar({
   pathname: string;
 }) {
   const compact = useHeaderCompact();
+  const idle = useIdleReady();
   const [mega, setMega] = useState<MenuGroup | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const openTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -307,7 +313,7 @@ function HeaderBar({
       {/* Full-width layer ignores the pointer; only the visible panel keeps the menu open (MegaMenu),
           so moving off the panel to either side closes it straight away. */}
       <div className="pointer-events-none absolute inset-x-0 top-full z-30">
-        <MegaMenu open={mega} data={menus} onNavigate={() => setMega(null)} onMouseEnter={keepOpen} onMouseLeave={closeSoon} />
+        {(idle || mega) && <MegaMenu open={mega} data={menus} onNavigate={() => setMega(null)} onMouseEnter={keepOpen} onMouseLeave={closeSoon} />}
       </div>
     </div>
   );
@@ -318,13 +324,14 @@ function Collapse({ open, desktopOnly, children }: { open: boolean; desktopOnly?
   return (
     <div
       className={cn(
-        "grid transition-[grid-template-rows,opacity] duration-[250ms] ease-out",
+        // minmax(0,1fr) column: without it the row grows to its widest child (the announcement marquee).
+        "grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows,opacity] duration-[250ms] ease-out",
         open ? "grid-rows-[1fr] opacity-100" : desktopOnly ? "grid-rows-[1fr] opacity-100 xl:grid-rows-[0fr] xl:opacity-0" : "grid-rows-[0fr] opacity-0",
       )}
       aria-hidden={!open && !desktopOnly ? true : undefined}
     >
       {/* Clip only while collapsed: when open, dropdowns (search suggestions) must spill out below. */}
-      <div className={cn("min-h-0", open ? "overflow-visible" : desktopOnly ? "overflow-visible xl:overflow-hidden" : "overflow-hidden")}>{children}</div>
+      <div className={cn("min-h-0 min-w-0", open ? "overflow-visible" : desktopOnly ? "overflow-visible xl:overflow-hidden" : "overflow-hidden")}>{children}</div>
     </div>
   );
 }

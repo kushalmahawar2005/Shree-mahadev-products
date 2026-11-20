@@ -1,7 +1,7 @@
 /* Swadeshi Mahadev service worker: installable app + calm offline fallback.
  * Never caches anything personal or price-sensitive (cart, checkout, account, admin, API, server actions):
  * pages always come fresh from the network; only versioned build files and the offline page are cached. */
-const VERSION = "smp-v2";
+const VERSION = "smp-v3";
 const STATIC = `${VERSION}-static`;
 const OFFLINE_URL = "/offline";
 
@@ -38,7 +38,16 @@ self.addEventListener("fetch", (event) => {
   if (url.origin === self.location.origin && url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(req).then(
-        (hit) => hit || fetch(req).then((res) => (res.ok && caches.open(STATIC).then((c) => c.put(req, res.clone())), res)),
+        (hit) =>
+          hit ||
+          fetch(req).then((res) => {
+            // Clone now, before the page reads the body; cloning later fails with "body already used".
+            if (res.ok) {
+              const copy = res.clone();
+              event.waitUntil(caches.open(STATIC).then((c) => c.put(req, copy)));
+            }
+            return res;
+          }),
       ),
     );
     return;

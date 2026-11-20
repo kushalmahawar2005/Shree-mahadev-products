@@ -30,6 +30,13 @@ Then deploy with the Hostinger MCP:
 `hosting_deploy` { domain: "swadeshimahadevproducts.in", path: "/tmp/smp-deploy/smp-deploy.zip", type: "nodejs",
 appType: "next", nodeVersion: 22, packageManager: "pnpm", buildScript: "build:prebuilt", outputDirectory: ".next" }
 → poll `hosting_get-deployment` (takes ~30 s). Then curl a few pages.
+**Then ALWAYS clear the cache:** `hosting_cache_clear` { domain: "swadeshimahadevproducts.in" } (server + CDN).
+The CDN keeps pages up to 24 h (`stale-while-revalidate`); without a purge, the first visit to each page after a
+deploy gets the old build, whose server actions are gone → "This page didn't load properly" until a refresh.
+Also purge after any rebuild Hostinger starts by itself ("Restoring previous source", e.g. after an hPanel env save).
+Since 20 Nov: pages cache ≤30 min (`cacheLife` in next.config.ts), each build gets a `NEXT_DEPLOYMENT_ID`
+(old pages hard-reload instead of breaking), and the zip carries the CSS/JS of earlier deploys from
+`$DEPLOY_TMP/static-history` (use the same DEPLOY_TMP every time so that folder persists).
 
 What the script does: copies only git-known files (not `.next-qa`, `tmp/`, `output/`, `public/videos/`, `.env*`),
 adds `output: "standalone"` to next.config + `.npmrc node-linker=hoisted` + a no-op `build:prebuilt` script

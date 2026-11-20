@@ -67,13 +67,10 @@ export default async function HomePage() {
     );
 
   const useTabs = shopByUse.map((u) => {
-    const { firstProduct, ...scene } = shopByUseScenes[u.tag];
-    const products = buyableFirst(all.filter((p) => p.tags.includes(u.tag)));
-    const firstIndex = products.findIndex((p) => p.handle === firstProduct);
-    if (firstIndex > 0) {
-      const [featured] = products.splice(firstIndex, 1);
-      products.unshift(featured);
-    }
+    const { order = [], ...scene } = shopByUseScenes[u.tag];
+    const rank = (h: string) => (order.includes(h) ? order.indexOf(h) : order.length);
+    // Client's order first, then the rest (buyable first, stable).
+    const products = buyableFirst(all.filter((p) => p.tags.includes(u.tag))).sort((a, b) => rank(a.handle) - rank(b.handle));
 
     return {
       key: u.tag,

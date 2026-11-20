@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { reportClientErrorAction } from "@/lib/error-actions";
+import { reloadIfStaleBuild } from "@/lib/stale-build";
 import { buttonClass } from "@/components/ui/Button";
 import { Container } from "@/components/ui/primitives";
 
@@ -12,6 +13,8 @@ import { Container } from "@/components/ui/primitives";
  */
 export default function SiteError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
+    // Old build still running after a deploy: one reload loads the new one (no error page needed).
+    if (reloadIfStaleBuild(error)) return;
     console.error(error);
     // Errors with a digest came from the server and are already logged there; report browser-only crashes.
     const e = error as { message?: string; stack?: string; digest?: string } | null;

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type Variants } from "motion/react";
 import { LifeBuoy, LogOut, MapPin, Package, UserCog } from "lucide-react";
 import { AccountMenuLogin, LOGIN_INITIAL, type LoginState } from "./AccountMenuLogin";
+import { openLoginModal } from "@/components/account/LoginModal";
 import { useSignedIn } from "@/hooks/use-signed-in";
 import { getAccountMenuAction, logoutCustomerAction } from "@/lib/customer-account-actions";
 import { formatName, initials } from "@/lib/utils/format";
@@ -145,6 +146,12 @@ export function AccountMenu({ compact = false, tabIndex }: { compact?: boolean; 
         aria-label={label}
         onClick={() => {
           clearTimeout(timer.current);
+          // Guests: a click opens the full login popup (hover still shows the quick dropdown).
+          if (guest) {
+            close();
+            openLoginModal();
+            return;
+          }
           setOpen((o) => !o);
         }}
         className={cn(

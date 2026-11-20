@@ -14,6 +14,7 @@ import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import { ConsentManager } from "@/components/marketing/ConsentManager";
 import { WelcomeOffer } from "@/components/marketing/WelcomeOffer";
 import { ChatWidgetLazy } from "@/components/chat/ChatWidgetLazy";
+import { LoginModal } from "@/components/account/LoginModal";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { LoadingBar } from "@/components/motion/LoadingBar";
 import { PAGE_OPEN_SCRIPT, PageReady } from "@/components/motion/PageReady";
@@ -127,6 +128,7 @@ export default async function RootLayout({
               </HideOnCheckout>
               <SiteCartDrawer />
               <ConsentManager />
+              <LoginModal />
               <HideOnCheckout>
                 <WelcomeOffer config={await getPublicLeadPopup()} />
               </HideOnCheckout>

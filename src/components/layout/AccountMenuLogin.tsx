@@ -7,13 +7,25 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
 import { requestCustomerOtpAction, setCustomerNameAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
+import { completeEmailSignupAction, requestEmailOtpAction, verifyEmailOtpAction } from "@/lib/customer-email-login-actions";
+import { LoginMethodToggle, type LoginMethod } from "@/components/account/LoginMethodToggle";
 import { cn } from "@/lib/utils/cn";
 
 const EXPO = [0.16, 1, 0.3, 1] as const;
 
 /** Lifted into AccountMenu so typing survives the panel closing and re-opening. */
-export type LoginState = { step: "phone" | "otp" | "name" | "done"; phone: string; code: string; name: string; devCode: string };
-export const LOGIN_INITIAL: LoginState = { step: "phone", phone: "", code: "", name: "", devCode: "" };
+export type LoginState = {
+  /** "phone" = the first screen (number or email, by method); "newphone" = email sign-up asks the mobile number. */
+  step: "phone" | "otp" | "newphone" | "name" | "done";
+  method: LoginMethod;
+  phone: string;
+  email: string;
+  code: string;
+  name: string;
+  devCode: string;
+};
+export const LOGIN_INITIAL: LoginState = { step: "phone", method: "whatsapp", phone: "", email: "", code: "", name: "", devCode: "" };
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const RESEND_AFTER = 30;
 
@@ -48,7 +60,7 @@ export function AccountMenuLogin({
   const sendOtp = () => {
     setError("");
     start(async () => {
-      const r = await requestCustomerOtpAction({ phone: state.phone });
+      const r = state.method === "email" ? await requestEmailOtpAction({ email: state.email }) : await requestCustomerOtpAction({ phone: state.phone });
       if (!r.ok) return setError(("error" in r && r.error) || "Could not send OTP.");
       const dev = "devCode" in r ? (r.devCode ?? "") : "";
       set({ step: "otp", code: dev, devCode: dev });
@@ -67,12 +79,28 @@ export function AccountMenuLogin({
     if (code.length !== 6) return setError("Enter the 6-digit OTP.");
     setError("");
     start(async () => {
-      const r = await verifyCustomerOtpAction({ phone: state.phone, code });
+      const r = state.method === "email" ? await verifyEmailOtpAction({ email: state.email, code }) : await verifyCustomerOtpAction({ phone: state.phone, code });
       if (!r.ok) return setError(("error" in r && r.error) || "That OTP is incorrect.");
-      if ("needsName" in r && r.needsName) set({ step: "name" });
+      if ("needsPhone" in r && r.needsPhone) set({ step: "newphone", phone: "" });
+      else if ("needsName" in r && r.needsName) set({ step: "name" });
       else finish();
     });
   };
+
+  // Email sign-up: the verified email gets the shopper's mobile number (needed for delivery + updates).
+  const savePhone = () => {
+    if (state.phone.length !== 10) return setError("Enter your 10-digit mobile number.");
+    setError("");
+    start(async () => {
+      const r = await completeEmailSignupAction({ phone: state.phone });
+      if (!r.ok) return setError(r.error);
+      if (r.needsName) set({ step: "name" });
+      else finish();
+    });
+  };
+
+  const switchMethod = (method: LoginMethod) => (setError(""), set({ method, code: "", devCode: "" }));
+  const canSend = state.method === "email" ? EMAIL_RE.test(state.email.trim()) : state.phone.length === 10;
 
   const saveName = () => {
     if (state.name.trim().length < 2) return setError("Please enter at least 2 letters.");
@@ -99,27 +127,44 @@ export function AccountMenuLogin({
         {state.step === "phone" && (
           <motion.form key="phone" {...step} onSubmit={(e) => (e.preventDefault(), sendOtp())} noValidate>
             <p className="text-[16px] leading-tight font-semibold text-ink">Namaste 🙏</p>
-            <p className="mt-0.5 text-[12.5px] text-ink-muted">Log in with your phone number. No password needed.</p>
-            <label className="mt-3 flex h-11 items-center rounded-xl border border-line bg-white transition-[border-color,box-shadow] focus-within:border-forest focus-within:ring-4 focus-within:ring-forest/10">
-              <span className="pr-2 pl-3.5 text-sm font-semibold text-ink-muted">+91</span>
-              <span className="h-5 w-px bg-line" aria-hidden />
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">Log in with an OTP. No password needed.</p>
+            <LoginMethodToggle value={state.method} onChange={switchMethod} layoutId="login-method-menu" className="mt-3" />
+            {state.method === "whatsapp" ? (
+              <label className="mt-2.5 flex h-11 items-center rounded-xl border border-line bg-white transition-[border-color,box-shadow] focus-within:border-forest focus-within:ring-4 focus-within:ring-forest/10">
+                <span className="pr-2 pl-3.5 text-sm font-semibold text-ink-muted">+91</span>
+                <span className="h-5 w-px bg-line" aria-hidden />
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder="WhatsApp number"
+                  aria-label="WhatsApp number"
+                  value={state.phone}
+                  maxLength={16}
+                  onChange={(e) => set({ phone: toMobile10(e.target.value) })}
+                  className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-[15px] tracking-wide text-ink tabular-nums outline-none placeholder:tracking-normal placeholder:text-ink-muted/60"
+                />
+              </label>
+            ) : (
               <input
-                type="tel"
-                inputMode="numeric"
-                autoComplete="tel-national"
-                placeholder="Mobile number"
-                aria-label="Mobile number"
-                value={state.phone}
-                maxLength={16}
-                onChange={(e) => set({ phone: toMobile10(e.target.value) })}
-                className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-[15px] tracking-wide text-ink tabular-nums outline-none placeholder:tracking-normal placeholder:text-ink-muted/60"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                aria-label="Email address"
+                value={state.email}
+                maxLength={160}
+                onChange={(e) => set({ email: e.target.value.trim() })}
+                className="mt-2.5 h-11 w-full rounded-xl border border-line bg-white px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] placeholder:text-ink-muted/60 focus:border-forest focus:ring-4 focus:ring-forest/10"
               />
-            </label>
-            <button type="submit" disabled={pending || state.phone.length !== 10} className={cn(btn, "mt-2.5")}>
+            )}
+            <button type="submit" disabled={pending || !canSend} className={cn(btn, "mt-2.5")}>
               {pending && <Loader2 className="size-4 animate-spin" />}
               Send OTP
             </button>
-            <p className="mt-2 text-center text-[11.5px] text-ink-muted">You will get the OTP on WhatsApp or SMS</p>
+            <p className="mt-2 text-center text-[11.5px] text-ink-muted">
+              {state.method === "whatsapp" ? "The OTP comes on WhatsApp. No WhatsApp? Use Email." : "We'll email you a 6-digit code."}
+            </p>
           </motion.form>
         )}
 
@@ -128,7 +173,7 @@ export function AccountMenuLogin({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Change number"
+                aria-label={state.method === "email" ? "Change email" : "Change number"}
                 onClick={() => (setError(""), set({ step: "phone", code: "" }))}
                 className="-ml-1 grid size-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-ivory hover:text-ink"
               >
@@ -136,7 +181,9 @@ export function AccountMenuLogin({
               </button>
               <div className="min-w-0">
                 <p className="text-[15px] leading-tight font-semibold text-ink">Enter OTP</p>
-                <p className="text-[12.5px] text-ink-muted tabular-nums">+91 {state.phone.slice(0, 5)} {state.phone.slice(5)} par bheja</p>
+                <p className="truncate text-[12.5px] text-ink-muted tabular-nums">
+                  {state.method === "email" ? `Sent to ${state.email}` : `+91 ${state.phone.slice(0, 5)} ${state.phone.slice(5)} par bheja`}
+                </p>
               </div>
             </div>
             <InputOTP
@@ -171,6 +218,33 @@ export function AccountMenuLogin({
                 </button>
               )}
             </p>
+          </motion.form>
+        )}
+
+        {state.step === "newphone" && (
+          <motion.form key="newphone" {...step} onSubmit={(e) => (e.preventDefault(), savePhone())} noValidate>
+            <p className="text-[16px] leading-tight font-semibold text-ink">Email verified ✓</p>
+            <p className="mt-0.5 text-[12.5px] text-ink-muted">Add your mobile number for delivery and order updates.</p>
+            <label className="mt-3 flex h-11 items-center rounded-xl border border-line bg-white transition-[border-color,box-shadow] focus-within:border-forest focus-within:ring-4 focus-within:ring-forest/10">
+              <span className="pr-2 pl-3.5 text-sm font-semibold text-ink-muted">+91</span>
+              <span className="h-5 w-px bg-line" aria-hidden />
+              <input
+                autoFocus
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                placeholder="Mobile number"
+                aria-label="Mobile number"
+                value={state.phone}
+                maxLength={16}
+                onChange={(e) => set({ phone: toMobile10(e.target.value) })}
+                className="h-full min-w-0 flex-1 bg-transparent px-2.5 text-[15px] tracking-wide text-ink tabular-nums outline-none placeholder:tracking-normal placeholder:text-ink-muted/60"
+              />
+            </label>
+            <button type="submit" disabled={pending || state.phone.length !== 10} className={cn(btn, "mt-2.5")}>
+              {pending && <Loader2 className="size-4 animate-spin" />}
+              Continue
+            </button>
           </motion.form>
         )}
 

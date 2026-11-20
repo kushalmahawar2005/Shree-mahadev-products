@@ -25,6 +25,7 @@ import { formatName, formatPhone, initials } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import type { AccountShellData } from "@/lib/server/account";
 import { ConfirmDialog } from "./shared";
+import { NamePrompt } from "./NamePrompt";
 
 const NAV = [
   {
@@ -89,6 +90,8 @@ export function AccountShell({
         </div>
         <MobileTabs activeOrders={data.activeOrders} />
         <main id="account-main" className="min-w-0 lg:col-span-8">
+          {/* New accounts (email or WhatsApp sign-up) still named "Customer": ask once, here. */}
+          {(!data.customer.name.trim() || /^customer$/i.test(data.customer.name.trim())) && <NamePrompt />}
           {children}
         </main>
       </div>
