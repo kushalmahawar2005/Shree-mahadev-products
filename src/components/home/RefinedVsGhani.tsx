@@ -82,7 +82,7 @@ export function RefinedVsGhani({ cta }: { cta: { label: string; href: string } }
             defaultPosition={50}
             onPositionChange={onPos}
             style={{ touchAction: "pan-y" }}
-            className="aspect-[4/3] w-full select-none sm:aspect-[16/10] lg:aspect-[5/2]"
+            className="aspect-[3/4] w-full select-none sm:aspect-[16/10] lg:aspect-[5/2]"
             transition=".7s cubic-bezier(.22,1,.36,1)"
             keyboardIncrement="5%"
             onlyHandleDraggable={false}
@@ -136,8 +136,18 @@ export function RefinedVsGhani({ cta }: { cta: { label: string; href: string } }
 /** One painting plus its three points on a frosted card, so the card is revealed and hidden with its side. */
 function Side({ side }: { side: "refined" | "ghani" }) {
   const img = compare[side];
+  const mobile = side === "refined" ? compare.refinedMobile : compare.ghaniMobile;
   return (
     <div className="relative size-full">
+      {/* Phones: portrait version of the same scene. */}
+      <Image
+        src={mobile.src}
+        alt=""
+        aria-hidden
+        fill
+        sizes="100vw"
+        className="object-cover object-top sm:hidden"
+      />
       <Image
       src={img.src}
       alt={
@@ -147,7 +157,7 @@ function Side({ side }: { side: "refined" | "ghani" }) {
       }
       fill
       sizes="(min-width: 1360px) 1300px, 100vw"
-      className={cn("object-cover", side === "refined" ? "object-[50%_68%]" : "object-[50%_55%]", side === "refined" ? "[filter:saturate(.7)_hue-rotate(-6deg)_brightness(1.02)]" : "[filter:saturate(1.12)_sepia(.08)]")}
+      className={cn("object-cover max-sm:hidden", side === "refined" ? "object-[50%_50%]" : "object-[50%_55%]", side === "refined" ? "[filter:saturate(.7)_hue-rotate(-6deg)_brightness(1.02)]" : "[filter:saturate(1.12)_sepia(.08)]")}
       />
       {side === "refined" ? (
         <Facts title="Most refined oils" tone="cold" items={REFINED} className="right-3 bottom-3 sm:right-6 sm:bottom-6" />

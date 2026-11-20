@@ -21,7 +21,11 @@ export const scenes = {
 /** Refined vs kachi ghani slider: same framing and horizon, so the divider reads as one place. */
 export const compare = {
   // v2: the painted sun (a white disc top-left on narrow crops) painted out.
-  refined: art("swadeshi-mahadev/static/brand/compare/refined-v2.webp", 1672, 941),
+  // v3 (2026-11-20, client): high-heat refining line with its own title and step labels.
+  refined: art("v1795193494/swadeshi-mahadev/static/brand/compare/refined-v3.webp", 2000, 832),
+  // Phones (portrait, 2026-11-20): same scenes stacked in rows.
+  refinedMobile: art("v1795193495/swadeshi-mahadev/static/brand/compare/refined-mobile.webp", 1024, 1298),
+  ghaniMobile: art("v1795193496/swadeshi-mahadev/static/brand/compare/ghani-mobile.webp", 1024, 1365),
   // v3 (2026-11-19, client): our own process, seeds → cleaning → kolhu → settling → bottling.
   ghani: art("v1795105574/swadeshi-mahadev/static/brand/compare/ghani-process.webp", 1944, 809),
 } as const;
