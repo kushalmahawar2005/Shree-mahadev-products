@@ -4,7 +4,7 @@ import { safe, type ActionResult } from "@/lib/action-result";
 import { parseReelLink, reelLinkHref } from "@/lib/reel-link";
 import { updateTag } from "next/cache";
 import { TAGS } from "@/lib/commerce";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import {
   cloudinaryConfigured,
   destroyImage,
@@ -58,7 +58,9 @@ function checkUpload(u: UploadedImage) {
 
 export async function signUploadAction(folder: UploadFolder) {
   return safe(async () => {
-    await requireAdmin();
+    // Review photos are part of moderation (any admin); catalog/site media is owner/manager only.
+    if (folder === "reviews") await requireAdmin();
+    else await requireRole("owner", "manager");
     if (!cloudinaryConfigured()) throw new Error("Cloudinary is not configured");
     if (
       folder !== "products" &&
@@ -85,7 +87,7 @@ export async function addProductImagesAction(
   alt: string,
 ): Promise<ActionResult<ProductImage[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!HANDLE.test(handle) || !Array.isArray(uploads) || uploads.length > 20)
       throw new Error("Invalid request");
     uploads.forEach(checkUpload);
@@ -103,7 +105,7 @@ export async function reorderProductImagesAction(
   ids: number[],
 ) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!HANDLE.test(handle) || !Array.isArray(ids) || !ids.every(okId))
       throw new Error("Invalid request");
     await reorderProductImages(handle, ids);
@@ -117,7 +119,7 @@ export async function updateProductImageAltAction(
   alt: string,
 ) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!HANDLE.test(handle) || !okId(id)) throw new Error("Invalid request");
     await updateProductImageAlt(id, String(alt));
     bustProduct(handle);
@@ -126,7 +128,7 @@ export async function updateProductImageAltAction(
 
 export async function deleteProductImageAction(id: number) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!okId(id)) throw new Error("Invalid request");
     const gone = await deleteProductImage(id);
     if (gone) {
@@ -142,7 +144,7 @@ export async function createBannersAction(
   uploads: UploadedImage[],
 ): Promise<ActionResult<Banner[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!Array.isArray(uploads) || uploads.length > 10)
       throw new Error("Invalid request");
     uploads.forEach(checkUpload);
@@ -164,7 +166,7 @@ export async function updateBannerAction(
   },
 ): Promise<ActionResult<Banner[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!okId(id)) throw new Error("Invalid request");
     if (patch.desktop) checkUpload(patch.desktop);
     if (patch.mobile) checkUpload(patch.mobile);
@@ -194,7 +196,7 @@ export async function updateBannerAction(
 
 export async function reorderBannersAction(ids: number[]) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!Array.isArray(ids) || !ids.every(okId))
       throw new Error("Invalid request");
     await reorderBanners(ids);
@@ -204,7 +206,7 @@ export async function reorderBannersAction(ids: number[]) {
 
 export async function deleteBannerAction(id: number): Promise<ActionResult<Banner[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!okId(id)) throw new Error("Invalid request");
     await Promise.all((await deleteBanner(id)).map((id) => destroyImage(id)));
     updateTag(TAGS.banners);
@@ -230,7 +232,7 @@ export async function addReelsAction(
   productHandle?: string,
 ): Promise<ActionResult<Reel[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (productHandle !== undefined && !/^[a-z0-9-]{1,120}$/.test(productHandle)) throw new Error("Invalid product");
     if (!Array.isArray(uploads) || uploads.length > 10)
       throw new Error("Invalid request");
@@ -261,7 +263,7 @@ export async function updateReelAction(
   },
 ): Promise<ActionResult<Reel[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!okId(id)) throw new Error("Invalid request");
     if (patch.productHandle && !HANDLE.test(patch.productHandle))
       throw new Error("Pick a product from the list");
@@ -293,7 +295,7 @@ export async function updateReelAction(
 
 export async function reorderReelsAction(ids: number[]) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!Array.isArray(ids) || !ids.every(okId))
       throw new Error("Invalid request");
     await reorderReels(ids);
@@ -304,7 +306,7 @@ export async function reorderReelsAction(ids: number[]) {
 /** Add a reel from a YouTube (Shorts) link: it plays in YouTube's embedded player. */
 export async function addReelLinkAction(url: string, placements: ReelPlacement[] = ["home"]): Promise<ActionResult<Reel[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const parsed = parseReelLink(String(url ?? "").slice(0, 300));
     if (!parsed.ok) throw new Error(parsed.error);
     await addReelLink(reelLinkHref(parsed.link), okPlaces(placements));
@@ -315,7 +317,7 @@ export async function addReelLinkAction(url: string, placements: ReelPlacement[]
 
 export async function deleteReelAction(id: number): Promise<ActionResult<Reel[]>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     if (!okId(id)) throw new Error("Invalid request");
     const publicId = await deleteReel(id);
     if (publicId) await destroyImage(publicId, "video");
@@ -326,7 +328,7 @@ export async function deleteReelAction(id: number): Promise<ActionResult<Reel[]>
 
 export async function setBrandFilmAction(youtube: string) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const v = String(youtube ?? "")
       .trim()
       .slice(0, 300);

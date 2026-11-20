@@ -1,6 +1,7 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import { ISSUES, type IssueKey } from "@/components/account/help/help-lib";
+import { ISSUES, type IssueKey, type TicketMessage } from "@/components/account/help/help-lib";
+import { ticketMessages } from "./support-tickets";
 import { db } from "./db";
 import { queueBackInStock } from "./whatsapp";
 
@@ -143,6 +144,7 @@ export type AdminTicket = {
   orderNo: string | null;
   orderStatus: string | null;
   photos: string[];
+  messages: TicketMessage[];
 };
 
 export async function listTickets(): Promise<AdminTicket[]> {
@@ -158,6 +160,7 @@ export async function listTickets(): Promise<AdminTicket[]> {
   const [photos] = await db().query<Rows>("SELECT ticket_id, url FROM support_ticket_photos WHERE ticket_id IN (?) ORDER BY id", [rows.map((r) => r.id)]);
   const pics = new Map<number, string[]>();
   for (const p of photos) pics.set(p.ticket_id, [...(pics.get(p.ticket_id) ?? []), p.url]);
+  const messages = await ticketMessages(rows.map((r) => Number(r.id)));
   return rows.map((r) => ({
     id: r.id,
     ticketNo: r.ticket_no ?? `HLP-${1000 + r.id}`,
@@ -177,6 +180,7 @@ export async function listTickets(): Promise<AdminTicket[]> {
     orderNo: r.order_no,
     orderStatus: r.order_status,
     photos: pics.get(r.id) ?? [],
+    messages: messages.get(Number(r.id)) ?? [],
   }));
 }
 

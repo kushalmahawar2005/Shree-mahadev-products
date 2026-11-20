@@ -18,7 +18,7 @@ import { formatMoney } from "@/lib/utils/money";
 import {
   ISSUES,
   PHOTO_ISSUES,
-  VIDEO_ISSUES,
+  CLAIM_ISSUES,
   issuesFor,
   type HelpOrderDetail,
   type HelpOrderOption,
@@ -27,7 +27,8 @@ import {
 } from "./help-lib";
 import { MyRequests } from "./MyRequests";
 import { OrderPicker } from "./OrderPicker";
-import { PhotoPicker, hasVideo, type HelpPhoto } from "./PhotoPicker";
+import { PhotoPicker, type HelpPhoto } from "./PhotoPicker";
+import { SendVideoStep } from "./SendVideoStep";
 
 type Done = { ticket: HelpTicket; whatsappUrl: string; phone: string };
 
@@ -38,12 +39,15 @@ export function HelpFlow({
   preselect,
   images,
   tickets: initialTickets,
+  openTicket,
 }: {
   orders: HelpOrderOption[];
   hasMore: boolean;
   preselect: string | null;
   images: Record<string, string>;
   tickets: HelpTicket[];
+  /** ?ticket=HLP-1001 (link in the reply email): open that request. */
+  openTicket?: string;
 }) {
   const reduce = useReducedMotion();
   const [orders, setOrders] = useState(initialOrders);
@@ -107,8 +111,6 @@ export function HelpFlow({
     startSend(async () => {
       if (!issue || order === undefined) return;
       setError(null);
-      if (VIDEO_ISSUES.includes(issue) && !hasVideo(photos))
-        return setError("Please add your unboxing video. Damage and expiry claims need it.");
       const r = await submitSupportTicketAction({
         orderId: order?.id ?? null,
         issue,
@@ -157,6 +159,9 @@ export function HelpFlow({
                   ? `We'll call you on ${done.phone} between ${done.ticket.callbackSlot ?? slot}.`
                   : "Our support team has your request and will get back to you during working hours. You can follow it under My requests below."}
               </p>
+              {CLAIM_ISSUES.includes(done.ticket.issue as IssueKey) && (
+                <SendVideoStep orderNo={done.ticket.orderNo} refNo={done.ticket.ticketNo} className="mt-4" />
+              )}
               <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
                 <button type="button" onClick={reset} className={cn(secondaryBtn, "sm:w-auto sm:px-5")}>
                   Ask about something else
@@ -267,7 +272,12 @@ export function HelpFlow({
                   </label>
                   {PHOTO_ISSUES.includes(issue) && (
                     <div>
-                      <PhotoPicker photos={photos} setPhotos={setPhotos} video={VIDEO_ISSUES.includes(issue)} />
+                      <PhotoPicker photos={photos} setPhotos={setPhotos} />
+                      {CLAIM_ISSUES.includes(issue) && (
+                        <p className="mt-2 rounded-xl bg-page px-3 py-2 text-xs text-ink-muted">
+                          You&apos;ll send the unboxing video on WhatsApp right after this request (we show you how).
+                        </p>
+                      )}
                     </div>
                   )}
                   <fieldset>
@@ -323,7 +333,8 @@ export function HelpFlow({
         </AnimatePresence>
       </div>
 
-      {tickets.length > 0 && <MyRequests tickets={tickets} />}
+      {/* Keyed by count so a newly sent request shows up in the list. */}
+      {tickets.length > 0 && <MyRequests key={tickets.length} tickets={tickets} openTicket={openTicket} />}
     </section>
   );
 }

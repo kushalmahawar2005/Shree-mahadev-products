@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -20,9 +21,11 @@ const payLabel = (m: string) => (m === "cod" ? "COD" : m === "offline" ? "Offlin
 
 export default function CustomerViewPage({ searchParams }: PageProps<"/admin/customers">) {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <Suspense fallback={<DetailSkeleton />}>
       <CustomerDetail searchParams={searchParams} />
     </Suspense>
+    </RoleGate>
   );
 }
 

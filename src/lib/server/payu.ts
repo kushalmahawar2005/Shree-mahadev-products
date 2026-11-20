@@ -30,6 +30,9 @@ function creds() {
   return { key, salt };
 }
 
+/** PayU's test environment: payments there move no real money. */
+export const payuIsTest = () => !LIVE;
+
 export function payuConfigured() {
   return Boolean(process.env.PAYU_KEY && process.env.PAYU_SALT);
 }

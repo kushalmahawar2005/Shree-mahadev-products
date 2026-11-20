@@ -122,18 +122,27 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
 
     /* Returns */
     {
+      id: "send-video",
+      category: "returns",
+      question: "How do I send my unboxing video?",
+      answer:
+        "On **WhatsApp**, right after you raise the claim. **1.** Open [My orders](/account/orders), pick the order and tap **Request return** (or use Help & support → Damaged or leaked / Expired product). **2.** Submit the request. **3.** Tap **Send video on WhatsApp**: WhatsApp opens with your order and request number written in. **4.** Attach the full video and send. The button also stays in Help & support → My requests. Our team replies there.",
+      keywords: ["send video", "unboxing", "whatsapp video", "upload video", "video proof", "how to send"],
+      accountOnly: true,
+    },
+    {
       id: "unboxing-video",
       category: "returns",
       question: "Why do I need an unboxing video?",
       answer:
-        "Refunds and replacements are given only for products that arrive **damaged** or **expired**. Please record one continuous video while opening the sealed parcel, showing the shipping label, the product and the damage or expiry date. Without this video we can't approve a claim. [Refund & returns policy](/policies/refund-return).",
+        "Refunds and replacements are given only for products that arrive **damaged** or **expired**. The unboxing video is our proof: record one continuous video while opening the sealed parcel, showing the shipping label, the product and the damage or the expiry date. Without it we can't approve a claim. [Refund & returns policy](/policies/refund-return).",
       keywords: ["unboxing", "video", "proof", "refund", "damage", "expired"],
     },
     {
       id: "damaged",
       category: "returns",
       question: "My item arrived damaged, leaking or expired. What now?",
-      answer: "Report it within 7 days of delivery. Pick the order in [Help & support](/account/help), choose **Damaged or leaked** or **Expired product** and upload your **unboxing video** (one continuous video of opening the sealed parcel). Claims without the video can't be approved. See our [refund & returns policy](/policies/refund-return).",
+      answer: "Report it within 7 days of delivery. Pick the order in [Help & support](/account/help), choose **Damaged or leaked** or **Expired product** and submit, then tap **Send video on WhatsApp** and send your **unboxing video** (one continuous video of opening the sealed parcel). Claims without the video can't be approved. See our [refund & returns policy](/policies/refund-return).",
       keywords: ["damaged", "leak", "leaking", "broken", "expired", "expiry", "unboxing", "video", "replacement"],
     },
     {
@@ -148,7 +157,7 @@ export function buildFaqs(shipping: Shipping): FaqEntry[] {
       id: "return-how",
       category: "returns",
       question: "How do I request a return?",
-      answer: "Only damaged or expired products qualify, and you need an **unboxing video**. Open the delivered order in [My orders](/account/orders), tap **Request return** and upload the video. Our team reviews it and gets back to you.",
+      answer: "Only damaged or expired products qualify, and you need an **unboxing video**. Open the delivered order in [My orders](/account/orders), tap **Request return**, submit, then send the video on WhatsApp with the button shown. Our team reviews it and replies in Help & support → My requests.",
       keywords: ["return request", "return window", "how to return"],
       accountOnly: true,
     },

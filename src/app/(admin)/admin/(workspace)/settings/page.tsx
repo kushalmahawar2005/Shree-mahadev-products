@@ -1,3 +1,4 @@
+import { gatewayIsTest } from "@/lib/server/payment-gateway";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { SettingsForm } from "@/components/admin/SettingsForm";
@@ -31,7 +32,7 @@ export default function SettingsPage() {
 async function Settings() {
   await connection();
   await requireRole("owner");
-  return <SettingsForm initial={await getStoreSettings()} gateways={{ payu: payuConfigured(), cashfree: cashfreeConfigured() }} />;
+  return <SettingsForm initial={await getStoreSettings()} gateways={{ payu: payuConfigured(), cashfree: cashfreeConfigured() }} testModes={{ payu: gatewayIsTest("payu"), cashfree: gatewayIsTest("cashfree") }} />;
 }
 
 async function Integrations() {

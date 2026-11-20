@@ -40,7 +40,8 @@ import { requestReturnAction } from "@/lib/account/order-actions";
 import { RETURN_REASONS } from "@/lib/account/returns";
 import { cancelMyOrderAction, requestCancelOrderAction } from "@/lib/customer-account-actions";
 import { PAID_CANCEL_MESSAGE } from "@/components/account/help/help-lib";
-import { PhotoPicker, hasVideo, type HelpPhoto } from "@/components/account/help/PhotoPicker";
+import { PhotoPicker, type HelpPhoto } from "@/components/account/help/PhotoPicker";
+import { SendVideoStep } from "@/components/account/help/SendVideoStep";
 import { cn } from "@/lib/utils/cn";
 import { ConfirmDialog } from "./shared";
 
@@ -175,10 +176,12 @@ type ReturnLine = { variantKey: string; title: string; variant: string; qty: num
 /** Request a return: pick items + qty → reason → optional note. Dialog on desktop, bottom sheet on mobile. */
 export function ReturnRequest({
   orderId,
+  orderNo,
   lines,
   daysLeft,
 }: {
   orderId: number;
+  orderNo: string;
   lines: ReturnLine[];
   daysLeft: number;
 }) {
@@ -190,6 +193,7 @@ export function ReturnRequest({
   const [note, setNote] = useState("");
   const [media, setMedia] = useState<HelpPhoto[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [sentRef, setSentRef] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const uploading = media.some((m) => m.state === "uploading");
 
@@ -199,7 +203,6 @@ export function ReturnRequest({
       setError(null);
       if (!chosen.length) return setError("Pick at least one item.");
       if (!reason) return setError("Choose a reason.");
-      if (!hasVideo(media)) return setError("Please add your unboxing video. Refunds for damage or expiry need it.");
       const r = await requestReturnAction({
         orderId,
         items: chosen.map(([variantKey, qty]) => ({ variantKey, qty })),
@@ -208,12 +211,22 @@ export function ReturnRequest({
         media: media.filter((m) => m.state === "done" && m.url && m.publicId).map((m) => ({ url: m.url!, publicId: m.publicId! })),
       });
       if (!r.ok) return setError(r.error);
-      toast.success(`Return requested (${r.ticketNo}). Our team will review your video and get back to you.`);
-      setOpen(false);
+      // Keep the dialog open on the last step: sending the unboxing video on WhatsApp.
+      setSentRef(r.ticketNo);
       router.refresh();
     });
 
-  const body = (
+  const body = sentRef ? (
+    <div className="space-y-4">
+      <p className="flex items-center gap-2 rounded-2xl bg-co-success/10 px-4 py-3 text-sm font-semibold text-ink">
+        <Check className="size-4 text-co-success" /> Return requested · {sentRef}
+      </p>
+      <SendVideoStep orderNo={orderNo} refNo={sentRef} />
+      <button type="button" onClick={() => setOpen(false)} className={secondaryBtn}>
+        Done
+      </button>
+    </div>
+  ) : (
     <div className="space-y-5">
       <fieldset>
         <legend className="text-sm font-semibold text-ink">Which items?</legend>
@@ -295,10 +308,10 @@ export function ReturnRequest({
           className="mt-1.5 w-full rounded-xl border border-line bg-white px-3 py-2.5 text-base font-normal text-ink outline-none focus-visible:border-forest"
         />
       </label>
-      <PhotoPicker photos={media} setPhotos={setMedia} video />
+      <PhotoPicker photos={media} setPhotos={setMedia} />
       <p className="rounded-xl bg-page px-3 py-2.5 text-xs leading-relaxed text-ink-muted">
         Refunds are given only for products that arrive <strong className="text-ink">damaged</strong> or{" "}
-        <strong className="text-ink">expired</strong>, with an unboxing video.{" "}
+        <strong className="text-ink">expired</strong>. After this request you send your unboxing video on WhatsApp.{" "}
         <a href="/policies/refund-return" target="_blank" className="font-semibold text-forest underline-offset-2 hover:underline">
           Refund policy
         </a>

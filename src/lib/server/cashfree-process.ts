@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getCashfreeOrder, getCashfreePayments, verifyCashfreeSignature } from "./cashfree";
 import { db } from "./db";
 import { notifyOrder } from "./mail";
-import { getPayment, logWebhook, markPaid, markPaymentFailed } from "./orders";
+import { flagOrder, getPayment, logWebhook, markPaid, markPaymentFailed } from "./orders";
 import { queueOrderWhatsApp } from "./whatsapp";
 
 async function notifyPaid(orderId: number) {
@@ -28,7 +28,12 @@ export async function syncCashfreeAttempt(
 
   if (order.status === "PAID") {
     if (order.amount !== pay.amount) {
-      await markPaymentFailed(pay.id, pay.orderId, `Cashfree amount mismatch (₹${order.amount} vs ₹${pay.amount})`, "pending");
+      // Money was taken but not the amount we asked for: never mark paid, and flag the order once so
+      // the team sorts it out (refund or re-charge) instead of it sitting unpaid in silence.
+      const reason = `Cashfree amount mismatch on ${pay.txnid}: paid ₹${order.amount}, expected ₹${pay.amount}`;
+      await markPaymentFailed(pay.id, pay.orderId, reason, "pending");
+      const [[o]] = await db().query<RowDataPacket[]>("SELECT attention FROM orders WHERE id = ?", [pay.orderId]);
+      if (!String(o?.attention ?? "").includes(pay.txnid)) await flagOrder(db(), pay.orderId, reason, "cashfree");
       return "pending";
     }
     const success = (await getCashfreePayments(pay.txnid))?.find((p) => p.status === "SUCCESS");

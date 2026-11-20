@@ -97,11 +97,14 @@ export function InquiriesWorkspace({
   variants,
   initialFilter,
   today,
+  canCreateOrders = true,
 }: {
   initialInquiries: Inquiry[];
   variants: VariantChoice[];
   initialFilter: "all" | "due";
   today: string;
+  /** Manual orders with custom prices are owner/manager only (checked again on the server). */
+  canCreateOrders?: boolean;
 }) {
   const [inquiries, setInquiries] = useState(initialInquiries);
   const [mode, setMode] = useState<"board" | "table">("board");
@@ -350,7 +353,7 @@ export function InquiriesWorkspace({
 
       <Sheet open={Boolean(active)} onOpenChange={(open) => !open && setOpenId(null)}>
         <SheetContent side="right" className="w-full gap-0 overflow-y-auto p-0 sm:max-w-xl">
-          {active && <LeadSheet key={active.id} inquiry={active} variants={variants} due={isDue(active)} onMove={move} onPatch={(c) => patch(active.id, c)} />}
+          {active && <LeadSheet key={active.id} inquiry={active} variants={variants} due={isDue(active)} canCreateOrders={canCreateOrders} onMove={move} onPatch={(c) => patch(active.id, c)} />}
         </SheetContent>
       </Sheet>
     </div>
@@ -467,12 +470,14 @@ function LeadSheet({
   inquiry,
   variants,
   due,
+  canCreateOrders,
   onMove,
   onPatch,
 }: {
   inquiry: Inquiry;
   variants: VariantChoice[];
   due: boolean;
+  canCreateOrders: boolean;
   onMove: (id: number, status: InquiryStatus) => void;
   onPatch: (changes: Partial<Inquiry>) => void;
 }) {
@@ -671,7 +676,7 @@ function LeadSheet({
           </div>
         </section>
 
-        {inquiry.status === "won" && <ManualOrderForm inquiry={inquiry} variants={variants} />}
+        {inquiry.status === "won" && canCreateOrders && <ManualOrderForm inquiry={inquiry} variants={variants} />}
       </div>
     </>
   );

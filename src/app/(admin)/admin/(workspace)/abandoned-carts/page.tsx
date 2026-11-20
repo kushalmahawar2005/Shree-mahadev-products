@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { AbandonedCartsWorkspace, type CartRow, type LeadRow } from "@/components/admin/AbandonedCartsWorkspace";
@@ -10,6 +11,7 @@ export const metadata = { title: "Abandoned carts" };
 
 export default function AbandonedCartsPage() {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-forest-text sm:text-3xl">Abandoned carts &amp; leads</h1>
@@ -21,6 +23,7 @@ export default function AbandonedCartsPage() {
         <Data />
       </Suspense>
     </div>
+    </RoleGate>
   );
 }
 

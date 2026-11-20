@@ -110,7 +110,7 @@ function validate(raw: ProductInput): ProductInput {
 
 export async function saveProductAction(raw: ProductInput, originalHandle?: string): Promise<ActionResult<{ handle: string }>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const input = validate(raw);
     try {
       const handle = await saveProduct(input, originalHandle);

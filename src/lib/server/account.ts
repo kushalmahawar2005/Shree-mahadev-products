@@ -334,6 +334,8 @@ export type AccountOrderDetail = AccountOrder & {
   deliveredAt: string | null;
   payment: {
     txnid: string;
+    /** "payu" | "cashfree": which gateway took the payment. */
+    provider: string;
     mode: string | null;
     status: string;
     at: string;
@@ -377,7 +379,7 @@ export async function getAccountOrder(customerId: number, orderId: number): Prom
   const [base] = await hydrateOrders([r]);
   const [[pay], [track], [refunds], [ret], [inv], [cats], [events]] = await Promise.all([
     db().query<RowDataPacket[]>(
-      `SELECT txnid, mode, status, updated_at,
+      `SELECT txnid, provider, mode, status, updated_at,
               JSON_UNQUOTE(JSON_EXTRACT(raw, '$.bank_ref_num')) AS bank_ref,
               JSON_UNQUOTE(JSON_EXTRACT(raw, '$.cardnum')) AS cardnum,
               JSON_UNQUOTE(JSON_EXTRACT(raw, '$.bankcode')) AS bankcode
@@ -437,6 +439,7 @@ export async function getAccountOrder(customerId: number, orderId: number): Prom
     payment: pay[0]
       ? {
           txnid: String(pay[0].txnid),
+          provider: String(pay[0].provider ?? "payu"),
           mode: pay[0].mode ? String(pay[0].mode) : null,
           status: String(pay[0].status),
           at: String(pay[0].updated_at),

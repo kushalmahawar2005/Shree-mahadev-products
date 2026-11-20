@@ -112,7 +112,7 @@ const COPY: Record<
     preview: (o) => `Order ${o.orderNo} delivered. How was it?`,
     heading: "Delivered. We hope you love it.",
     intro: () =>
-      "Your order has been delivered. Unrefined oil can look a little cloudy or settle in winter. That is normal. If a product arrived damaged or expired, raise a request from My orders within 7 days with your unboxing video.",
+      "Your order has been delivered. Unrefined oil can look a little cloudy or settle in winter. That is normal. If a product arrived damaged or expired, raise a request from My orders within 7 days, then send your unboxing video on WhatsApp using the button shown.",
     cta: "Write a review",
   },
   cancelled: {

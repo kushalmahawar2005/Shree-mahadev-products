@@ -10,17 +10,20 @@ import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import "./globals.css";
 
 // The app has two root layouts (store + admin), so unmatched URLs need their own full page.
+// Variable font: one file for all weights.
 const figtree = Figtree({
-  weight: ["400", "500", "600", "700", "800"],
   subsets: ["latin"],
   variable: "--font-figtree",
   display: "swap",
 });
 const mukta = Mukta({
   weight: ["400", "500", "600", "700"],
-  subsets: ["latin", "devanagari"],
+  subsets: ["devanagari"],
   variable: "--font-mukta",
   display: "swap",
+  // Hindi accents only: never preload (Next shares font preloads across root layouts, so a preloaded
+  // font here would be downloaded on every storefront page too).
+  preload: false,
 });
 
 export const metadata: Metadata = {

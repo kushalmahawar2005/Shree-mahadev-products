@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils/cn";
 import { OrdersBulkBar, SelectAllOrders } from "@/components/admin/OrdersBulkBar";
 import { OrdersDateFilter } from "@/components/admin/OrdersDateFilter";
 import { OrdersViewControls } from "@/components/admin/OrdersViewControls";
+import { requireAdmin } from "@/lib/server/admin-auth";
 
 export const metadata = { title: "Orders" };
 
@@ -57,6 +58,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
   const pay = (ORDER_PAYS.includes(str("pay") as OrderPay) ? str("pay") : "all") as OrderPay;
   const per = [25, 50, 100].includes(Number(str("per"))) ? Number(str("per")) : 25;
   const scope = { from, to, fromTime: fromTime || undefined, toTime: toTime || undefined, pay };
+  const canExport = (await requireAdmin()).role !== "staff";
   const [result, counts] = await Promise.all([
     listOrders({ filter, page, perPage: per, q: query, sort: sort || undefined, ...scope }),
     getOrderFilterCounts(scope),
@@ -118,7 +120,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
             <span className="text-xs text-ink-muted">
               {result.total} order{result.total === 1 ? "" : "s"} · <b className="font-semibold text-ink tabular-nums">{formatMoney(result.value)}</b> in this view
             </span>
-            <a
+            {canExport && <a
               href={`/admin/orders/export?${new URLSearchParams({
                 f: filter,
                 ...(query ? { q: query } : {}),
@@ -131,7 +133,7 @@ async function OrdersTable({ searchParams }: { searchParams: PageProps<"/admin/o
               className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-forest px-4 text-sm font-semibold text-forest-fg hover:bg-khaki-soft"
             >
               Download CSV
-            </a>
+            </a>}
           </div>
         </div>
       </div>

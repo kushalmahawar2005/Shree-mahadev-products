@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
+import { reportClientErrorAction } from "@/lib/error-actions";
+
 /**
  * Last-resort error page, shown when even the root layout fails. It replaces the whole document, so
  * it carries its own <html>/<body> and inline styles (no app CSS or fonts can be assumed here).
  */
 export default function GlobalError({ error, retry }: { error: unknown; retry: () => void }) {
+  useEffect(() => {
+    const e = error as { message?: string; stack?: string; digest?: string } | null;
+    if (!e?.digest) void reportClientErrorAction({ message: String(e?.message ?? error).slice(0, 1000), path: window.location.pathname, stack: e?.stack?.slice(0, 4000) }).catch(() => {});
+  }, [error]);
   const digest = (error as { digest?: string } | null)?.digest;
   return (
     <html lang="en-IN">

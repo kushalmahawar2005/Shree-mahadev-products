@@ -2,7 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import { getCartDbToken } from "@/lib/server/cart-cookies";
 import { captureLead, LEAD_POPUP_TAG, markLeadContacted, saveLeadPopupConfig } from "@/lib/server/leads";
 import { clientIp, rateLimit } from "@/lib/server/rate-limit";
@@ -28,7 +28,7 @@ export async function submitLeadAction(input: { name: string; phone: string; pag
 }
 
 export async function saveLeadPopupAction(input: LeadPopupConfig) {
-  await requireAdmin();
+  await requireRole("owner", "manager");
   const c = LeadPopupSchema.parse(input);
   if (c.enabled && !c.couponCode) throw new Error("Pick a coupon before turning the popup on");
   await saveLeadPopupConfig(c);

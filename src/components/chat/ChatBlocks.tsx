@@ -9,7 +9,7 @@ import { RichText } from "@/components/chat/ChatParts";
 import { ease, enter, move, rise, staggerParent, tap } from "@/components/chat/motion";
 import { helpLink, site } from "@/data/site";
 import { CheckoutCard } from "@/components/chat/CheckoutCard";
-import { PhotoPicker, hasVideo, type HelpPhoto } from "@/components/account/help/PhotoPicker";
+import { PhotoPicker, type HelpPhoto } from "@/components/account/help/PhotoPicker";
 import type { ChatPlaceResult } from "@/lib/checkout-actions";
 import type { ChatBlock, ChatBlockOf } from "@/lib/chat/blocks";
 
@@ -206,7 +206,8 @@ function ActionConfirmBlock({ block, handlers }: { block: ChatBlockOf<"action_co
             ))}
           </div>
           <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} rows={2} placeholder="What happened? (optional)" className="w-full rounded-xl border border-line px-3 py-2 text-[15px] outline-none focus:border-forest/40" />
-          <PhotoPicker photos={photos} setPhotos={setPhotos} video />
+          <PhotoPicker photos={photos} setPhotos={setPhotos} />
+          <p className="rounded-xl bg-co-panel px-3 py-2 text-[12.5px] text-ink-muted">After sending this, you&apos;ll send the unboxing video on WhatsApp.</p>
         </motion.div>
       )}
       {state === "error" && <p className="text-[13px] text-alert">Something went wrong. Please try again.</p>}
@@ -215,7 +216,7 @@ function ActionConfirmBlock({ block, handlers }: { block: ChatBlockOf<"action_co
         <motion.button
           {...tap}
           type="button"
-          disabled={state === "busy" || uploading || (isReturn && !hasVideo(photos))}
+          disabled={state === "busy" || uploading}
           onClick={async () => {
             setState("busy");
             const done = photos.filter((photo) => photo.state === "done" && photo.url && photo.publicId).map((photo) => ({ url: photo.url!, publicId: photo.publicId! }));

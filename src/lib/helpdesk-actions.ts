@@ -5,6 +5,7 @@ import { z } from "zod";
 import { safe } from "@/lib/action-result";
 import { requireAdmin } from "@/lib/server/admin-auth";
 import { RETURN_STATUSES, TICKET_STATUSES, notifyWaitlist, setReturnStatus, setTicketStatus } from "@/lib/server/helpdesk";
+import { addTicketMessage } from "@/lib/server/support-tickets";
 
 const id = z.number().int().positive();
 
@@ -26,6 +27,17 @@ export async function setTicketStatusAction(ticketId: number, status: string) {
     const v = z.object({ id, status: z.enum(TICKET_STATUSES) }).parse({ id: ticketId, status });
     await setTicketStatus(v.id, v.status);
     revalidatePath("/admin/helpdesk");
+  });
+}
+
+/** Team reply on a help ticket: shown to the customer in My requests and emailed when we have their email. */
+export async function replyTicketAction(ticketId: number, body: string) {
+  return safe(async () => {
+    const admin = await requireAdmin();
+    const v = z.object({ id, body: z.string().trim().min(1, "Write a reply").max(2000) }).parse({ id: ticketId, body });
+    await addTicketMessage(v.id, "team", "Swadeshi Mahadev team", v.body);
+    revalidatePath("/admin/helpdesk");
+    return { by: admin.username };
   });
 }
 

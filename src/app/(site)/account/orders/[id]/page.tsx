@@ -304,7 +304,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                   <Row label="Paid on">{formatDateTime(o.paidAt ?? o.payment!.at)}</Row>
                 )}
                 {o.method !== "cod" && o.payment?.txnid && (
-                  <Row label="PayU Txn ID">
+                  <Row label="Transaction ID">
                     <span className="-mr-2 inline-flex max-w-full items-center justify-end font-mono text-xs">
                       <span className="truncate">{middleTruncate(o.payment.txnid)}</span>
                       <CopyId value={o.payment.txnid} label="transaction ID" className="size-8" />
@@ -537,6 +537,7 @@ function StatusBanner({
           <div className="flex flex-col gap-2 sm:w-48">
             {canReturn && (
               <ReturnRequest
+                orderNo={o.orderNo}
                 orderId={o.id}
                 daysLeft={o.returnDaysLeft!}
                 lines={o.items.map((i) => ({
@@ -570,7 +571,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function paymentMethod(o: AccountOrderDetail) {
   if (o.method === "cod") return "Cash on delivery";
   const p = o.payment;
-  if (!p?.mode) return "Online (PayU)";
+  if (!p?.mode) return `Online (${p?.provider === "cashfree" ? "Cashfree" : "PayU"})`;
   const mode = PAY_MODES[p.mode] ?? p.mode;
   if ((p.mode === "CC" || p.mode === "DC") && p.card) return `Card ••••${p.card.replace(/\D/g, "").slice(-4)}`;
   if (p.bank && p.mode === "UPI") return `UPI · ${formatName(p.bank.toLowerCase())}`;

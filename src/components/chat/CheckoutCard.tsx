@@ -221,7 +221,7 @@ export function CheckoutCard({ sheetRoot, onLogin, onPlaced }: {
             </motion.span>
           </AnimatePresence>
         </motion.button>
-        <p className="text-center text-[11px] text-ink-muted">Card, UPI PIN ya OTP kabhi chat mein na likhein. Online payment PayU ke secure page par hota hai.</p>
+        <p className="text-center text-[11px] text-ink-muted">Never type your card number, UPI PIN or OTP in chat. Online payment happens only on the secure payment page.</p>
       </motion.div>
 
       <AnimatePresence>

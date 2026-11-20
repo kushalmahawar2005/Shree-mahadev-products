@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import {
   CUSTOMER_FILTERS,
   exportCustomers,
@@ -23,7 +23,8 @@ function csvCell(value: unknown) {
 export async function GET(request: Request) {
   let admin: Awaited<ReturnType<typeof requireAdmin>>;
   try {
-    admin = await requireAdmin();
+    // Every customer's contact details: owner/manager only.
+    admin = await requireRole("owner", "manager");
   } catch {
     return new Response("Unauthorized", { status: 401 });
   }

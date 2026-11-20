@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { BannerManager } from "@/components/admin/media/BannerManager";
@@ -7,9 +8,11 @@ export const metadata = { title: "Home banners" };
 
 export default function BannersPage() {
   return (
+    <RoleGate roles={["owner", "manager"]}>
       <Suspense fallback={<p className="text-ink-muted">Loading slides…</p>}>
         <Banners />
       </Suspense>
+    </RoleGate>
   );
 }
 

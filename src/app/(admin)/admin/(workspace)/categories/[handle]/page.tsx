@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
@@ -11,6 +12,7 @@ export const metadata = { title: "Edit collection" };
 
 export default function EditCollectionPage({ params }: { params: Promise<{ handle: string }> }) {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <Suspense
       fallback={
         <div className="space-y-5" aria-label="Loading collection">
@@ -21,6 +23,7 @@ export default function EditCollectionPage({ params }: { params: Promise<{ handl
     >
       <Content params={params} />
     </Suspense>
+    </RoleGate>
   );
 }
 

@@ -30,6 +30,7 @@ import {
   type LucideIcon,
   LifeBuoy,
   BookOpenText, Bot,
+  Bug,
 } from "lucide-react";
 import { logoutAction } from "@/lib/admin-login-actions";
 import { Avatar, AvatarFallback } from "@/components/shadcn/avatar";
@@ -95,6 +96,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { label: "Settings", href: "/admin/settings", section: "Settings", icon: Settings },
   { label: "Admin users", href: "/admin/settings/users", section: "Settings", icon: UserCog },
   { label: "Activity log", href: "/admin/activity", section: "Settings", icon: History },
+  { label: "Errors", href: "/admin/errors", section: "Settings", icon: Bug },
 ];
 
 const OWNER_ONLY = ["/admin/settings", "/admin/settings/users", "/admin/activity"];

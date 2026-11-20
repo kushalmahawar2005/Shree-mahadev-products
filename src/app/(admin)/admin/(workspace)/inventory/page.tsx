@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { InventoryTable } from "@/components/admin/InventoryTable";
@@ -9,6 +10,7 @@ export const metadata = { title: "Inventory" };
 
 export default function InventoryPage() {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-forest-text">Inventory</h1>
@@ -18,6 +20,7 @@ export default function InventoryPage() {
         <Inventory />
       </Suspense>
     </div>
+    </RoleGate>
   );
 }
 

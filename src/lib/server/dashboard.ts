@@ -107,9 +107,12 @@ async function kpis(from: string, to: string) {
      FROM orders WHERE status IN (?) AND DATE(created_at) BETWEEN ? AND ?`,
     [PLACED, from, to],
   );
+  // Net = gross of the orders counted above minus what was refunded on those same orders. Fully refunded
+  // orders are already left out of gross (status "refunded"), so their refunds must not be subtracted again.
   const [[r]] = await db().query<Rows>(
-    "SELECT COALESCE(SUM(amount),0) AS refunded FROM refunds WHERE status = 'success' AND DATE(created_at) BETWEEN ? AND ?",
-    [from, to],
+    `SELECT COALESCE(SUM(f.amount),0) AS refunded FROM refunds f JOIN orders o ON o.id = f.order_id
+     WHERE f.status = 'success' AND o.status IN (?) AND DATE(o.created_at) BETWEEN ? AND ?`,
+    [PLACED, from, to],
   );
   const [[ship]] = await db().query<Rows>(
     `SELECT COALESCE(SUM(status='rto'),0) AS rto, COALESCE(SUM(status IN ('shipped','delivered','rto')),0) AS outbound

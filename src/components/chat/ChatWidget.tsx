@@ -476,7 +476,7 @@ export function ChatWidget() {
       // Never sent to the server, Gemini or the transcript.
       setInput("");
       setTab("chat");
-      say("⚠️ Card number, CVV, UPI PIN ya OTP kabhi chat mein mat likhiye. Payment sirf PayU ke secure page par hota hai, aur hamari team bhi yeh kabhi nahi maangti.", { blocks: [{ type: "notice", tone: "warning", text: "Aapka message bheja nahi gaya." }] });
+      say("⚠️ Never type your card number, CVV, UPI PIN or OTP in chat. Payment happens only on the secure payment page, and our team will never ask for these.", { blocks: [{ type: "notice", tone: "warning", text: "Your message was not sent." }] });
       return;
     }
     setTab("chat");
@@ -706,7 +706,13 @@ export function ChatWidget() {
       });
       if (!result.ok) { say(result.error, { blocks: [{ type: "notice", tone: "error", text: result.error }, { type: "handoff" }] }); throw new Error(result.error); }
       resolveAction(block, "confirmed");
-      say(`Return request sent. Reference: **${result.ticketNo}**.`, { key: newKey(), blocks: [{ type: "notice", tone: "success", text: "Our team will review your video and arrange a replacement or refund." }] });
+      say(`Return request sent. Reference: **${result.ticketNo}**.`, {
+        key: newKey(),
+        blocks: [
+          { type: "notice", tone: "success", text: "Last step: send your unboxing video on WhatsApp. Open the request below and tap \"Send video on WhatsApp\"." },
+          { type: "info_card", title: `Open request ${result.ticketNo}`, href: `/account/help?ticket=${encodeURIComponent(result.ticketNo)}`, source: "Refund step" },
+        ],
+      });
     },
   };
 

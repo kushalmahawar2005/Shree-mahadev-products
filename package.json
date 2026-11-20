@@ -28,7 +28,9 @@
     "test:nimbuspost": "node --conditions=react-server --experimental-strip-types scripts/test-nimbuspost.mjs",
     "test:catalog": "node scripts/test-catalog.mjs",
     "test:cart-math": "node --experimental-strip-types scripts/test-cart-math.mjs",
-    "db:qa:seed": "node --conditions=react-server --experimental-strip-types scripts/seed-qa-catalog.mjs"
+    "db:qa:seed": "node --conditions=react-server --experimental-strip-types scripts/seed-qa-catalog.mjs",
+    "test:units": "node --experimental-strip-types --no-warnings scripts/test-units.mjs",
+    "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
     "@cashfreepayments/cashfree-js": "^1.0.7",

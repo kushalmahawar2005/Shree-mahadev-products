@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { ordersCsv } from "@/lib/server/bulk-orders";
 import { ORDER_PAYS, ORDER_SORTS, type OrderFilter, type OrderPay, type OrderSort } from "@/lib/server/orders";
 
@@ -9,7 +9,8 @@ const time = (v: string | null) => (v && /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v
 /** GET ?f=&q=&from=&to=&ft=&tt=&sort=&pay= → the same orders as the list view (all pages) as a CSV that opens in Excel. */
 export async function GET(request: Request) {
   try {
-    await requireAdmin();
+    // Full customer contact details: owner/manager only.
+    await requireRole("owner", "manager");
   } catch {
     return new Response("Unauthorized", { status: 401 });
   }

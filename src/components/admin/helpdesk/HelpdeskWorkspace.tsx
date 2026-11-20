@@ -27,7 +27,7 @@ import {
   X,
 } from "lucide-react";
 import { unwrap } from "@/lib/action-result";
-import { notifyWaitlistAction, setReturnStatusAction, setTicketStatusAction } from "@/lib/helpdesk-actions";
+import { notifyWaitlistAction, replyTicketAction, setReturnStatusAction, setTicketStatusAction } from "@/lib/helpdesk-actions";
 import type { AdminReturn, AdminTicket, ReturnStatus, TicketStatus, WaitlistGroup } from "@/lib/server/helpdesk";
 import { ConfirmAction } from "@/components/admin/order/ConfirmAction";
 import { CopyButton } from "@/components/admin/order/CopyButton";
@@ -35,7 +35,7 @@ import { StatTile } from "@/components/admin/ui";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/shadcn/sheet";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
-import { VIDEO_ISSUES, isSupportVideo, type IssueKey } from "@/components/account/help/help-lib";
+import { CLAIM_ISSUES, isSupportVideo, type IssueKey } from "@/components/account/help/help-lib";
 
 export type HelpdeskTab = "returns" | "tickets" | "waitlist" | "faq";
 type Faq = { faqId: string; question: string; helpful: number; notHelpful: number; updatedAt: string };
@@ -560,15 +560,19 @@ function TicketDetail({ t, run, pending }: { t: AdminTicket; run: Run; pending: 
       <div className="space-y-5 px-4 pb-8">
         <section className="rounded-xl bg-subtle p-3.5 text-sm whitespace-pre-line text-ink">{t.message || <span className="text-ink-muted">No message, just the issue.</span>}</section>
 
+        {CLAIM_ISSUES.includes(t.issue as IssueKey) && (
+          <p className="rounded-xl bg-warm px-3.5 py-2.5 text-xs leading-relaxed text-ink">
+            <b>Damage / expiry claim.</b> The customer sends the unboxing video on WhatsApp from {t.phone}, with {t.orderNo ? `order #${t.orderNo}` : "the order number"} and {t.ticketNo} in the message. Check it before approving a refund or replacement.
+          </p>
+        )}
+
         {t.photos.length > 0 && (
           <section>
             <h3 className="mb-2 text-sm font-semibold text-ink">Unboxing video & photos</h3>
             {t.photos.filter(isSupportVideo).map((v) => (
               <video key={v} src={v} controls playsInline preload="metadata" className="mb-2 max-h-72 w-full rounded-xl border border-line bg-black" />
             ))}
-            {t.photos.some((p) => isSupportVideo(p)) || !VIDEO_ISSUES.includes(t.issue as IssueKey) ? null : (
-              <p className="mb-2 rounded-xl bg-warm px-3 py-2 text-xs text-ink">No unboxing video attached. Refund policy needs one for damage or expiry.</p>
-            )}
+
             <div className="grid grid-cols-3 gap-2">
               {t.photos.filter((p) => !isSupportVideo(p)).map((p) => (
                 <a key={p} href={p} target="_blank" rel="noreferrer" className="overflow-hidden rounded-xl border border-line">
@@ -614,6 +618,8 @@ function TicketDetail({ t, run, pending }: { t: AdminTicket; run: Run; pending: 
           </a>
         </div>
 
+        <TicketConversation t={t} run={run} pending={pending} />
+
         <section className="space-y-2 border-t border-line pt-4">
           <h3 className="text-sm font-semibold text-ink">Status</h3>
           <div className="flex flex-wrap gap-2">
@@ -636,6 +642,52 @@ function TicketDetail({ t, run, pending }: { t: AdminTicket; run: Run; pending: 
         </section>
       </div>
     </>
+  );
+}
+
+/** Replies the customer sees in My requests (and gets by email when they have one). */
+function TicketConversation({ t, run, pending }: { t: AdminTicket; run: Run; pending: boolean }) {
+  const [reply, setReply] = useState("");
+  return (
+    <section className="space-y-3 border-t border-line pt-4">
+      <h3 className="text-sm font-semibold text-ink">Conversation</h3>
+      {t.messages.length ? (
+        <ol className="space-y-2.5">
+          {t.messages.map((m) => (
+            <li key={m.id} className={cn("flex", m.author === "team" ? "justify-end" : "justify-start")}>
+              <div className={cn("max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm", m.author === "team" ? "rounded-br-md bg-forest text-white" : "rounded-bl-md bg-subtle text-ink")}>
+                <p className="text-[11px] font-semibold opacity-75">{m.author === "team" ? "Team" : t.customerName}</p>
+                <p className="mt-0.5 whitespace-pre-wrap">{m.body}</p>
+                <p className="mt-1 text-[10.5px] opacity-60">{m.at.slice(0, 16)}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="text-sm text-ink-muted">No replies yet. Your reply shows up in the customer&apos;s account{t.email ? " and is emailed to them" : ""}.</p>
+      )}
+      <div className="rounded-xl border border-line bg-surface p-2 focus-within:border-forest">
+        <textarea
+          value={reply}
+          onChange={(e) => setReply(e.target.value.slice(0, 2000))}
+          rows={3}
+          placeholder={`Reply to ${t.customerName}`}
+          aria-label="Reply to customer"
+          className="w-full resize-none bg-transparent px-2 py-1 text-sm text-ink outline-none"
+        />
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-ink-muted">{t.email ? `Also emailed to ${t.email}` : "No email on file: shown in their account only"}</span>
+          <button
+            type="button"
+            disabled={pending || !reply.trim()}
+            onClick={() => run(async () => unwrap(await replyTicketAction(t.id, reply)), `Reply sent on ${t.ticketNo}`, () => setReply(""))}
+            className={primary}
+          >
+            Send reply
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

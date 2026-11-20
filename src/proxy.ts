@@ -20,7 +20,12 @@ const CONTENT_PREFIX: Record<string, ContentKind> = { "/journal/": "journal", "/
 
 /** One path segment after the prefix, or null when the path is the index or deeper. */
 function handleAfter(pathname: string, prefix: string) {
-  const handle = decodeURIComponent(pathname.slice(prefix.length));
+  let handle: string;
+  try {
+    handle = decodeURIComponent(pathname.slice(prefix.length));
+  } catch {
+    return "\u0000invalid"; // malformed %-escape: treated as an unknown handle (404), not a crash
+  }
   return handle && !handle.includes("/") ? handle : null;
 }
 
@@ -60,8 +65,38 @@ async function getLookups(): Promise<Lookups | null> {
 }
 
 /** Admin gate: every /admin page needs a valid signed session cookie, except the login page. */
+/**
+ * CSRF guard for cookie-authenticated JSON APIs (chat): a POST sent by another website from a
+ * shopper's browser is refused. Non-browser callers send neither header and aren't a CSRF risk.
+ * Webhooks (/api/payu, /api/cashfree, /api/nimbuspost, /api/whatsapp) are not matched here.
+ */
+function crossSite(req: NextRequest) {
+  // Modern browsers say it directly; trust that over host headers (which a hosting proxy may rewrite).
+  const site = req.headers.get("sec-fetch-site");
+  if (site) return site === "cross-site";
+  const origin = req.headers.get("origin");
+  if (!origin) return false;
+  let host: string;
+  try {
+    host = new URL(origin).host;
+  } catch {
+    return true;
+  }
+  let siteHost = "";
+  try {
+    siteHost = new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "").host;
+  } catch {}
+  const own = [req.headers.get("x-forwarded-host"), req.headers.get("host"), req.nextUrl.host, siteHost].filter(Boolean);
+  return !own.includes(host);
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
+  if (pathname.startsWith("/api/")) {
+    if (req.method !== "GET" && req.method !== "HEAD" && crossSite(req))
+      return NextResponse.json({ error: "Cross-site request refused." }, { status: 403 });
+    return NextResponse.next();
+  }
   for (const [prefix, kind] of Object.entries(CONTENT_PREFIX)) {
     const slug = pathname.startsWith(prefix) ? handleAfter(pathname, prefix) : null;
     if (slug && !content[kind].some((e) => e.slug === slug)) return notFoundResponse(req);
@@ -117,5 +152,8 @@ export const config = {
     "/policies/:slug",
     "/account",
     "/account/:path*",
+    "/api/chat",
+    "/api/chat/:path*",
+    "/api/account/:path*",
   ],
 };

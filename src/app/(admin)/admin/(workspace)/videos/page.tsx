@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ReelManager, type PlaceInfo } from "@/components/admin/media/ReelManager";
@@ -9,6 +10,7 @@ export const metadata = { title: "Reels" };
 
 export default function VideosPage() {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <>
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight text-forest-text">Reels</h1>
@@ -18,6 +20,7 @@ export default function VideosPage() {
         <Videos />
       </Suspense>
     </>
+    </RoleGate>
   );
 }
 

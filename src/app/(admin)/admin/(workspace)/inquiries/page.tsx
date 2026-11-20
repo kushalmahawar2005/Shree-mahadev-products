@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/server/admin-auth";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { PageHeader } from "@/components/admin/ui";
@@ -54,6 +55,7 @@ async function InquiryData({
       variants={variants}
       initialFilter={params.f === "due" ? "due" : "all"}
       today={todayRow.today}
+      canCreateOrders={(await requireAdmin()).role !== "staff"}
     />
   );
 }

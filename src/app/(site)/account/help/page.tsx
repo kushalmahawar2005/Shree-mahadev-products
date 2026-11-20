@@ -30,6 +30,7 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
   const c = shell.customer;
   const sp = await searchParams;
   const preselect = typeof sp.order === "string" ? sp.order.slice(0, 20) : null;
+  const openTicket = typeof sp.ticket === "string" ? sp.ticket.slice(0, 20) : undefined;
 
   const [page, tickets, products, settings] = await Promise.all([
     queryAccountOrders(c.id, { tab: "all", q: "", range: "all" }),
@@ -60,6 +61,7 @@ export default async function HelpPage({ searchParams }: { searchParams: SP }) {
             preselect={preselect}
             images={images}
             tickets={tickets}
+            openTicket={openTicket}
           />
           {hasOrdered && <ContactCard name={c.name} phone={c.phone} />}
           <HelpFaq faqs={faqs} />

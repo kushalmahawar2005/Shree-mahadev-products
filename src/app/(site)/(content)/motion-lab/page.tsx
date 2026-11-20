@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { BadgeCheck as Award, Droplets, Leaf, Sun } from "@/components/icons/duo";
 import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { LabControls } from "@/components/motion-lab/LabControls";
@@ -25,6 +26,8 @@ const features = [
 
 /** Internal demo of the storefront motion system (not linked, not indexed). */
 export default async function MotionLabPage() {
+  // Developer playground for animations: never part of the live store.
+  if (process.env.NODE_ENV === "production") notFound();
   const [slides, products] = await Promise.all([getHeroSlides(), getProducts()]);
   const banner = slides[1] ?? slides[0];
 

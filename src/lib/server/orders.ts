@@ -12,6 +12,7 @@ import { queueOrderWhatsApp } from "./whatsapp";
 import { ensureCreditNotesForOrder } from "./credit-notes";
 import { ensureInvoiceForOrder, ensureInvoiceIfApplicable } from "./invoices";
 import { queueMarketingEvent } from "./marketing";
+import { gatewayIsTest } from "./payment-gateway";
 import { calculateCoupon, releaseCouponForOrder, reserveCouponForRetry } from "./coupons";
 import {
   commitStock,
@@ -702,8 +703,13 @@ export async function markPaid(
   });
   // Pixel + invoice only when this call really moved the order to paid.
   if (result === "paid") {
+    // A test/sandbox gateway "payment" moves no money: flag it so nobody ships it by mistake,
+    // and keep it out of the ad pixels.
+    const [[pv]] = await db().execute<Row[]>("SELECT provider FROM payments WHERE id = ?", [paymentId]);
+    const test = gatewayIsTest(String(pv?.provider ?? "payu"));
+    if (test) await flagOrder(db(), orderId, "Test-mode payment: no real money received. Do not ship.", "system").catch((e) => console.error("flag test payment", e));
     const paidOrder = await getOrderById(orderId);
-    if (paidOrder) void queueMarketingEvent("Purchase", paidOrder.orderNo, orderId);
+    if (paidOrder && !test) void queueMarketingEvent("Purchase", paidOrder.orderNo, orderId);
     await ensureInvoiceForOrder(orderId).catch((error) => console.error("Invoice could not be created", orderId, error));
   }
   return result;
@@ -851,6 +857,8 @@ export async function listOrders(
     filter?: OrderFilter;
     q?: string;
     sort?: OrderSort;
+    /** Skip the count/value summary (CSV export pages through everything and doesn't need it). */
+    withTotal?: boolean;
   } & OrderScope = {},
 ) {
   const perPage = Math.min(Math.max(opts.perPage ?? 25, 5), 100);
@@ -867,10 +875,10 @@ export async function listOrders(
   params.push(...d.params);
   const w = where.join(" AND ");
   // Count + value of everything in this view (all pages), for the summary line.
-  const [[{ total, value }]] = await db().query<Row[]>(
-    `SELECT COUNT(*) AS total, COALESCE(SUM(o.total),0) AS value FROM orders o WHERE ${w}`,
-    params,
-  );
+  const [[{ total, value }]] =
+    opts.withTotal === false
+      ? [[{ total: 0, value: 0 }]]
+      : await db().query<Row[]>(`SELECT COUNT(*) AS total, COALESCE(SUM(o.total),0) AS value FROM orders o WHERE ${w}`, params);
   const [rows] = await db().query<Row[]>(
     `${ORDER_SELECT} WHERE ${w} ORDER BY ${
       // An explicit sort wins; otherwise "Needs action" shows the most urgent statuses first.

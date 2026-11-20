@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { db } from "@/lib/server/db";
 
 const customerDetailsSchema = z
@@ -13,7 +13,7 @@ const customerDetailsSchema = z
   .strict();
 
 export async function saveCustomerDetailsAction(input: unknown) {
-  const admin = await requireAdmin();
+  const admin = await requireRole("owner", "manager");
   const parsed = customerDetailsSchema.safeParse(input);
   if (!parsed.success)
     return { ok: false, error: "Check the notes and tags, then try again." };

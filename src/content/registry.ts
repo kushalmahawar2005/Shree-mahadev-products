@@ -50,7 +50,7 @@ export const content: Record<ContentKind, ContentEntry[]> = {
   ],
   policies: [
     { slug: "privacy", updated: "2026-11-04", title: "Privacy policy", description: "How we handle your personal information." },
-    { slug: "refund-return", updated: "2026-11-19", title: "Refund & return policy", description: "Returns, replacements and refunds." },
+    { slug: "refund-return", updated: "2026-11-20", title: "Refund & return policy", description: "Returns, replacements and refunds." },
     { slug: "shipping", updated: "2026-11-04", title: "Shipping policy", description: "Where we ship, how long it takes, and charges." },
     { slug: "terms", updated: "2026-11-04", title: "Terms of service", description: "Terms for using this website and buying from us." },
   ],

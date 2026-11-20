@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -22,6 +23,7 @@ const card = "rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(0
 
 export default function ProductsPage({ searchParams }: PageProps<"/admin/products">) {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -36,6 +38,7 @@ export default function ProductsPage({ searchParams }: PageProps<"/admin/product
         <List searchParams={searchParams} />
       </Suspense>
     </div>
+    </RoleGate>
   );
 }
 

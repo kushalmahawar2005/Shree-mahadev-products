@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { CollectionWorkspace } from "@/components/admin/CollectionWorkspace";
@@ -8,6 +9,7 @@ export const metadata = { title: "Collections" };
 
 export default function CollectionsPage() {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <Suspense
       fallback={
         <div className="space-y-6" aria-label="Loading collections">
@@ -21,6 +23,7 @@ export default function CollectionsPage() {
     >
       <Content />
     </Suspense>
+    </RoleGate>
   );
 }
 

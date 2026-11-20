@@ -4,7 +4,7 @@ import { safe, type ActionResult } from "@/lib/action-result";
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { TAGS } from "@/lib/commerce";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import { adjustStock, inventoryLog } from "@/lib/server/inventory";
 import { markRtoReceived } from "@/lib/server/orders";
 import { setSetting } from "@/lib/server/videos";
@@ -28,7 +28,7 @@ function bust(variantKey: string) {
 
 export async function adjustStockAction(input: z.input<typeof Adjust>): Promise<ActionResult<number | null>> {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const v = Adjust.parse(input);
     const after = await adjustStock(v.variantKey, v);
     bust(v.variantKey);
@@ -45,7 +45,7 @@ export async function inventoryLogAction(variantKey: string) {
 
 export async function setLowStockThresholdAction(value: number) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     await setSetting("low_stock_threshold", z.number().int().min(0).max(1000).parse(value));
     updateTag("settings");
     revalidatePath("/admin/inventory");

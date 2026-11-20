@@ -13,7 +13,7 @@ import { MobileBottomBar } from "@/components/layout/MobileBottomBar";
 import { SiteCartDrawer, SiteHeader } from "@/components/layout/SiteChrome";
 import { ConsentManager } from "@/components/marketing/ConsentManager";
 import { WelcomeOffer } from "@/components/marketing/WelcomeOffer";
-import { ChatWidget } from "@/components/chat/ChatWidget";
+import { ChatWidgetLazy } from "@/components/chat/ChatWidgetLazy";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { LoadingBar } from "@/components/motion/LoadingBar";
 import { PAGE_OPEN_SCRIPT, PageReady } from "@/components/motion/PageReady";
@@ -28,8 +28,8 @@ import { MotionRoot } from "@/components/motion/MotionRoot";
 import "../globals.css";
 
 /** Clean geometric sans (close to Cowberry's look). Mukta covers Devanagari. */
+// Variable font: one file covers every weight (400–800) instead of five separate downloads.
 const figtree = Figtree({
-  weight: ["400", "500", "600", "700", "800"],
   subsets: ["latin"],
   variable: "--font-figtree",
   display: "swap",
@@ -115,7 +115,7 @@ export default async function RootLayout({
               <HideOnCheckout>
                 <SiteHeader />
                 <FestiveToran />
-                <ChatWidget />
+                <ChatWidgetLazy />
               </HideOnCheckout>
               <main id="main" className="flex-1">
                 {children}

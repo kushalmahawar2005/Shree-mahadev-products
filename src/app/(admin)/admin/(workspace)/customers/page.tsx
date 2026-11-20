@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -40,6 +41,7 @@ const initials = (name: string) =>
 
 export default function CustomersPage({ searchParams }: PageProps<"/admin/customers">) {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-forest-text sm:text-3xl">Customers</h1>
@@ -49,6 +51,7 @@ export default function CustomersPage({ searchParams }: PageProps<"/admin/custom
         <CustomersList searchParams={searchParams} />
       </Suspense>
     </div>
+    </RoleGate>
   );
 }
 

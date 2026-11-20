@@ -17,7 +17,10 @@ import { cn } from "@/lib/utils/cn";
 import { BagIcon, ChevronDown, MenuIcon } from "./icons";
 import { MegaMenu, type MenuData, type MenuProduct } from "./MegaMenu";
 import { SearchBox } from "./SearchBox";
-import { SearchCommand } from "./SearchCommand";
+import dynamic from "next/dynamic";
+
+// cmdk (~100 KB) loads only when the search overlay is first opened, not on every page view.
+const SearchCommand = dynamic(() => import("./SearchCommand").then((m) => m.SearchCommand), { ssr: false });
 import { MobileNav } from "./MobileNav";
 
 const LOGO = "https://res.cloudinary.com/bmqxsylj/image/upload/f_auto,q_auto:good,c_limit,w_160/v1793735979/swadeshi-mahadev/static/logo.png";
@@ -48,7 +51,13 @@ export function Header({
   announcement?: React.ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchOpen, setSearchOpenState] = useState(false);
+  // Once opened, keep the overlay mounted so closing still animates.
+  const [searchUsed, setSearchUsed] = useState(false);
+  const setSearchOpen = (v: boolean) => {
+    if (v) setSearchUsed(true);
+    setSearchOpenState(v);
+  };
   const pathname = usePathname();
 
   // Close menus on navigation
@@ -73,7 +82,7 @@ export function Header({
         />
       </StickyHeader>
 
-      <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} products={allProducts} recommended={recommended} />
+      {(searchOpen || searchUsed) && <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} products={allProducts} recommended={recommended} />}
       <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} menus={menus} nav={nav} />
     </>
   );

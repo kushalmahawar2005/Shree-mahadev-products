@@ -138,7 +138,7 @@ export async function ordersCsv(opts: { filter: OrderFilter; q?: string; sort?: 
     ["Order no", "Placed", "Status", "Payment", "Customer", "Phone", "Email", "City", "State", "Pincode", "Items", "Units", "Subtotal", "Discount", "Shipping", "COD fee", "Total"].join(","),
   ];
   for (let page = 1; page <= 100; page++) {
-    const r = await listOrders({ ...opts, page, perPage: 100 });
+    const r = await listOrders({ ...opts, page, perPage: 100, withTotal: false });
     for (const o of r.orders) {
       rows.push(
         [
@@ -164,7 +164,7 @@ export async function ordersCsv(opts: { filter: OrderFilter; q?: string; sort?: 
           .join(","),
       );
     }
-    if (page * r.perPage >= r.total) break;
+    if (r.orders.length < r.perPage) break;
   }
   return rows.join("\n");
 }

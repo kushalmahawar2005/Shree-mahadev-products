@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ProductImageManager } from "@/components/admin/media/ProductImageManager";
@@ -11,9 +12,11 @@ export const metadata = { title: "Edit product" };
 
 export default function EditProductPage({ searchParams }: PageProps<"/admin/products/edit">) {
   return (
+    <RoleGate roles={["owner", "manager"]}>
     <Suspense fallback={<p className="text-ink-muted">Loading…</p>}>
       <Editor searchParams={searchParams} />
     </Suspense>
+    </RoleGate>
   );
 }
 

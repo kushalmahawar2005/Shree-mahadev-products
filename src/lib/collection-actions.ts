@@ -4,7 +4,7 @@ import { safe } from "@/lib/action-result";
 import { revalidatePath, updateTag } from "next/cache";
 import { z } from "zod";
 import { TAGS } from "@/lib/commerce";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { deleteCollection, saveCollection, saveCollectionOrder, type CollectionInput } from "@/lib/server/collections";
 
 const HANDLE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -46,7 +46,7 @@ function checkedImage(value: string) {
 
 export async function saveCollectionAction(raw: unknown, originalHandle?: string) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const input = fields.parse(raw);
     if (new Set(input.products).size !== input.products.length) throw new Error("A product can only appear once in a collection");
     const original = originalHandle === undefined ? undefined : pathHandle.parse(originalHandle);
@@ -64,7 +64,7 @@ export async function saveCollectionAction(raw: unknown, originalHandle?: string
 
 export async function reorderCollectionsAction(raw: unknown) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const handles = z.array(pathHandle).max(500).parse(raw);
     if (new Set(handles).size !== handles.length) throw new Error("Duplicate collection in order");
     await saveCollectionOrder(handles);
@@ -74,7 +74,7 @@ export async function reorderCollectionsAction(raw: unknown) {
 
 export async function deleteCollectionAction(raw: unknown) {
   return safe(async () => {
-    await requireAdmin();
+    await requireRole("owner", "manager");
     const handle = pathHandle.parse(raw);
     const deleted = await deleteCollection(handle);
     if (deleted) invalidate([handle]);

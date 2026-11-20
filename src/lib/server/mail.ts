@@ -31,7 +31,7 @@ const siteUrl = () =>
 export const mailConfigured = () => Boolean(process.env.RESEND_API_KEY);
 const mailFrom = () =>
   process.env.MAIL_FROM ||
-  "Swadeshi Mahadev <orders@swadeshimahadevproducts.com>";
+  "Swadeshi Mahadev <orders@swadeshimahadevproducts.in>";
 
 function resendUrl() {
   const override = process.env.RESEND_API_URL;

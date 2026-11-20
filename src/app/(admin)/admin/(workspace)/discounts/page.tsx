@@ -1,3 +1,4 @@
+import { RoleGate } from "@/components/admin/RoleGate";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { CouponsWorkspace } from "@/components/admin/CouponsWorkspace";
@@ -13,9 +14,11 @@ export const metadata = { title: "Coupons" };
 
 export default function DiscountsPage() {
   return (
+    <RoleGate roles={["owner", "manager"]}>
       <Suspense fallback={<p className="text-ink-muted">Loading coupons…</p>}>
         <CouponData />
       </Suspense>
+    </RoleGate>
   );
 }
 

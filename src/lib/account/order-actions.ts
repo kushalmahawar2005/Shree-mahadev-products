@@ -6,7 +6,6 @@ import { z } from "zod";
 import { accountConfig } from "@/config/account";
 import { requireCustomer } from "@/lib/server/customer-auth";
 import { db } from "@/lib/server/db";
-import { isSupportVideo } from "@/components/account/help/help-lib";
 import { supportConfig } from "@/config/support";
 import { createSupportTicket, queueSupportAlert, verifySupportPhoto } from "@/lib/server/support-tickets";
 import { RETURN_REASONS } from "./returns";
@@ -20,20 +19,14 @@ const ReturnInput = z
       .max(30),
     reason: z.enum(RETURN_REASONS),
     note: z.string().trim().max(500).optional(),
-    /** Unboxing video (required) + optional photos, already uploaded to Cloudinary by the browser. */
+    /** Optional photos of the box and label, already uploaded to Cloudinary by the browser. The unboxing
+     *  video is sent on WhatsApp after this request. */
     media: z
       .array(z.object({ url: z.string().url().max(500), publicId: z.string().min(1).max(200) }).strict())
-      .max(supportConfig.photos.max + supportConfig.video.max),
+      .max(supportConfig.photos.max)
+      .default([]),
   })
-  .strict()
-  .refine((v) => v.media.filter((m) => isSupportVideo(m.url)).length === 1, {
-    message: "Please add your unboxing video. Refunds for damage or expiry need it.",
-    path: ["media"],
-  })
-  .refine((v) => v.media.filter((m) => !isSupportVideo(m.url)).length <= supportConfig.photos.max, {
-    message: `Add up to ${supportConfig.photos.max} photos.`,
-    path: ["media"],
-  });
+  .strict();
 
 /**
  * Shopper asks to return delivered items. Checks ownership, the return window, eligible
@@ -97,7 +90,7 @@ export async function requestReturnAction(raw: unknown) {
     [orderId, `Return requested: ${reason}`],
   );
 
-  // The video and photos go to the helpdesk as a ticket, so the team reviews everything in admin.
+  // The claim (and any photos) goes to the helpdesk as a ticket; the video follows on WhatsApp.
   const [[on]] = await db().query<RowDataPacket[]>("SELECT order_no FROM orders WHERE id=?", [orderId]);
   const issue = reason === "Expired on arrival" ? "expired" : "damaged";
   const message = [`Return request: ${reason}.`, note ?? ""].filter(Boolean).join(" ").slice(0, supportConfig.messageMax);

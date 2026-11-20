@@ -41,7 +41,7 @@ const GATEWAYS = [
   { id: "cashfree", label: "Cashfree" },
 ] as const;
 
-export function SettingsForm({ initial, gateways }: { initial: StoreSettings; gateways: Record<StoreSettings["paymentGateway"], boolean> }) {
+export function SettingsForm({ initial, gateways, testModes = {} }: { initial: StoreSettings; testModes?: Partial<Record<StoreSettings["paymentGateway"], boolean>>; gateways: Record<StoreSettings["paymentGateway"], boolean> }) {
   const [s, setS] = useState(initial);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -126,12 +126,19 @@ export function SettingsForm({ initial, gateways }: { initial: StoreSettings; ga
                 >
                   {g.label}
                   {!gateways[g.id] && <span className="text-[11px] font-normal">· keys missing</span>}
+                  {gateways[g.id] && testModes[g.id] && <span className="text-[11px] font-normal">· test mode</span>}
                 </button>
               );
             })}
           </div>
           {!gateways[s.paymentGateway] && (
             <p className="mt-2 text-xs text-alert">{s.paymentGateway === "cashfree" ? "Cashfree" : "PayU"} keys are not set, so checkout uses the other gateway.</p>
+          )}
+          {gateways[s.paymentGateway] && testModes[s.paymentGateway] && (
+            <p className="mt-2 rounded-lg bg-warm px-3 py-2 text-xs text-ink">
+              <b>{s.paymentGateway === "cashfree" ? "Cashfree" : "PayU"} is in test mode.</b> Payments move no real money. Such orders are flagged
+              &ldquo;Test-mode payment, do not ship&rdquo;. Switch to live keys before real customers pay online.
+            </p>
           )}
         </div>
       </Card>

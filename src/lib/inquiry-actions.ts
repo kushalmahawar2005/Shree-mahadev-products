@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { clientIp, rateLimit } from "@/lib/server/rate-limit";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireAdmin, requireRole } from "@/lib/server/admin-auth";
 import { db } from "@/lib/server/db";
 import { INQUIRY_STATUSES } from "@/lib/inquiry-types";
 import { notifyOrder, queueInquiryAlert } from "@/lib/server/mail";
@@ -248,7 +248,7 @@ export async function addInquiryNoteAction(raw: unknown) {
 }
 
 export async function createManualInquiryOrderAction(raw: unknown) {
-  const admin = await requireAdmin();
+  const admin = await requireRole("owner", "manager");
   const parsed = manualOrderSchema.safeParse(raw);
   if (!parsed.success)
     return {

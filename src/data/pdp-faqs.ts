@@ -23,7 +23,7 @@ const OIL: Faq[] = [
   },
   {
     q: "What if my order arrives damaged, leaking or expired?",
-    a: "Please record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days with that unboxing video and we will replace it or refund you.",
+    a: "Record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days and send that unboxing video on WhatsApp (the button appears after the request). We then replace it or refund you.",
   },
 ];
 
@@ -46,7 +46,7 @@ const HONEY: Faq[] = [
   },
   {
     q: "What if my order arrives damaged or expired?",
-    a: "Please record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days with that unboxing video and we will replace it or refund you.",
+    a: "Record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days and send that unboxing video on WhatsApp (the button appears after the request). We then replace it or refund you.",
   },
 ];
 
@@ -65,7 +65,7 @@ const SWEETENER: Faq[] = [
   },
   {
     q: "What if my order arrives damaged or expired?",
-    a: "Please record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days with that unboxing video and we will replace it or refund you.",
+    a: "Record a video while opening the parcel. If the product arrives damaged or expired, raise a request from My orders within 7 days and send that unboxing video on WhatsApp (the button appears after the request). We then replace it or refund you.",
   },
 ];
 

@@ -17,6 +17,11 @@ grep -q 'output: "standalone"' next.config.ts || perl -0pi -e 's/(const nextConf
 pnpm install --frozen-lockfile --prefer-offline >/dev/null 2>&1
 cp "$R/.env.local" .env.local
 trap 'rm -f "$D/.env.local"' EXIT
+# NEXT_PUBLIC_* values are baked into the browser bundle at build time (the live hPanel values are NOT
+# used for these). Print them so a local-only value (localhost URL, test number) is caught before deploy.
+echo "Baked public values:"; grep -E '^NEXT_PUBLIC_' .env.local | grep -v '^NEXT_PUBLIC_SITE_URL=' | sed 's/^/  /'
+echo "  NEXT_PUBLIC_SITE_URL=https://swadeshimahadevproducts.in (forced)"
+if grep -E '^NEXT_PUBLIC_' .env.local | grep -v '^NEXT_PUBLIC_SITE_URL=' | grep -qE '(localhost|127\.0\.0\.1|ngrok|trycloudflare)'; then echo "A NEXT_PUBLIC_ value points at a local/tunnel host. Fix .env.local first."; exit 1; fi
 # public/ images are served from their Cloudinary mirror (image-loader.ts): sync new/changed ones first.
 node scripts/upload-static.mjs > /tmp/smp-static-sync.log 2>&1 || { cat /tmp/smp-static-sync.log; echo "static image sync failed"; exit 1; }
 tail -1 /tmp/smp-static-sync.log

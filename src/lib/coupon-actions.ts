@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getProduct } from "@/lib/commerce";
 import { getCartAction } from "@/lib/commerce/actions";
 import { clientIp, rateLimit } from "@/lib/server/rate-limit";
-import { requireAdmin } from "@/lib/server/admin-auth";
+import { requireRole } from "@/lib/server/admin-auth";
 import { db } from "@/lib/server/db";
 import { calculateCoupon } from "@/lib/server/coupons";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
@@ -70,7 +70,7 @@ const CouponInput = z
   });
 
 export async function saveCouponAction(raw: unknown) {
-  const admin = await requireAdmin();
+  const admin = await requireRole("owner", "manager");
   const p = CouponInput.safeParse(raw);
   if (!p.success)
     return {

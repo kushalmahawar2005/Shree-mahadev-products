@@ -7,9 +7,7 @@ import {
   ISSUES,
   ISSUE_KEYS,
   PHOTO_ISSUES,
-  VIDEO_ISSUES,
   cancelRule,
-  isSupportVideo,
   issuesFor,
   type HelpOrderDetail,
 } from "@/components/account/help/help-lib";
@@ -22,7 +20,9 @@ import { requireCustomer } from "@/lib/server/customer-auth";
 import { db } from "@/lib/server/db";
 import { rateLimit } from "@/lib/server/rate-limit";
 import {
+  addTicketMessage,
   createSupportTicket,
+  markTicketSeen,
   queueSupportAlert,
   recordFaqFeedback,
   signSupportUpload,
@@ -60,14 +60,13 @@ export async function getHelpOrderAction(raw: unknown) {
   return { ok: true as const, order: detail };
 }
 
-/** Signed direct-upload params for one help photo or unboxing video (browser → Cloudinary). */
-export async function signSupportPhotoUploadAction(kind: unknown = "image") {
+/** Signed direct-upload params for one help photo (browser → Cloudinary). Videos go on WhatsApp. */
+export async function signSupportPhotoUploadAction() {
   const customer = await requireCustomer();
-  const k = kind === "video" ? "video" : "image";
   const limit = await rateLimit("support_upload", String(customer.id), 15, 60);
   if (!limit.ok) return fail(`Too many uploads. Try again in ${limit.retryInMin} min.`);
   try {
-    const s = signSupportUpload(k);
+    const s = signSupportUpload();
     if (!s) return fail("Uploads aren't available right now. Please try again later.");
     return { ok: true as const, ...s };
   } catch (e) {
@@ -99,15 +98,10 @@ const TicketInput = z
     callbackSlot: z.enum(supportConfig.callbackSlots).optional(),
     photos: z
       .array(z.object({ url: z.string().url().max(500), publicId: z.string().min(1).max(200) }).strict())
-      .max(supportConfig.photos.max + supportConfig.video.max),
+      .max(supportConfig.photos.max),
   })
   .strict()
-  .refine((v) => v.photos.filter((p) => isSupportVideo(p.url)).length <= supportConfig.video.max, { message: "Add only one video.", path: ["photos"] })
-  .refine((v) => v.photos.filter((p) => !isSupportVideo(p.url)).length <= supportConfig.photos.max, { message: `Add up to ${supportConfig.photos.max} photos.`, path: ["photos"] })
-  .refine((v) => !VIDEO_ISSUES.includes(v.issue) || v.photos.some((p) => isSupportVideo(p.url)), {
-    message: "Please add your unboxing video. Damage and expiry claims need it.",
-    path: ["photos"],
-  })
+
   .refine((v) => v.contactPref !== "call" || v.callbackSlot, { message: "Pick a time for the call back.", path: ["callbackSlot"] })
   .refine((v) => v.message.length > 0 || v.issue !== "other", { message: "Tell us a little about the problem.", path: ["message"] })
   .refine((v) => v.issue !== "callback" || v.contactPref === "call", { message: "Pick a time for the call back.", path: ["callbackSlot"] });
@@ -193,10 +187,37 @@ export async function submitSupportTicketAction(raw: unknown) {
       status: "open",
       createdAt: new Date().toISOString(),
       photos: photos.map((x) => x.url),
+      messages: [],
+      unread: false,
     },
     whatsappUrl: whatsappLink(text),
     phone: formatPhone(customer.phone),
   };
+}
+
+/** Customer follow-up on one of their own tickets (reopens it if it was resolved). */
+export async function replyToTicketAction(raw: unknown) {
+  const customer = await requireCustomer();
+  const p = z
+    .object({ ticketId: z.number().int().positive(), body: z.string().trim().min(1, "Write a message.").max(1000, "Keep it under 1,000 characters.") })
+    .strict()
+    .safeParse(raw);
+  if (!p.success) return fail(p.error.issues[0]?.message ?? "Please check the message.");
+  const limit = await rateLimit("support_reply", String(customer.id), 20, 60);
+  if (!limit.ok) return fail(`Too many messages. Try again in ${limit.retryInMin} min.`);
+  const [[own]] = await db().query<RowDataPacket[]>("SELECT id FROM support_tickets WHERE id = ? AND customer_id = ?", [p.data.ticketId, customer.id]);
+  if (!own) return fail("Request not found.");
+  await addTicketMessage(p.data.ticketId, "customer", customer.name || "You", p.data.body);
+  return { ok: true as const };
+}
+
+/** The customer opened a ticket: clears its "new reply" badge. */
+export async function markTicketSeenAction(raw: unknown) {
+  const customer = await requireCustomer();
+  const p = z.object({ ticketId: z.number().int().positive() }).strict().safeParse(raw);
+  if (!p.success) return fail("Invalid request.");
+  await markTicketSeen(customer.id, p.data.ticketId);
+  return { ok: true as const };
 }
 
 const FAQ_IDS = new Set(buildFaqs(DEFAULT_SETTINGS.shipping).map((f) => f.id));

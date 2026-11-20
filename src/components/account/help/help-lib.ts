@@ -1,3 +1,4 @@
+import { whatsappLink } from "@/data/site";
 import { supportConfig } from "@/config/support";
 
 /* Plain module (no "use client"): shared by the help page (server), its client parts and the server actions. */
@@ -35,12 +36,19 @@ export const PHOTO_ISSUES: readonly IssueKey[] = ["damaged", "expired", "wrong_i
 
 /**
  * Refund claims (damage / expiry) need an unboxing video: the parcel opened on camera from the sealed
- * box, showing the damage or the expiry date. Store policy, see /policies/refund-return.
+ * box, showing the damage or the expiry date. The video is sent on WhatsApp (not uploaded here, to keep
+ * media storage small). Store policy, see /policies/refund-return.
  */
-export const VIDEO_ISSUES: readonly IssueKey[] = ["damaged", "expired"];
+export const CLAIM_ISSUES: readonly IssueKey[] = ["damaged", "expired"];
 
-/** Help attachments are photos or one unboxing video; Cloudinary serves videos under /video/upload/. */
+/** Older tickets may carry an uploaded video; Cloudinary serves videos under /video/upload/. */
 export const isSupportVideo = (url: string) => url.includes("/video/upload/");
+
+/** WhatsApp chat with the order number and request id filled in, for sending the unboxing video. */
+export const unboxingVideoLink = (orderNo: string | null, ref?: string | null) =>
+  whatsappLink(
+    `Hi, unboxing video for ${orderNo ? `order #${orderNo.replace(/^#/, "")}` : "my order"}${ref ? ` (request ${ref})` : ""}. Problem: `,
+  );
 
 /** Which chips to offer for an order status (null = "Not about a specific order"). */
 export function issuesFor(status: string | null): IssueKey[] {
@@ -192,4 +200,10 @@ export type HelpTicket = {
   status: string;
   createdAt: string;
   photos: string[];
+  /** Conversation after the first message (team replies + customer follow-ups), oldest first. */
+  messages: TicketMessage[];
+  /** A team reply the customer hasn't opened yet. */
+  unread: boolean;
 };
+
+export type TicketMessage = { id: number; author: "team" | "customer"; name: string; body: string; at: string };

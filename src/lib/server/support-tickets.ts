@@ -1,6 +1,6 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import { ISSUES, isSupportVideo, type HelpTicket, type IssueKey } from "@/components/account/help/help-lib";
+import { ISSUES, isSupportVideo, type HelpTicket, type IssueKey, type TicketMessage } from "@/components/account/help/help-lib";
 import { supportConfig } from "@/config/support";
 import { site } from "@/data/site";
 import { cloudinary, cloudinaryConfigured, destroyImage, isOwnCloudinaryUrl } from "./cloudinary";
@@ -50,16 +50,19 @@ export async function createSupportTicket(t: NewTicket): Promise<{ id: number; t
 /** This customer's requests, newest first. */
 export async function listSupportTickets(customerId: number, limit = 20): Promise<HelpTicket[]> {
   const [rows] = await db().query<RowDataPacket[]>(
-    `SELECT t.id, t.ticket_no, t.order_id, o.order_no, t.issue, t.message, t.utr, t.contact_pref, t.callback_slot, t.status, t.created_at
+    `SELECT t.id, t.ticket_no, t.order_id, o.order_no, t.issue, t.message, t.utr, t.contact_pref, t.callback_slot, t.status, t.created_at,
+            t.customer_seen_at
        FROM support_tickets t LEFT JOIN orders o ON o.id=t.order_id
       WHERE t.customer_id=? ORDER BY t.id DESC LIMIT ?`,
     [customerId, limit],
   );
   if (!rows.length) return [];
+  const ids = rows.map((r) => Number(r.id));
   const [photos] = await db().query<RowDataPacket[]>(
     "SELECT ticket_id, url FROM support_ticket_photos WHERE ticket_id IN (?) ORDER BY id",
-    [rows.map((r) => Number(r.id))],
+    [ids],
   );
+  const messages = await ticketMessages(ids);
   return rows.map((r) => ({
     id: Number(r.id),
     ticketNo: String(r.ticket_no ?? ticketNoFor(Number(r.id))),
@@ -73,24 +76,96 @@ export async function listSupportTickets(customerId: number, limit = 20): Promis
     status: String(r.status),
     createdAt: String(r.created_at),
     photos: photos.filter((p) => Number(p.ticket_id) === Number(r.id)).map((p) => String(p.url)),
+    messages: messages.get(Number(r.id)) ?? [],
+    unread: (messages.get(Number(r.id)) ?? []).some(
+      (m) => m.author === "team" && (!r.customer_seen_at || m.at > String(r.customer_seen_at)),
+    ),
   }));
+}
+
+/* ── Conversation ── */
+
+/** Messages for these tickets, oldest first, keyed by ticket id. */
+export async function ticketMessages(ticketIds: number[]): Promise<Map<number, TicketMessage[]>> {
+  const out = new Map<number, TicketMessage[]>();
+  if (!ticketIds.length) return out;
+  const [rows] = await db().query<RowDataPacket[]>(
+    "SELECT id, ticket_id, author, author_name, body, created_at FROM support_ticket_messages WHERE ticket_id IN (?) ORDER BY id",
+    [ticketIds],
+  );
+  for (const r of rows) {
+    const list = out.get(Number(r.ticket_id)) ?? [];
+    list.push({ id: Number(r.id), author: r.author === "team" ? "team" : "customer", name: String(r.author_name ?? ""), body: String(r.body), at: String(r.created_at) });
+    out.set(Number(r.ticket_id), list);
+  }
+  return out;
+}
+
+/**
+ * Add a message to a ticket. A team reply moves an open ticket to "in progress" and emails the
+ * customer (when we have their email); a customer follow-up reopens a resolved ticket.
+ */
+export async function addTicketMessage(ticketId: number, author: "team" | "customer", name: string, body: string) {
+  await db().execute("INSERT INTO support_ticket_messages (ticket_id, author, author_name, body) VALUES (?, ?, ?, ?)", [
+    ticketId,
+    author,
+    name.slice(0, 60),
+    body.slice(0, 2000),
+  ]);
+  await db().execute(
+    author === "team"
+      ? "UPDATE support_tickets SET status = IF(status = 'open', 'in_progress', status) WHERE id = ?"
+      : "UPDATE support_tickets SET status = IF(status = 'resolved', 'open', status), customer_seen_at = NOW() WHERE id = ?",
+    [ticketId],
+  );
+  if (author === "team") await queueTicketReplyEmail(ticketId, body).catch((e) => console.error("ticket reply email", e));
+}
+
+export async function markTicketSeen(customerId: number, ticketId: number) {
+  await db().execute("UPDATE support_tickets SET customer_seen_at = NOW() WHERE id = ? AND customer_id = ?", [ticketId, customerId]);
+}
+
+async function queueTicketReplyEmail(ticketId: number, body: string) {
+  const [[t]] = await db().query<RowDataPacket[]>(
+    `SELECT t.ticket_no, t.order_id, c.name, c.email FROM support_tickets t JOIN customers c ON c.id = t.customer_id WHERE t.id = ?`,
+    [ticketId],
+  );
+  const to = String(t?.email ?? "");
+  if (!t || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return;
+  const base = (process.env.NEXT_PUBLIC_SITE_URL ?? site.url).replace(/\/$/, "");
+  const ticketNo = String(t.ticket_no ?? ticketNoFor(ticketId));
+  const link = `${base}/account/help?ticket=${encodeURIComponent(ticketNo)}`;
+  const first = String(t.name ?? "").split(" ")[0] || "there";
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;color:#17251d;line-height:1.5">
+<p>Hi ${esc(first)},</p>
+<p>Our team replied to your help request <b>${esc(ticketNo)}</b>:</p>
+<blockquote style="margin:12px 0;padding:12px 16px;background:#f6f1e4;border-radius:12px">${esc(body).replace(/\n/g, "<br>")}</blockquote>
+<p><a href="${esc(link)}" style="display:inline-block;background:#0e3b26;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none">View and reply</a></p>
+<p style="color:#667;font-size:13px">${esc(site.name)}</p></div>`;
+  const text = `Hi ${first},\n\nOur team replied to your help request ${ticketNo}:\n\n${body}\n\nView and reply: ${link}`;
+  await db().execute(
+    `INSERT IGNORE INTO email_outbox (order_id, template, to_email, subject, html, text_body, dedupe_key)
+     VALUES (?, 'support_ticket_reply', ?, ?, ?, ?, ?)`,
+    [t.order_id ?? null, to, `Reply to your help request ${ticketNo}`, html, text, `support_ticket_reply:${ticketId}:${Date.now()}`.slice(0, 120)],
+  );
+  kickOutbox();
 }
 
 /* ── Photos: browser → Cloudinary (signed), then checked again on the server before saving ── */
 
-export function signSupportUpload(kind: "image" | "video" = "image") {
+export function signSupportUpload() {
   if (!cloudinaryConfigured()) return null;
   const params = {
     folder: FOLDER,
     timestamp: Math.round(Date.now() / 1000),
-    allowed_formats: (kind === "video" ? supportConfig.video.formats : supportConfig.photos.formats).join(","),
+    allowed_formats: supportConfig.photos.formats.join(","),
   };
   return {
     ...params,
     signature: cloudinary.utils.api_sign_request(params, process.env.CLOUDINARY_API_SECRET!),
     apiKey: process.env.CLOUDINARY_API_KEY!,
     cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
-    resourceType: kind,
+    resourceType: "image" as const,
   };
 }
 
@@ -101,14 +176,14 @@ export function signSupportUpload(kind: "image" | "video" = "image") {
 export async function verifySupportPhoto(p: { url: string; publicId: string }): Promise<string | null> {
   if (!isOwnCloudinaryUrl(p.url, p.publicId) || !p.publicId.startsWith(`${FOLDER}/`))
     return "One of the photos was not uploaded to our image store.";
-  const video = isSupportVideo(p.url);
+  // Photos only: unboxing videos are sent on WhatsApp (keeps our media storage small).
+  if (isSupportVideo(p.url)) return "Please send videos on WhatsApp, not here.";
   try {
-    const r = (await cloudinary.api.resource(p.publicId, { resource_type: video ? "video" : "image" })) as { bytes: number; format: string };
-    const rule = video ? supportConfig.video : supportConfig.photos;
-    const formats: readonly string[] = rule.formats;
-    if (!formats.includes(String(r.format).toLowerCase()) || Number(r.bytes) > rule.maxBytes) {
-      await destroyImage(p.publicId, video ? "video" : "image");
-      return video ? "The video must be MP4, MOV, WEBM or 3GP and under 100 MB." : "Photos must be JPG, PNG, WEBP or HEIC and under 5 MB.";
+    const r = (await cloudinary.api.resource(p.publicId, { resource_type: "image" })) as { bytes: number; format: string };
+    const formats: readonly string[] = supportConfig.photos.formats;
+    if (!formats.includes(String(r.format).toLowerCase()) || Number(r.bytes) > supportConfig.photos.maxBytes) {
+      await destroyImage(p.publicId);
+      return "Photos must be JPG, PNG, WEBP or HEIC and under 5 MB.";
     }
     return null;
   } catch (e) {

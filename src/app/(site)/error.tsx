@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { reportClientErrorAction } from "@/lib/error-actions";
 import { buttonClass } from "@/components/ui/Button";
 import { Container } from "@/components/ui/primitives";
 
@@ -12,6 +13,9 @@ import { Container } from "@/components/ui/primitives";
 export default function SiteError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
     console.error(error);
+    // Errors with a digest came from the server and are already logged there; report browser-only crashes.
+    const e = error as { message?: string; stack?: string; digest?: string } | null;
+    if (!e?.digest) void reportClientErrorAction({ message: String(e?.message ?? error).slice(0, 1000), path: window.location.pathname, stack: e?.stack?.slice(0, 4000) }).catch(() => {});
   }, [error]);
   const digest = (error as { digest?: string } | null)?.digest;
   return (
