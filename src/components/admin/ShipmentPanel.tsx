@@ -27,6 +27,7 @@ import {
 import { markRtoReceivedAction } from "@/lib/inventory-actions";
 import type { OrderStatus } from "@/lib/server/orders";
 import type { CourierQuote, Shipment } from "@/lib/server/shipments";
+import { ProviderTag } from "./ProviderTag";
 import { formatMoney } from "@/lib/utils/money";
 import { cn } from "@/lib/utils/cn";
 import { ConfirmAction } from "./order/ConfirmAction";
@@ -180,7 +181,9 @@ export function ShipmentPanel({
                 <Truck className="size-5" />
               </span>
               <div>
-                <p className="font-semibold text-forest-text">{active.courier ?? "Courier"}</p>
+                <p className="flex flex-wrap items-center gap-2 font-semibold text-forest-text">
+                  {active.courier ?? "Courier"} <ProviderTag provider={active.provider} />
+                </p>
                 <p className="flex items-center gap-1 text-sm text-ink-muted">
                   AWB <span className="font-mono text-ink">{active.awb}</span>
                   {active.awb && <CopyButton value={active.awb} label="AWB" />}
@@ -353,9 +356,10 @@ export function ShipmentPanel({
                         <span>
                           <span className="font-semibold text-ink">{q.courierName}</span>
                           <span className="mt-0.5 flex flex-wrap gap-1.5">
+                            <ProviderTag provider={q.provider} />
                             {i === 0 && <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[11px] font-semibold text-forest-fg">Cheapest</span>}
                             {q.courierId === suggestedCourierId && <span className="rounded-full bg-warm-strong px-2 py-0.5 text-[11px] font-semibold text-sale">Quoted at checkout</span>}
-                            {q.tatDays && <span className="text-xs text-ink-muted">{q.tatDays} days</span>}
+                            {q.tatDays ? <span className="text-xs text-ink-muted">{q.tatDays} days</span> : q.edd ? <span className="text-xs text-ink-muted">{q.edd}</span> : null}
                           </span>
                         </span>
                       </span>

@@ -77,6 +77,8 @@ export type Order = {
   courierId: string | null;
   courierName: string | null;
   awb: string | null;
+  /** Aggregator of the latest shipment (null = not shipped). */
+  shipProvider: "nimbuspost" | "velocity" | null;
   trackingUrl: string | null;
   createdAt: string;
   items: (OrderItemInput & { lineTotal: number })[];
@@ -115,6 +117,7 @@ function toOrder(r: RowDataPacket, items: RowDataPacket[]): Order {
     courierId: r.courier_id ?? null,
     courierName: r.ship_courier ?? r.courier_name ?? null,
     awb: r.awb ?? null,
+    shipProvider: r.ship_provider === "velocity" ? "velocity" : r.ship_provider ? "nimbuspost" : null,
     trackingUrl: r.tracking_url ?? null,
     createdAt: r.created_at,
     items: items
@@ -133,7 +136,7 @@ function toOrder(r: RowDataPacket, items: RowDataPacket[]): Order {
   };
 }
 
-const ORDER_SELECT = `SELECT o.*, s.awb, s.courier AS ship_courier, s.tracking_url FROM orders o
+const ORDER_SELECT = `SELECT o.*, s.awb, s.courier AS ship_courier, s.provider AS ship_provider, s.tracking_url FROM orders o
   LEFT JOIN shipments s ON s.id = (SELECT MAX(id) FROM shipments WHERE order_id = o.id)`;
 
 async function logEvent(

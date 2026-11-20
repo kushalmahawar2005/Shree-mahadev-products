@@ -126,6 +126,8 @@ async function warehouseId(): Promise<string> {
 // ───────────── Rates ─────────────
 
 export type CourierQuote = {
+  /** Which aggregator books it. Velocity courier ids are prefixed "V-" so one id field covers both. */
+  provider: "nimbuspost" | "velocity";
   courierId: string;
   courierName: string;
   freight: number; // ₹
@@ -166,6 +168,7 @@ export async function getCourierQuotes(input: {
   const rupees = (p?: number) => Math.round(p ?? 0) / 100;
   return (data.available ?? [])
     .map((c) => ({
+      provider: "nimbuspost" as const,
       courierId: c.courierId,
       courierName: c.courierDisplayName || c.courierName,
       freight: rupees((c.result?.shippingChargesPaise ?? 0) + (c.result?.surchargesPaise ?? 0)),

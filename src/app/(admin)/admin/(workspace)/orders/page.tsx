@@ -9,6 +9,7 @@ import { OrdersBulkBar, SelectAllOrders } from "@/components/admin/OrdersBulkBar
 import { OrdersDateFilter } from "@/components/admin/OrdersDateFilter";
 import { OrdersViewControls } from "@/components/admin/OrdersViewControls";
 import { requireAdmin } from "@/lib/server/admin-auth";
+import { ProviderTag } from "@/components/admin/ProviderTag";
 
 export const metadata = { title: "Orders" };
 
@@ -195,7 +196,7 @@ function OrderRow({ order }: { order: Awaited<ReturnType<typeof listOrders>>["or
       <td className="whitespace-nowrap px-3 py-3 text-xs text-ink-muted">{dateLabel(order.createdAt)}</td>
       <td className="px-3 py-3"><span className="block truncate font-semibold text-ink">{order.address.name}</span><span className="mt-0.5 block truncate text-xs text-ink-muted">{order.address.phone}</span><span className="block truncate text-xs text-ink-muted">{order.address.city} · {order.address.pincode}</span></td>
       <td className="px-3 py-3"><span className="block line-clamp-2 text-[13px] leading-relaxed text-ink">{itemsLabel(order.items)}</span><span className="mt-0.5 block text-[11px] text-ink-muted">{order.items.reduce((sum, item) => sum + item.quantity, 0)} units</span></td>
-      <td className="px-3 py-3"><span className="block text-xs font-semibold text-ink">{paymentLabel(order.paymentMethod)}</span>{order.awb && <span className="mt-0.5 block truncate text-[11px] text-ink-muted">AWB {order.awb}</span>}</td>
+      <td className="px-3 py-3"><span className="block text-xs font-semibold text-ink">{paymentLabel(order.paymentMethod)}</span>{order.awb && <span className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-ink-muted">{order.shipProvider && <ProviderTag provider={order.shipProvider} className="px-1.5 py-0 text-[10px]" />}AWB {order.awb}</span>}</td>
       <td className="whitespace-nowrap px-3 py-3 text-right font-bold text-forest-text">{formatMoney(order.total)}</td>
       <td className="px-3 py-3 text-right"><StatusBadge tone={label?.tone ?? "gray"}>{label?.text ?? order.status}</StatusBadge></td>
     </tr>

@@ -17,9 +17,21 @@ import {
   type NdrCase,
 } from "./nimbuspost";
 import { addOrderNote, flagOrder, getOrderById, inTx, setOrderStatus, type Order } from "./orders";
+import { nimbusConfigured } from "./nimbuspost";
+import {
+  cancelVelocityShipment,
+  createVelocityShipment,
+  getVelocityQuotes,
+  trackVelocityShipment,
+  velocityConfigured,
+} from "./velocity";
+
+/** Velocity courier ids carry this prefix in quotes / booking so one id field covers both providers. */
+const VEL = "V-";
 
 export type Shipment = {
   id: number;
+  provider: "nimbuspost" | "velocity";
   awb: string | null;
   courier: string | null;
   status: string;
@@ -34,7 +46,12 @@ export type Shipment = {
 };
 
 export async function listShipments(orderId: number): Promise<Shipment[]> {
-  const [rows] = await db().execute<RowDataPacket[]>("SELECT * FROM shipments WHERE order_id = ? ORDER BY id DESC", [orderId]);
+  // Every column except label_pdf (a stored PDF; only the label route reads it).
+  const [rows] = await db().execute<RowDataPacket[]>(
+    `SELECT id, provider, awb, courier, status, estimated_delivery, label_url, tracking_url, pickup_requested, charged,
+       weight_grams, created_at FROM shipments WHERE order_id = ? ORDER BY id DESC`,
+    [orderId],
+  );
   if (!rows.length) return [];
   const [ev] = await db().query<RowDataPacket[]>(
     "SELECT shipment_id, status, location, message, event_at FROM shipment_events WHERE shipment_id IN (?) ORDER BY event_at DESC",
@@ -42,6 +59,7 @@ export async function listShipments(orderId: number): Promise<Shipment[]> {
   );
   return rows.map((r) => ({
     id: r.id,
+    provider: r.provider === "velocity" ? ("velocity" as const) : ("nimbuspost" as const),
     awb: r.awb,
     courier: r.courier,
     status: r.status,
@@ -60,15 +78,40 @@ export async function listShipments(orderId: number): Promise<Shipment[]> {
 
 const activeShipment = (s: Shipment[]) => s.find((x) => x.status !== "cancelled");
 
-/** Courier options for an order (admin can pick any; cheapest is preselected). */
-export async function quoteForOrder(order: Order, weightGrams: number, dims: { length: number; breadth: number; height: number }) {
-  return getCourierQuotes({
+/**
+ * Courier options from NimbusPost and Velocity together, cheapest first (the admin can pick any; the
+ * cheapest is preselected). One provider failing still returns the other's couriers.
+ */
+export async function quoteForOrder(order: Order, weightGrams: number, dims: { length: number; breadth: number; height: number }): Promise<CourierQuote[]> {
+  const input = {
     destination: order.address.pincode,
     weightGrams,
-    paymentType: order.paymentMethod === "cod" ? "cod" : "prepaid",
+    paymentType: (order.paymentMethod === "cod" ? "cod" : "prepaid") as "cod" | "prepaid",
     orderAmount: order.total,
     dims,
-  });
+  };
+  const [np, vel] = await Promise.allSettled([
+    nimbusConfigured() ? getCourierQuotes(input) : Promise.resolve([] as CourierQuote[]),
+    velocityConfigured() ? getVelocityQuotes(input) : Promise.resolve([]),
+  ]);
+  const out: CourierQuote[] = [];
+  if (np.status === "fulfilled") out.push(...np.value);
+  else console.error("NimbusPost quotes failed", np.reason);
+  if (vel.status === "fulfilled")
+    out.push(
+      ...vel.value.map((q) => ({
+        provider: "velocity" as const,
+        courierId: `${VEL}${q.carrierId}`,
+        courierName: q.carrierName,
+        freight: q.freight,
+        codCharge: q.codCharge,
+        total: q.total,
+        edd: q.edd,
+      })),
+    );
+  else console.error("Velocity quotes failed", vel.reason);
+  if (!out.length && np.status === "rejected" && vel.status === "rejected") throw np.reason;
+  return out.sort((a, b) => a.total - b.total);
 }
 
 const SHIPPABLE = new Set(["paid", "cod_pending", "confirmed"]);
@@ -91,6 +134,8 @@ export async function bookShipment(
 ): Promise<Shipment[]> {
   const order = await getOrderById(orderId);
   if (!order) throw new Error("Order not found");
+  const viaVelocity = Boolean(opts.courierId?.startsWith(VEL));
+  const provider = viaVelocity ? "Velocity" : "NimbusPost";
 
   const claimId = await inTx(async (conn) => {
     const [[o]] = await conn.execute<RowDataPacket[]>("SELECT status FROM orders WHERE id = ? FOR UPDATE", [orderId]);
@@ -103,14 +148,38 @@ export async function bookShipment(
     if (live.length)
       throw new Error(live[0].status === "booking" ? "A shipment booking for this order is already in progress" : "This order already has an active shipment");
     const [ins] = await conn.execute<ResultSetHeader>(
-      "INSERT INTO shipments (order_id, status, weight_grams) VALUES (?, 'booking', ?)",
-      [orderId, opts.weightGrams],
+      "INSERT INTO shipments (order_id, provider, status, weight_grams) VALUES (?, ?, 'booking', ?)",
+      [orderId, viaVelocity ? "velocity" : "nimbuspost", opts.weightGrams],
     );
     return ins.insertId;
   });
 
   const a = order.address;
-  const create = (orderNumber: string) => npCreate({
+  const items = order.items.map((i) => ({ name: `${i.productTitle} (${i.variantTitle})`, qty: i.quantity, price: i.unitPrice, sku: i.sku }));
+  const createVelocity = (orderNumber: string) =>
+    createVelocityShipment({
+      orderNumber,
+      orderDate: new Date(order.createdAt),
+      paymentType: order.paymentMethod === "cod" ? "cod" : "prepaid",
+      orderAmount: order.total,
+      weightGrams: opts.weightGrams,
+      dims: opts.dims,
+      carrierId: opts.courierId!.slice(VEL.length),
+      consignee: { name: a.name, email: a.email, address: a.line1, address_2: a.line2, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone },
+      items,
+    }).then((v) => ({
+      providerOrderId: v.shipmentId,
+      awb: v.awb,
+      courierId: opts.courierId!,
+      courierName: v.courierName,
+      status: "booked",
+      labelUrl: v.labelUrl,
+      trackingUrl: null as string | null,
+      charged: v.charged,
+      pickupGenerated: v.pickupGenerated,
+      expectedDelivery: null as string | null,
+    }));
+  const create = (orderNumber: string) => viaVelocity ? createVelocity(orderNumber) : npCreate({
     orderNumber,
     paymentType: order.paymentMethod === "cod" ? "cod" : "prepaid",
     orderAmount: order.total,
@@ -121,7 +190,7 @@ export async function bookShipment(
     dims: opts.dims,
     courierId: opts.courierId,
     consignee: { name: a.name, email: a.email, address: a.line1, address_2: a.line2, city: a.city, state: a.state, pincode: a.pincode, phone: a.phone },
-    items: order.items.map((i) => ({ name: `${i.productTitle} (${i.variantTitle})`, qty: i.quantity, price: i.unitPrice, sku: i.sku })),
+    items,
   });
   // NimbusPost keeps an order number for good, even after its shipment is cancelled. A re-booked order (or a
   // number reused after a test reset) gets "already exists": retry as SMP1002-2, SMP1002-3 … Safe because the
@@ -132,7 +201,7 @@ export async function bookShipment(
       try {
         booked = await create(n === 1 ? order.orderNo : `${order.orderNo}-${n}`);
       } catch (e) {
-        if (n >= 6 || !/already exists/i.test(e instanceof Error ? e.message : "")) throw e;
+        if (n >= 6 || !/already exists|duplicate|already been taken/i.test(e instanceof Error ? e.message : "")) throw e;
       }
     }
   } catch (e) {
@@ -141,7 +210,7 @@ export async function bookShipment(
       await flagOrder(
         db(),
         orderId,
-        `Shipment booking timed out (${msg.slice(0, 100)}). Check NimbusPost for order ${order.orderNo}: if no shipment exists there, cancel the stuck "booking" shipment here and book again.`,
+        `Shipment booking timed out (${msg.slice(0, 100)}). Check ${provider} for order ${order.orderNo}: if no shipment exists there, cancel the stuck "booking" shipment here and book again.`,
         "nimbuspost",
       );
     } else {
@@ -158,7 +227,7 @@ export async function bookShipment(
     : null;
 
   let pickup = booked.pickupGenerated;
-  if (!pickup && booked.providerOrderId) {
+  if (!pickup && booked.providerOrderId && !viaVelocity) {
     pickup = await schedulePickup(booked.providerOrderId).then(
       (scheduled) => scheduled,
       (e) => (console.error("schedulePickup failed", e), false),
@@ -173,10 +242,12 @@ export async function bookShipment(
     );
   } catch (e) {
     // Booked at NimbusPost but we couldn't save it: never lose the AWB.
-    await flagOrder(db(), orderId, `Shipment booked at NimbusPost (AWB ${booked.awb}) but saving it failed: ${(e as Error).message.slice(0, 120)}`, "nimbuspost");
+    await flagOrder(db(), orderId, `Shipment booked at ${provider} (AWB ${booked.awb}) but saving it failed: ${(e as Error).message.slice(0, 120)}`, "nimbuspost");
     throw e;
   }
-  const changed = await setOrderStatus(orderId, "packed", "admin", `Shipment booked: ${booked.courierName} AWB ${booked.awb}`);
+  // Velocity label links expire after an hour and there is no API to get a fresh one: keep the PDF.
+  if (viaVelocity && booked.labelUrl) await storeLabelPdf(claimId, booked.labelUrl);
+  const changed = await setOrderStatus(orderId, "packed", "admin", `Shipment booked (${provider}): ${booked.courierName} AWB ${booked.awb}`);
   if (changed) {
     await notifyOrder(orderId, "shipped");
     await queueOrderWhatsApp(orderId, "shipped").catch((error) => console.error("WhatsApp shipment notification", error));
@@ -207,7 +278,8 @@ export async function cancelOrderShipment(orderId: number): Promise<Shipment[]> 
   if (!CANCELLABLE.has(s.status))
     throw new Error("This parcel is already with the courier, so the shipment can't be cancelled. Handle it as a return (RTO) instead.");
 
-  await npCancel(s.awb, "Cancelled by seller from admin");
+  if (s.provider === "velocity") await cancelVelocityShipment(s.awb);
+  else await npCancel(s.awb, "Cancelled by seller from admin");
   const [r] = await db().execute<ResultSetHeader>("UPDATE shipments SET status = 'cancelled' WHERE id = ? AND status <> 'cancelled'", [s.id]);
   if (!r.affectedRows) return listShipments(orderId); // another request already cancelled it
 
@@ -279,7 +351,7 @@ export async function applyTrackingUpdate(
 export async function refreshTracking(orderId: number): Promise<Shipment[]> {
   const s = activeShipment(await listShipments(orderId));
   if (!s?.awb) throw new Error("No active shipment");
-  const t = await trackShipment(s.awb);
+  const t = s.provider === "velocity" ? await trackVelocityShipment(s.awb) : await trackShipment(s.awb);
   await applyTrackingUpdate(s.awb, t.status, t.events, "admin");
   if (t.trackingUrl) await db().execute("UPDATE shipments SET tracking_url = ? WHERE id = ?", [t.trackingUrl, s.id]);
   return listShipments(orderId);
@@ -340,9 +412,33 @@ async function active(orderId: number) {
   return { ...s, providerOrderId: (r[0]?.provider_shipment_id as string) ?? "" };
 }
 
-/** Fresh label PDF link (NimbusPost label links expire). */
+/** Saves a Velocity label PDF in the shipment row (their link expires in an hour). Never throws. */
+async function storeLabelPdf(shipmentId: number, url: string) {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const pdf = Buffer.from(await res.arrayBuffer());
+    if (pdf.length > 5_000_000) throw new Error("label too large");
+    await db().execute("UPDATE shipments SET label_pdf = ? WHERE id = ?", [pdf, shipmentId]);
+  } catch (e) {
+    console.error("Velocity label download failed", shipmentId, e);
+  }
+}
+
+/** Stored label PDF for the admin download route. */
+export async function labelPdf(shipmentId: number): Promise<Buffer | null> {
+  const [[r]] = await db().query<RowDataPacket[]>("SELECT label_pdf FROM shipments WHERE id = ?", [shipmentId]);
+  return r?.label_pdf ? Buffer.from(r.label_pdf) : null;
+}
+
+/** Fresh label PDF link (NimbusPost label links expire; Velocity labels are served from our copy). */
 export async function labelForOrder(orderId: number): Promise<string> {
   const s = await active(orderId);
+  if (s.provider === "velocity") {
+    if (await labelPdf(s.id)) return `/api/admin/shipments/${s.id}/label`;
+    if (s.labelUrl) return s.labelUrl;
+    throw new Error("Label not available. Download it from the Velocity dashboard.");
+  }
   const url = (s.providerOrderId && (await getLabelUrl(s.providerOrderId))) || s.labelUrl;
   if (!url) throw new Error("Label not available yet");
   return url;
@@ -350,6 +446,7 @@ export async function labelForOrder(orderId: number): Promise<string> {
 
 export async function requestPickup(orderId: number): Promise<Shipment[]> {
   const s = await active(orderId);
+  if (s.provider === "velocity") throw new Error("Velocity books the pickup with the shipment. Check the Velocity dashboard → Pickups.");
   if (!s.providerOrderId) throw new Error("Missing NimbusPost order id");
   const scheduled = await schedulePickup(s.providerOrderId);
   if (!scheduled) throw new Error("NimbusPost has not confirmed the pickup yet. Please try again or contact NimbusPost support.");
