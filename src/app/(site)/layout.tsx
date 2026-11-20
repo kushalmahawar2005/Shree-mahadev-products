@@ -23,6 +23,7 @@ import {
   jsonLdString,
   localBusinessJsonLd,
   organizationJsonLd,
+  websiteJsonLd,
   DEFAULT_OG_IMAGE,
 } from "@/lib/utils/seo";
 import { MotionRoot } from "@/components/motion/MotionRoot";
@@ -64,6 +65,27 @@ export const metadata: Metadata = {
   },
   description: site.description,
   applicationName: site.name,
+  keywords: [
+    "wood pressed oil",
+    "kachi ghani oil",
+    "cold pressed oil",
+    "lakdi ghani tel",
+    "kolhu oil",
+    "mustard oil",
+    "groundnut oil",
+    "raw honey",
+    "jaggery powder",
+    "Rajasthan",
+  ],
+  // Big image previews in Google (Discover / image results) and full snippets.
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 } },
+  // Search Console / Bing Webmaster ownership: paste the codes into these env vars (meta-tag method).
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION } : undefined,
+  },
+  formatDetection: { telephone: false },
+  category: "food",
   // No site-wide canonical: it made every page without its own (login, account, checkout…) point at
   // the home page. Pages set their own via pageMetadata; the home page sets "/".
 
@@ -106,7 +128,7 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: jsonLdString([organizationJsonLd(), localBusinessJsonLd()]),
+            __html: jsonLdString([organizationJsonLd(), websiteJsonLd(), localBusinessJsonLd()]),
           }}
         />
         <MotionRoot>

@@ -9,8 +9,9 @@ import { getProducts } from "@/lib/commerce";
 import { pageMetadata } from "@/lib/utils/seo";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Shop all products",
-  description: "Wood-pressed kachi ghani oils, raw honey and natural sweeteners from Bijainagar, Rajasthan.",
+  title: "Shop Wood-Pressed Oils, Raw Honey & Jaggery Online",
+  description:
+    "Shop all kachi ghani wood-pressed oils (mustard, groundnut, coconut, sesame, almond and more), raw honey and jaggery. Pressed in Rajasthan, delivered across India.",
   path: "/shop",
 });
 

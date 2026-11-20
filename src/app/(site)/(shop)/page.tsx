@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/utils/seo";
 import { ReelStories, Reels, type ReelItem } from "@/components/home/Reels";
 import { getHomeVideos } from "@/lib/home-videos";
 import { getStoreSettings } from "@/lib/server/store-settings";
@@ -36,7 +37,13 @@ const SHOW_BEYOND_OILS = false;
  * Top Picks → promo strip → brand film → proof → shop by use → spotlight + endorsements → beyond.
  */
 /** Home owns the "/" canonical (it used to come from the layout and leak onto every page). */
-export const metadata: Metadata = { alternates: { canonical: "/" } };
+export const metadata: Metadata = pageMetadata({
+  // What people search first; the layout template adds " | Swadeshi Mahadev Products".
+  title: "Wood-Pressed Kachi Ghani Oils, Raw Honey & Jaggery",
+  description:
+    "Buy pure wood-pressed (kachi ghani) mustard, groundnut, coconut and sesame oils, raw honey and jaggery from Rajasthan. Lab tested, FSSAI licensed, COD available.",
+  path: "/",
+});
 
 export default async function HomePage() {
   const [all, ...pickLists] = await Promise.all([

@@ -33,6 +33,8 @@ type Props = Pick<Product, "handle" | "title" | "variants" | "defaultSize"> & {
   isOil?: boolean;
   /** "Only N left" below this many units (admin low-stock threshold). */
   lowStock?: number;
+  /** Size from the page URL (?size=1l or ?size=1 L): opens with that size chosen (shared and ad links). */
+  initialSize?: string;
 };
 
 function packagingLabel(handle: string, variant: ProductVariant) {
@@ -47,10 +49,11 @@ function packagingLabel(handle: string, variant: ProductVariant) {
 }
 
 /** Price + size cards + qty / Add to cart + Buy now + pincode check, with a sticky bar once the CTA scrolls away. */
-export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10, isOil = false }: Props) {
+export function ProductPurchase({ handle, title, variants, defaultSize, image, compact = false, offers, footer, lowStock = 10, isOil = false, initialSize }: Props) {
   const { add, open, cart } = useCart();
   // Admin's "Shown first" size, else 1 L / 1 kg, else the first size on sale.
-  const preferred = defaultVariant({ variants, defaultSize }, (list) => list.find((v) => v.sizeValue === 1000)) ?? variants[0];
+  const fromUrl = initialSize ? variants.find((v) => v.title.replace(/\s+/g, "").toLowerCase() === initialSize.replace(/\s+/g, "").toLowerCase()) : undefined;
+  const preferred = fromUrl ?? defaultVariant({ variants, defaultSize }, (list) => list.find((v) => v.sizeValue === 1000)) ?? variants[0];
   const [variantId, setVariantId] = useState(preferred?.id);
   const [qtyRaw, setQty] = useState(1);
   const [busy, setBusy] = useState<"add" | "buy" | null>(null);

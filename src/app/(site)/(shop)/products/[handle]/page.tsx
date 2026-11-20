@@ -45,7 +45,7 @@ import { getOtherProductReviews, getProductReviews, type PublicReview } from "@/
 import { getStoreSettings } from "@/lib/server/store-settings";
 import { formatMoney } from "@/lib/utils/money";
 import { hasTodo, noTodo } from "@/lib/utils/no-todo";
-import { breadcrumbJsonLd, jsonLdString, pageMetadata, productJsonLd } from "@/lib/utils/seo";
+import { breadcrumbJsonLd, jsonLdString, pageMetadata, productJsonLd, productMetaDescription, productMetaTitle } from "@/lib/utils/seo";
 import { cn } from "@/lib/utils/cn";
 import { siteVideo } from "@/lib/site-videos";
 import { MIN_REVIEWS_FOR_RATING } from "@/lib/utils/reviews";
@@ -58,9 +58,16 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/products/[handle]">): Promise<Metadata> {
   const { handle } = await params;
-  const p = await getProduct(handle);
+  const [p, settings] = await Promise.all([getProduct(handle), getStoreSettings()]);
   if (!p) return {};
-  return pageMetadata({ title: p.seo.title, description: p.seo.description, path: `/products/${handle}`, image: p.images[0]?.url });
+  return pageMetadata({
+    title: productMetaTitle(p),
+    description: productMetaDescription(p, { freeShippingThreshold: settings.shipping.freeShippingThreshold, cod: settings.shipping.codEnabled }),
+    path: `/products/${handle}`,
+    image: p.images[0]?.url,
+    imageAlt: `${p.title}${p.titleHi ? ` (${p.titleHi})` : ""}`,
+    type: "product",
+  });
 }
 
 // Blocking on purpose: an unknown handle must return a real HTTP 404 (not a streamed soft 404).
@@ -80,8 +87,10 @@ const REELS = {
 
 const shortTitle = (t: string) => t.replace(/^(Wood|Cold)-Pressed\s+/, "");
 
-export default async function ProductPage({ params }: PageProps<"/products/[handle]">) {
+export default async function ProductPage({ params, searchParams }: PageProps<"/products/[handle]">) {
   const { handle } = await params;
+  const sizeParam = (await searchParams).size;
+  const initialSize = typeof sizeParam === "string" ? sizeParam.slice(0, 20) : undefined;
   const product = await getProduct(handle);
   if (!product) notFound();
 
@@ -264,7 +273,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: jsonLdString([
-            productJsonLd(product),
+            productJsonLd(product, { freeShippingThreshold: settings.shipping.freeShippingThreshold }),
             breadcrumbJsonLd([
               { name: "Home", path: "/" },
               { name: "Shop", path: "/shop" },
@@ -373,8 +382,9 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
                   {isOil && (
                     <>
                       , <span className="whitespace-nowrap">Wood-Pressed,</span>
-                      <br className="max-lg:hidden" />
-                      <span className="whitespace-nowrap max-lg:ml-[0.25em]">Gravity-Filtered</span>
+                      <br className="max-lg:hidden" />{" "}
+                      {/* The space above keeps the words apart for search engines and screen readers. */}
+                      <span className="whitespace-nowrap">Gravity-Filtered</span>
                     </>
                   )}
                 </h1>
@@ -414,6 +424,7 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
                     title={product.title}
                     variants={product.variants}
                     defaultSize={product.defaultSize}
+                    initialSize={initialSize}
                     lowStock={settings.lowStockThreshold}
                     isOil={isOil}
                     image={product.images[0] ? thumbUrl(product.images[0].url, 44) : undefined}
