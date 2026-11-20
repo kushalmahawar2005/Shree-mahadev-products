@@ -358,6 +358,20 @@ export async function refreshTracking(orderId: number): Promise<Shipment[]> {
   return listShipments(orderId);
 }
 
+/**
+ * Webhook nudge: refresh the shipment with this AWB from the courier's own API. Returns false when
+ * the AWB isn't one of ours (or the shipment is already finished), so a forged call changes nothing.
+ */
+export async function refreshTrackingByAwb(awb: string): Promise<boolean> {
+  const [[row]] = await db().execute<RowDataPacket[]>(
+    "SELECT order_id FROM shipments WHERE awb = ? AND status NOT IN ('delivered', 'rto', 'cancelled') ORDER BY id DESC LIMIT 1",
+    [awb],
+  );
+  if (!row) return false;
+  await refreshTracking(Number(row.order_id));
+  return true;
+}
+
 export async function refreshStaleTracking() {
   const [rows] = await db().execute<RowDataPacket[]>(
     `SELECT DISTINCT order_id FROM shipments

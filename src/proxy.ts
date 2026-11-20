@@ -68,7 +68,7 @@ async function getLookups(): Promise<Lookups | null> {
 /**
  * CSRF guard for cookie-authenticated JSON APIs (chat): a POST sent by another website from a
  * shopper's browser is refused. Non-browser callers send neither header and aren't a CSRF risk.
- * Webhooks (/api/payu, /api/cashfree, /api/nimbuspost, /api/whatsapp) are not matched here.
+ * Webhooks (/api/payu, /api/cashfree, /api/nimbuspost, /api/velocity, /api/whatsapp) are not matched here.
  */
 function crossSite(req: NextRequest) {
   // Modern browsers say it directly; trust that over host headers (which a hosting proxy may rewrite).
