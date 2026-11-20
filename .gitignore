@@ -17,6 +17,8 @@
 /.next/
 /.next-qa/
 /.next-qa-build/
+# Any other build dir (NEXT_BUILD_DIR=.next-xyz): also keeps Tailwind from scanning build output.
+/.next-*/
 /out/
 
 # production

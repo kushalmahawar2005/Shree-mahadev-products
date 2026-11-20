@@ -161,11 +161,17 @@ export function BelowGrid({ handle, title }: { handle: string; title: string }) 
         </ul>
       </section>
 
-      <div className="grid gap-3 md:gap-8 lg:grid-cols-2">
+      {/* items-start: the closed "About" card keeps its own height instead of stretching to the FAQ box. */}
+      <div className="grid items-start gap-3 md:gap-8 lg:grid-cols-2">
         <details className="group rounded-2xl bg-white p-5 ring-1 ring-line md:p-6">
-          <summary className="flex cursor-pointer list-none items-center justify-between font-semibold text-forest-text">
-            About our {title.toLowerCase()}
-            <ChevronDown className="size-4 transition-transform group-open:rotate-180" />
+          <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center justify-between gap-3 font-semibold text-forest-text">
+              About our {title.toLowerCase()}
+              <ChevronDown className="size-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" />
+            </span>
+            {/* Closed: a two-line taste of the text and a "Read more" cue; open: the full text below. */}
+            <span className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted group-open:hidden">{c.seo}</span>
+            <span className="mt-1.5 inline-block text-sm font-semibold text-forest group-open:hidden">Read more</span>
           </summary>
           <p className="mt-3 text-sm leading-relaxed text-ink-muted">{c.seo}</p>
         </details>

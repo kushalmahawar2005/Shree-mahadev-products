@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Check, Loader2, Minus, Plus, ShoppingCart, Star } from "lucide-react";
 import { Sparkles } from "@/components/icons/duo";
 import { useCart } from "@/components/cart/CartProvider";
+import { useHydrated } from "@/hooks/use-hydrated";
 import { NotifyMe } from "@/components/product/NotifyMe";
 import { SmartImage, isPackshot } from "@/components/ui/SmartImage";
 import { variantImage } from "@/lib/image-loader";
@@ -66,7 +67,10 @@ export function PickCard({ product, priority = false }: { product: PickProduct; 
   const per = selected && selected.sizeValue !== 100 ? unitPrice(selected) : null;
   const save = selected?.compareAtPrice && selected.compareAtPrice.amount > selected.price.amount ? selected.compareAtPrice.amount - selected.price.amount : 0;
   const pctOff = save > 0 && selected?.compareAtPrice ? Math.round((save / selected.compareAtPrice.amount) * 100) : 0;
-  const line = cart?.lines.find((l) => l.variant.id === selected?.id);
+  // The cart can load before this card hydrates (cards stream in later): show it only after hydration,
+  // otherwise the "in cart" stepper doesn't match the server's "Add" button.
+  const hydrated = useHydrated();
+  const line = hydrated ? cart?.lines.find((l) => l.variant.id === selected?.id) : undefined;
 
   useEffect(() => {
     if (!added) return;
