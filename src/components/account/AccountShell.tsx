@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils/cn";
 import type { AccountShellData } from "@/lib/server/account";
 import { ConfirmDialog } from "./shared";
 import { NamePrompt } from "./NamePrompt";
+import { AddEmailPrompt } from "./AddEmailPrompt";
 
 const NAV = [
   {
@@ -92,6 +93,8 @@ export function AccountShell({
         <main id="account-main" className="min-w-0 lg:col-span-8">
           {/* New accounts (email or WhatsApp sign-up) still named "Customer": ask once, here. */}
           {(!data.customer.name.trim() || /^customer$/i.test(data.customer.name.trim())) && <NamePrompt />}
+          {/* No email yet (WhatsApp sign-up): add one here so email login opens this same account. */}
+          {!data.customer.email.trim() && <AddEmailPrompt />}
           {children}
         </main>
       </div>
