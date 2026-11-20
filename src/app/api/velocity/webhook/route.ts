@@ -7,8 +7,8 @@ import { refreshTrackingByAwb } from "@/lib/server/shipments";
 /**
  * Velocity webhooks (events: Status Change, Tracking Addition). Register in Velocity → Settings →
  * Webhooks with URL https://<site>/api/velocity/webhook and a secret token; put the same token in
- * VELOCITY_WEBHOOK_TOKEN. The token is accepted from `Authorization: Bearer …`, a plain
- * `Authorization` / `x-api-key` / `x-webhook-token` header, or `?token=` on the URL.
+ * VELOCITY_WEBHOOK_TOKEN (Velocity's "API Key" auth). The token is accepted in any request header
+ * (with or without a Bearer / Api-Key prefix in Authorization) or as `?token=` on the URL.
  *
  * The body is never trusted: we only take the AWB from it and ask Velocity's tracking API for the real
  * status (same rule as payments). So whatever shape Velocity sends, the shipment ends up correct, and
@@ -18,13 +18,9 @@ function tokenOk(req: NextRequest) {
   const secret = process.env.VELOCITY_WEBHOOK_TOKEN;
   if (!secret) return false;
   const auth = req.headers.get("authorization") ?? "";
-  const candidates = [
-    auth.replace(/^(Bearer|Token|Basic)\s+/i, ""),
-    req.headers.get("x-api-key"),
-    req.headers.get("x-webhook-token"),
-    req.headers.get("x-auth-token"),
-    req.nextUrl.searchParams.get("token"),
-  ];
+  // Velocity's "API Key" auth doesn't document its header name, so any header carrying the token counts.
+  const candidates: (string | null)[] = [auth.replace(/^(Bearer|Token|Basic|Api-Key|ApiKey)\s+/i, ""), req.nextUrl.searchParams.get("token")];
+  req.headers.forEach((value) => candidates.push(value));
   // Basic auth: accept "user:token" where either part is the token.
   if (/^Basic\s+/i.test(auth)) {
     try {
