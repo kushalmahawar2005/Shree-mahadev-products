@@ -1001,8 +1001,10 @@ export async function setOrderStatus(
       }
     }
     await conn.execute(
-      `UPDATE orders SET status = ?, cancelled_at = IF(? = 'cancelled', NOW(), cancelled_at) WHERE id = ?`,
-      [to, to, orderId],
+      // Compare in JS, not "? = 'cancelled'": on live MariaDB a bound value and a literal carry
+      // different collations and the comparison fails ("Illegal mix of collations").
+      `UPDATE orders SET status = ?, cancelled_at = IF(?, NOW(), cancelled_at) WHERE id = ?`,
+      [to, to === "cancelled" ? 1 : 0, orderId],
     );
     await logEvent(conn, orderId, from, to, actor, note);
     changed = true;

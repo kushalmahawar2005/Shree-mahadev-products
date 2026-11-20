@@ -1,5 +1,9 @@
 # Prices pending client confirmation
 
+> **Resolved 2026-11-21:** the client sent a new oil price sheet. All 12 oils (56 sizes) now use its
+> "final" column as the price and "mrp" as the strike price: `sql/migrations/051_oil_prices_2026_11_21.sql`.
+> Honey and sweetener prices were not in that sheet and are unchanged. The notes below are history.
+
 Generated 2026-11-12 from the local MySQL catalog (`product_variants`). **No price was changed.**
 The DB stays the single source of truth: prices are edited only in Admin → Products (or by
 re-running `scripts/import-price-sheet.mjs` with a corrected sheet). Nothing is duplicated in

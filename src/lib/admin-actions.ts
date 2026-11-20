@@ -203,12 +203,31 @@ export async function resendOrderEmailAction(orderId: number, kind: string): Pro
 }
 
 // ───────────── Refunds ─────────────
-export async function refundOrderAction(orderId: number, amount: number, reason: string) {
+/** Step 1 of a refund: email a 6-digit approval code to the owner's inbox (REFUND_OTP_EMAIL). */
+export async function sendRefundOtpAction(orderId: number, amount: number) {
+  return safe(async () => {
+    const admin = await requireAdmin();
+    if (admin.role !== "owner") throw new Error("Only the owner can issue refunds");
+    const v = zz.object({ orderId: zz.number().int().positive(), amount: zz.number().int().positive().max(1_000_000) }).parse({ orderId, amount });
+    const { rateLimit } = await import("@/lib/server/rate-limit");
+    const limit = await rateLimit("refund_otp", admin.username, 5, 15);
+    if (!limit.ok) throw new Error(`Too many codes sent. Try again in ${limit.retryInMin} min.`);
+    const { sendRefundOtp } = await import("@/lib/server/refund-otp");
+    return sendRefundOtp(v.orderId, v.amount, admin.username);
+  });
+}
+
+/** Step 2: the emailed code must match this order + amount before the gateway is asked to refund. */
+export async function refundOrderAction(orderId: number, amount: number, reason: string, otp: string) {
   return safe(async () => {
     const admin = await requireAdmin();
     if (admin.role !== "owner") throw new Error("Only the owner can issue refunds");
     const { refundOrder } = await import("@/lib/server/refunds");
-    const v = zz.object({ orderId: zz.number().int().positive(), amount: zz.number().int().positive().max(1_000_000), reason: zz.string().trim().max(200) }).parse({ orderId, amount, reason });
+    const v = zz
+      .object({ orderId: zz.number().int().positive(), amount: zz.number().int().positive().max(1_000_000), reason: zz.string().trim().max(200), otp: zz.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code") })
+      .parse({ orderId, amount, reason, otp });
+    const { consumeRefundOtp } = await import("@/lib/server/refund-otp");
+    await consumeRefundOtp(v.orderId, v.amount, admin.username, v.otp);
     const out = await refundOrder(v.orderId, v.amount, v.reason, admin.username);
     revalidatePath("/admin/orders");
     return out;

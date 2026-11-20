@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { isPaidOnline } from "@/components/account/help/help-lib";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -233,7 +234,7 @@ function OrderActions({
   );
   const cancelBtn =
     CANCELLABLE.has(o.status) &&
-    !(o.status === "paid" && o.method === "payu") ? (
+    !isPaidOnline(o.status, o.method) ? (
       <button
         type="button"
         onClick={() => setCancelOpen(true)}

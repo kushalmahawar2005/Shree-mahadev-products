@@ -16,6 +16,7 @@ import {
   addReelLink,
   addReels,
   deleteReel,
+  replaceReelVideo,
   REEL_PLACEMENTS,
   type ReelPlacement,
   listReels,
@@ -310,6 +311,20 @@ export async function addReelLinkAction(url: string, placements: ReelPlacement[]
     const parsed = parseReelLink(String(url ?? "").slice(0, 300));
     if (!parsed.ok) throw new Error(parsed.error);
     await addReelLink(reelLinkHref(parsed.link), okPlaces(placements));
+    bustVideos();
+    return listReels();
+  });
+}
+
+/** Replace a reel's video with a new upload; places, caption, product and order stay as they are. */
+export async function replaceReelVideoAction(id: number, upload: UploadedImage): Promise<ActionResult<Reel[]>> {
+  return safe(async () => {
+    await requireRole("owner", "manager");
+    if (!okId(id)) throw new Error("Invalid request");
+    checkUpload(upload);
+    if (!upload.url.includes("/video/upload/")) throw new Error("Only videos can be added here");
+    const old = await replaceReelVideo(id, { ...upload, duration: Number.isFinite(upload.duration) ? upload.duration : undefined });
+    if (old && old !== upload.publicId) await destroyImage(old, "video").catch((e) => console.error("old reel file not deleted", e));
     bustVideos();
     return listReels();
   });

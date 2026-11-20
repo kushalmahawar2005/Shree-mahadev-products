@@ -341,6 +341,40 @@ export async function sendLoginCodeEmail(to: string, code: string, minutes: numb
   }
 }
 
+/** Refund approval code to the owner's inbox. Sent directly (never stored in the outbox). */
+export async function sendRefundOtpEmail(
+  to: string,
+  code: string,
+  d: { orderNo: string; amount: number; by: string; minutes: number },
+) {
+  if (!mailConfigured()) return false;
+  try {
+    const amount = `₹${d.amount.toLocaleString("en-IN")}`;
+    const element = OtpEmail({
+      code,
+      minutes: d.minutes,
+      logoUrl: brand().logoUrl,
+      siteName: site.name,
+      title: `Approve refund of ${amount}`,
+      intro: `Admin "${d.by}" wants to refund ${amount} on order ${d.orderNo}. Share this code only if you approve.`,
+      preview: `${code}: refund ${amount} on ${d.orderNo}`,
+    });
+    const [html, text] = await Promise.all([render(element), render(element, { plainText: true })]);
+    await sendMessage({
+      key: `smp-refund-otp-${createHash("sha256").update(`${to}:${code}:${Date.now()}`).digest("hex").slice(0, 32)}`,
+      to,
+      subject: `${code} · Refund approval for ${d.orderNo} (${amount})`,
+      html,
+      text,
+      template: "refund_otp",
+    });
+    return true;
+  } catch (error) {
+    console.error("refund code email failed", error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
 /** Send due messages. Safe to call often; each row is claimed atomically. */
 export async function processOutbox(
   limit = 20,

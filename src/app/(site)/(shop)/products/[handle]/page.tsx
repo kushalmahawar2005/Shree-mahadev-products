@@ -33,7 +33,6 @@ import { Gallery } from "@/components/product/Gallery";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { RecordView } from "@/components/product/RecentlyViewed";
 import { Reels, type ReelItem } from "@/components/home/Reels";
-import { DEFAULT_STORIES } from "@/data/pdp-story";
 import { getHomeVideos } from "@/lib/home-videos";
 import { getPdpStories } from "@/lib/server/pdp-story";
 import { parseReelLink, reelEmbedSrc, reelLinkPoster } from "@/lib/reel-link";
@@ -109,11 +108,9 @@ export default async function ProductPage({ params }: PageProps<"/products/[hand
     });
   const [stories, siteVideos] = await Promise.all([getPdpStories(), getHomeVideos()]);
   const story = stories[product.category] ?? {};
-  // Reels come from the admin Reels page (ticked for this category). None ticked yet: our built-in ghani clips.
+  // Reels come from the admin Reels page (ticked for this category); our ghani clips are seeded there.
   const placed = siteVideos.reels.filter((r) => r.placements.includes(product.category));
-  const reelSource = placed.length
-    ? placed.map((r) => ({ video: r.videoUrl || undefined, link: r.videoUrl ? undefined : r.instagramUrl ?? undefined, caption: r.caption, cover: undefined as string | undefined }))
-    : (DEFAULT_STORIES[product.category]?.reels ?? []);
+  const reelSource = placed.map((r) => ({ video: r.videoUrl || undefined, link: r.videoUrl ? undefined : r.instagramUrl ?? undefined, caption: r.caption, cover: undefined as string | undefined }));
   // Our own ghani clips, each tagged with this product so "Add to cart" in the viewer adds it.
   const onSale = product.variants.filter((v) => v.availableForSale);
   const dv = defaultVariant(product);

@@ -319,9 +319,10 @@ export async function applyTrackingUpdate(
   const n = normaliseStatus(status);
   if (s.status !== "cancelled") {
     await db().execute(
-      `UPDATE shipments SET status = ?, shipped_at = IF(? IN ('in_transit','out_for_delivery','ndr') AND shipped_at IS NULL, NOW(), shipped_at),
-         delivered_at = IF(? = 'delivered', NOW(), delivered_at) WHERE id = ?`,
-      [n.shipment, n.shipment, n.shipment, s.id],
+      `UPDATE shipments SET status = ?, shipped_at = IF(? AND shipped_at IS NULL, NOW(), shipped_at),
+         delivered_at = IF(?, NOW(), delivered_at) WHERE id = ?`,
+      // Flags computed here: "? = 'literal'" hits a collation mix on live MariaDB.
+      [n.shipment, ["in_transit", "out_for_delivery", "ndr"].includes(n.shipment) ? 1 : 0, n.shipment === "delivered" ? 1 : 0, s.id],
     );
   }
   const valid = events.filter((e) => e.status && !Number.isNaN(new Date(e.at).getTime()));

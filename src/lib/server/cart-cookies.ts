@@ -1,6 +1,8 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import type { RowDataPacket } from "mysql2/promise";
+import { db } from "./db";
 import { addToCart, createCart, type Cart } from "@/lib/commerce";
 import { syncCart } from "./carts";
 import { readAttributionCookie, syncAttributionToCart } from "./attribution";
@@ -64,4 +66,27 @@ export async function clearCartCookies() {
   const jar = await cookies();
   jar.delete(CART_COOKIE);
   jar.delete(CART_DB_COOKIE);
+}
+
+/**
+ * True when this browser's cart already became a paid order. Online payments can finish without
+ * passing the route that clears the cart cookies (webhook won the race, popup closed, a reload), so
+ * every cart read checks this and drops the old cart instead of showing bought items again.
+ * Cookies can only be deleted in a server action / route handler; in a page render we just report it.
+ */
+export async function dropConvertedCart(): Promise<boolean> {
+  const token = await getCartDbToken();
+  if (!token) return false;
+  try {
+    const [[row]] = await db().query<RowDataPacket[]>("SELECT status FROM carts WHERE token = ?", [token]);
+    if (row?.status !== "converted") return false;
+  } catch {
+    return false; // DB down: keep the cart working
+  }
+  try {
+    await clearCartCookies();
+  } catch {
+    // read-only cookies (page render): the next cart action clears them
+  }
+  return true;
 }

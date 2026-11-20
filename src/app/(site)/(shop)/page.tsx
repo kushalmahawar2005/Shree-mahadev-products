@@ -25,7 +25,6 @@ import { getFeaturedReviews } from "@/lib/server/reviews";
 import { FeaturedCollections, type CategoryTile } from "@/components/home/FeaturedCollections";
 import { defaultVariant } from "@/lib/commerce/default-variant";
 import { parseReelLink, reelEmbedSrc, reelLinkPoster } from "@/lib/reel-link";
-import { siteVideoUrl } from "@/lib/site-videos";
 
 
 /** Temporarily hidden sections (listed in HIDDEN.md). Flip to true to show again. */
@@ -109,19 +108,9 @@ export default async function HomePage() {
     getStoreSettings(),
     getFeaturedReviews(),
   ]);
-  // Until reels are uploaded in admin, show clips from our own ghani footage.
-  const fallbackReels = [
-    { id: -1, videoUrl: siteVideoUrl("reels/ghani-1"), caption: "Fresh coconut going into the ghani", productHandle: "coconut-oil", instagramUrl: null },
-    { id: -2, videoUrl: siteVideoUrl("reels/ghani-2"), caption: "Slow pressing, no heat", productHandle: "black-mustard-oil", instagramUrl: null },
-    { id: -3, videoUrl: siteVideoUrl("reels/oil-pour"), caption: "Golden oil, straight from the press", productHandle: "yellow-mustard-oil", instagramUrl: null },
-    { id: -4, videoUrl: siteVideoUrl("reels/ghani-3"), caption: "Settled, filtered, bottled by hand", productHandle: "groundnut-oil", instagramUrl: null },
-    // Vertical cuts from our own ghani footage (Cloudinary swadeshi-mahadev/videos/reels), so the Reels row isn't empty.
-    { id: -6, videoUrl: siteVideoUrl("reels/bottling"), caption: "Filtered and filled, batch by batch", productHandle: "sunflower-oil", instagramUrl: null },
-    { id: -7, videoUrl: siteVideoUrl("reels/ghani-pour"), caption: "Golden oil from the wooden ghani", productHandle: "white-sesame-oil", instagramUrl: null },
-    { id: -5, videoUrl: siteVideoUrl("reels/coconut-in"), caption: "Clean coconut, straight into the press", productHandle: "coconut-oil", instagramUrl: null },
-  ];
+  // Admin → Reels is the only source (our own ghani clips are seeded there as reels, migration 050).
   const homeReels = videos.reels.filter((r) => r.placements.includes("home"));
-  const reelSource = homeReels.length ? homeReels : fallbackReels;
+  const reelSource = homeReels;
   // A link-only row whose link no longer plays here (old Instagram links) is skipped.
   const reelItems: ReelItem[] = reelSource.filter((r) => r.videoUrl || (r.instagramUrl && parseReelLink(r.instagramUrl).ok)).map((r) => {
     const p = r.productHandle

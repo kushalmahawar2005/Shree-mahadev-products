@@ -88,8 +88,8 @@ export function cancelRule(
     return { ok: false, reason: "This order has already shipped, so it can't be cancelled here. Tell us below and we'll help." };
   if (booked)
     return { ok: false, reason: "This order is already booked with the courier, so it can't be cancelled here. Tell us below and we'll help." };
-  if (isPaidOnline(status, method))
-    return { ok: false, canRequest: true, reason: PAID_CANCEL_MESSAGE };
+  // Store policy: once an online payment has gone through, the order is final for the shopper.
+  if (isPaidOnline(status, method)) return { ok: false, reason: PAID_CANCEL_MESSAGE };
   return { ok: true };
 }
 
@@ -98,7 +98,7 @@ export const isPaidOnline = (status: string, method: string) =>
   method === "payu" && ["paid", "confirmed", "packed"].includes(status);
 
 export const PAID_CANCEL_MESSAGE =
-  "This order was paid online, so our team will cancel it and refund you in full. Tap \"Request cancellation\" below.";
+  "This order is paid and confirmed, so it can't be cancelled. For any problem with it, message us and we'll help.";
 
 /** "12 Nov" from an IST DB string. */
 export function shortDate(raw: string) {

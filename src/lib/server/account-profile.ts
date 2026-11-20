@@ -87,11 +87,12 @@ export async function updatePersonal(
 ) {
   await db().execute(
     `UPDATE customers SET
-       email_verified_at = IF(COALESCE(email,'') = COALESCE(?,''), email_verified_at, NULL),
-       email_verify_hash = IF(COALESCE(email,'') = COALESCE(?,''), email_verify_hash, NULL),
+       email_verified_at = IF(COALESCE(email,'') = ?, email_verified_at, NULL),
+       email_verify_hash = IF(COALESCE(email,'') = ?, email_verify_hash, NULL),
        name = ?, email = ?, dob = ?, gender = ?
      WHERE id = ?`,
-    [data.email, data.email, data.name, data.email, data.dob, data.gender, customerId],
+    // "?? ''" here, not COALESCE(?,'') in SQL: a bound value next to a literal is a collation mix on live MariaDB.
+    [data.email ?? "", data.email ?? "", data.name, data.email, data.dob, data.gender, customerId],
   );
   // No email means no email offers.
   if (!data.email)

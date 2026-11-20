@@ -107,6 +107,21 @@ export async function reorderReels(ids: number[]) {
   ]);
 }
 
+/**
+ * Swap a reel's video file, keeping its places, caption, product and position. Returns the old
+ * file's public id (empty for our built-in clips and YouTube-only reels, which have no file to delete).
+ */
+export async function replaceReelVideo(id: number, v: { publicId: string; url: string; width: number; height: number; duration?: number }): Promise<string | null> {
+  const [rows] = await db().execute<RowDataPacket[]>("SELECT public_id, video_url FROM reels WHERE id = ?", [id]);
+  if (!rows[0]) throw new Error("Reel not found");
+  await db().execute(
+    // A YouTube-only reel keeps its link in instagram_url: drop it, the uploaded file now plays.
+    "UPDATE reels SET public_id = ?, video_url = ?, width = ?, height = ?, duration = ?, instagram_url = IF(?, NULL, instagram_url) WHERE id = ?",
+    [v.publicId, v.url, v.width, v.height, v.duration ?? null, rows[0].video_url ? 0 : 1, id],
+  );
+  return rows[0].public_id || null;
+}
+
 export async function deleteReel(id: number): Promise<string | null> {
   const [rows] = await db().execute<RowDataPacket[]>("SELECT public_id FROM reels WHERE id = ?", [id]);
   if (!rows[0]) return null;

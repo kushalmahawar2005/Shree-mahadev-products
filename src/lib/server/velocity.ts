@@ -53,12 +53,31 @@ type RateCourier = {
   carrier_id?: string;
   carrier_name?: string;
   status?: string | boolean;
-  expected_delivery?: { pickup?: string; delivery?: string };
+  expected_delivery?: { pickup?: unknown; delivery?: unknown };
   charges?: { forward_freight_charges?: number; cod_charges?: number; total_forward_charges?: number };
   platform_fee?: number;
 };
 
 /** Every active courier for the lane with its price, cheapest first. Empty = not serviceable. */
+/**
+ * Velocity's expected delivery comes as a plain date string in the docs but as an object in practice
+ * (`{ human_readable, date, … }`). Turn either into "by 24 Nov"-style text, or nothing.
+ */
+function eddText(v: unknown): string | undefined {
+  if (!v) return undefined;
+  if (typeof v === "number") return `${v} day${v === 1 ? "" : "s"}`;
+  if (typeof v === "string") return /\bdays?\b/i.test(v) ? v : `by ${v}`;
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    const text = [o.human_readable, o.humanReadable, o.date, o.delivery_date, o.edd, o.value].find((x) => typeof x === "string" && x.trim());
+    // "3 days" reads as is; a date ("24 Nov") gets "by" in front.
+    if (typeof text === "string") return /^by\b|\bdays?\b/i.test(text.trim()) ? text.trim() : `by ${text.trim()}`;
+    const days = [o.days, o.min_days, o.max_days].find((x) => typeof x === "number");
+    if (typeof days === "number") return `${days} day${days === 1 ? "" : "s"}`;
+  }
+  return undefined;
+}
+
 export async function getVelocityQuotes(input: {
   destination: string;
   weightGrams: number;
@@ -91,7 +110,7 @@ export async function getVelocityQuotes(input: {
         freight,
         codCharge,
         total,
-        edd: c.expected_delivery?.delivery ? `by ${c.expected_delivery.delivery}` : undefined,
+        edd: eddText(c.expected_delivery?.delivery),
       };
     })
     .filter((q) => q.total > 0)

@@ -112,7 +112,7 @@ function orderSummary(order: OrderDetail, intent: Intent) {
   const rule = order.canCancel ?? order.cancelRule;
   if (intent === "cancel") {
     if (rule?.ok) parts.push("Yeh order abhi cancel ho sakta hai. Neeche reason chun ke confirm kar dijiye.");
-    else if (order.status === "paid" || (rule && !rule.ok && rule.canRequest)) parts.push("Aapne online payment kiya hai, isliye cancel hamari team karegi aur **poora refund** milega. Neeche se request bhej dijiye. 🙏");
+    else if (order.status === "paid" || (order.method !== "cod" && ["confirmed", "packed"].includes(order.status))) parts.push("Online payment wala order confirm ho chuka hai, isliye ab cancel nahi ho sakta. Koi dikkat ho toh neeche se hamari team se baat kar lijiye. 🙏");
     else if (order.status === "cancelled") parts.push("Yeh order pehle hi cancel ho chuka hai.");
     else if (["cod_pending", "confirmed", "packed", "pending_payment"].includes(order.status)) parts.push("Is order ki **shipment ban chuki hai** (courier book ho gaya hai), isliye ab yahan se cancel nahi ho sakta. Zarurat ho toh neeche se hamari team se baat kar lijiye. 🙏");
     else parts.push("Order dispatch ho chuka hai, isliye ab cancel nahi ho sakta. Delivery ke baad zarurat ho toh return request kar sakte hain.");
@@ -223,6 +223,14 @@ export function ChatWidget() {
     return () => clearTimeout(timer);
   }, []);
 
+  // The bubble is a short hello, not a fixture: it fades away on its own after 10 seconds.
+  useEffect(() => {
+    if (!nudge) return;
+    try { sessionStorage.setItem(NUDGE_KEY, "1"); } catch { /* storage blocked */ }
+    const timer = setTimeout(() => setNudge(false), 10000);
+    return () => clearTimeout(timer);
+  }, [nudge]);
+
   useEffect(() => {
     persist({ messages, tab, language });
   }, [messages, tab, language]);
@@ -325,8 +333,6 @@ export function ChatWidget() {
       }];
       if (intent === "cancel" && rule?.ok && !detail.guest) {
         blocks.push({ type: "action_confirm", kind: "cancel", orderId: detail.id, orderNo: detail.orderNo, summary: `Order ${detail.orderNo} abhi cancel ho jayega.`, consequences: ["Yeh wapas nahi hoga", detail.method === "cod" ? "COD order hai, koi payment nahi kata" : "Payment ka poora refund original method mein aayega"] });
-      } else if (intent === "cancel" && (detail.status === "paid" || (rule && !rule.ok && rule.canRequest))) {
-        blocks.push({ type: "action_confirm", kind: "cancel_request", orderId: detail.id, orderNo: detail.orderNo, summary: "Online payment wala order hamari team cancel karti hai.", consequences: ["Team request dekh ke order cancel karegi", "Poora refund original payment method mein 5–7 working days mein"] });
       } else if (intent === "cancel" && !rule?.ok && detail.status !== "cancelled") {
         blocks.push({ type: "quick_replies", options: ["Return kaise karein?", "Team se baat karni hai"] });
       } else if (intent === "return" && detail.status === "delivered" && !detail.returnRequested) {

@@ -32,7 +32,13 @@ export function CashfreeCheckout({ sessionId, mode, orderToken }: { sessionId: s
       // In-app browsers can't show the popup: Cashfree takes over the page and returns via return_url.
       if (result.redirect) return;
       setPhase("checking");
-      const { outcome } = await confirmCashfreePaymentAction(orderToken);
+      let { outcome } = await confirmCashfreePaymentAction(orderToken);
+      // The popup says the payment finished, but Cashfree's API can lag a few seconds behind it.
+      // Ask again before telling the shopper it didn't go through.
+      for (let i = 0; i < 5 && result.paymentDetails && (outcome === "unpaid" || outcome === "none"); i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        ({ outcome } = await confirmCashfreePaymentAction(orderToken));
+      }
       if (outcome === "paid" || outcome === "pending") {
         // Full load through the return route: it clears the cart cookie and redirects to the order page,
         // so the header's cart count is fresh (a client-side navigation would keep the old count).
@@ -77,6 +83,11 @@ export function CashfreeCheckout({ sessionId, mode, orderToken }: { sessionId: s
         >
           <Lock className="size-4" /> Try payment again
         </button>
+      )}
+      {!busy && (
+        <a href="/checkout" className="mt-3 text-sm font-semibold text-forest underline-offset-4 hover:underline">
+          Change payment method or edit order
+        </a>
       )}
       <p className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-ink-muted">
         <ShieldCheck className="size-3.5 text-forest" /> Secured by Cashfree · Please don&apos;t press back

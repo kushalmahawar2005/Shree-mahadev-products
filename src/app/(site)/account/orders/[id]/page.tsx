@@ -128,7 +128,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
 
   // Paid online + not shipped: the cancel button sends a request to the team (refund needed).
   const paidOnline = isPaidOnline(o.status, o.method);
-  const canCancel = BEFORE_SHIPPING.has(o.status) &&
+  const canCancel = BEFORE_SHIPPING.has(o.status) && !paidOnline &&
     !(o.status === "pending_payment" && o.expiresInHours !== null && o.expiresInHours <= 0);
   const timeline = buildTimeline(o);
   const timelineTimes = Object.fromEntries(

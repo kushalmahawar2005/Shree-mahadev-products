@@ -233,8 +233,8 @@ export async function moderateReviewAction(raw: unknown) {
   if (!p.success) return { ok: false, error: "Invalid review." };
   const status = p.data.action === "approve" ? "approved" : "rejected";
   const [updated] = await db().execute<ResultSetHeader>(
-    "UPDATE reviews SET status=?, featured=IF(?='rejected',0,featured) WHERE id=?",
-    [status, status, p.data.id],
+    "UPDATE reviews SET status=?, featured=IF(?,0,featured) WHERE id=?",
+    [status, status === "rejected" ? 1 : 0, p.data.id],
   );
   if (!updated.affectedRows) return { ok: false, error: "Review not found." };
   const [[review]] = await db().execute<RowDataPacket[]>(

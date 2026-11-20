@@ -77,7 +77,13 @@ export async function confirmOrderFromCashfree(orderToken: string): Promise<"pai
        AND p.created_at > NOW() - INTERVAL 2 DAY ORDER BY p.id DESC LIMIT 25`,
     [orderToken],
   );
-  if (!rows.length) return "none";
+  if (!rows.length) {
+    // The webhook (or the cron) can settle the attempt before the popup's own check runs. Then there is
+    // no open attempt left, and the order's own status is the answer.
+    const [[o]] = await db().query<RowDataPacket[]>("SELECT paid_at FROM orders WHERE token = ?", [orderToken]);
+    if (o?.paid_at) return "paid";
+    return "none";
+  }
   const rank = { failed: 0, unpaid: 1, pending: 2 } as const;
   let outcome: keyof typeof rank = "failed";
   for (const r of rows) {

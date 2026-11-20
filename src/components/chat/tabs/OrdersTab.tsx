@@ -131,7 +131,7 @@ export default function OrdersTab({ onAction, onLogin, onShop }: { onAction: (or
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 <motion.button {...tap} type="button" onClick={() => onAction(order, "track", state.orders)} className="min-h-10 rounded-full bg-forest px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-forest-mid">Track</motion.button>
-                {CANCELLABLE.includes(order.status) && <motion.button {...tap} type="button" onClick={() => onAction(order, "cancel", state.orders)} className={`${action} hover:border-alert/40 hover:text-alert`}>Cancel</motion.button>}
+                {CANCELLABLE.includes(order.status) && !(order.method !== "cod" && ["paid", "confirmed", "packed"].includes(order.status)) && <motion.button {...tap} type="button" onClick={() => onAction(order, "cancel", state.orders)} className={`${action} hover:border-alert/40 hover:text-alert`}>Cancel</motion.button>}
                 {order.status === "delivered" && <motion.button {...tap} type="button" onClick={() => onAction(order, "return", state.orders)} className={action}>Return / damage</motion.button>}
                 {showRefund && <motion.button {...tap} type="button" onClick={() => onAction(order, "refund", state.orders)} className={action}>Refund status</motion.button>}
                 {REORDERABLE.includes(order.status) && <motion.button {...tap} type="button" onClick={() => onAction(order, "reorder", state.orders)} className={action}>Reorder</motion.button>}

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmAction } from "@/components/admin/order/ConfirmAction";
 import { unwrap } from "@/lib/action-result";
 import Image from "next/image";
 import { useState, useTransition } from "react";
@@ -92,17 +93,25 @@ export function ProductImageManager({
                         →
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!window.confirm("Delete this photo?")) return;
+                    <ConfirmAction
+                      trigger={
+                        <button
+                          type="button"
+                          aria-label="Delete photo"
+                          className={compact ? "size-7 rounded-md text-sm text-red-700 hover:bg-red-50" : "min-h-9 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"}
+                        >
+                          {compact ? "✕" : "Delete"}
+                        </button>
+                      }
+                      title="Delete this photo?"
+                      description="It is removed from the product straight away."
+                      confirmLabel="Delete photo"
+                      destructive
+                      onConfirm={() => {
                         setImages((xs) => xs.filter((x) => x.id !== img.id));
                         run(async () => unwrap(await deleteProductImageAction(img.id)));
                       }}
-                      className={compact ? "size-7 rounded-md text-sm text-red-700 hover:bg-red-50" : "min-h-9 rounded-lg px-2 text-sm font-semibold text-red-700 hover:bg-red-50"}
-                    >
-                      {compact ? "✕" : "Delete"}
-                    </button>
+                    />
                   </div>
                 </div>
               </div>

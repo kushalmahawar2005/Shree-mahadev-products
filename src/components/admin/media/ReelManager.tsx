@@ -1,9 +1,9 @@
 "use client";
 
 import { unwrap } from "@/lib/action-result";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, ChevronLeft, ChevronRight, Clapperboard, ExternalLink, Film, Home, Loader2, Package, Trash2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Clapperboard, ExternalLink, Film, Home, Loader2, Package, RefreshCw, Trash2, X } from "lucide-react";
 import { ReelLinkField, ReelLinkThumb } from "./ReelLinkField";
 import { Switch } from "@/components/shadcn/switch";
 import { ConfirmAction } from "../order/ConfirmAction";
@@ -12,12 +12,14 @@ import {
   addReelLinkAction,
   addReelsAction,
   deleteReelAction,
+  replaceReelVideoAction,
   reorderReelsAction,
   setBrandFilmAction,
   updateReelAction,
 } from "@/lib/media-actions";
 import type { Reel, ReelPlacement } from "@/lib/server/videos";
 import { DropZone } from "./DropZone";
+import { uploadToCloudinary } from "./upload";
 import { Sortable } from "./Sortable";
 import { cn } from "@/lib/utils/cn";
 
@@ -201,6 +203,12 @@ export function ReelManager({
               }}
               render={(r, i, move) => (
                 <div className={cn(card, "overflow-hidden", !r.active && "opacity-60")}>
+                  <div className="relative">
+                  <ReplaceVideo
+                    disabled={pending}
+                    onUploaded={(up) => run(async () => unwrap(await replaceReelVideoAction(r.id, up)), "Video replaced. Places, caption and product stay the same.")}
+                    onError={(text) => setMsg({ ok: false, text })}
+                  />
                   {!r.videoUrl ? (
                     <ReelLinkThumb link={r.instagramUrl ?? ""} className="w-full" />
                   ) : (
@@ -216,6 +224,7 @@ export function ReelManager({
                       className="aspect-[9/16] w-full bg-black object-cover"
                     />
                   )}
+                  </div>
                   <div className="space-y-2.5 p-2.5">
                     <div>
                       <p className="mb-1 text-[11px] font-semibold text-ink-muted">Shows on</p>
@@ -317,5 +326,54 @@ export function ReelManager({
         </div>
       </section>
     </div>
+  );
+}
+
+/** "Replace" pill on a reel's thumbnail: pick a new video, it uploads (compressed) and swaps in place. */
+function ReplaceVideo({ disabled, onUploaded, onError }: { disabled?: boolean; onUploaded: (u: Awaited<ReturnType<typeof uploadToCloudinary>>) => void; onError: (text: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [state, setState] = useState<{ stage: "compress" | "upload"; pct: number } | null>(null);
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setState({ stage: "upload", pct: 0 });
+    try {
+      const up = await uploadToCloudinary(
+        file,
+        "reels",
+        (pct) => setState((s) => (s ? { ...s, pct: Math.min(pct, 99) } : s)),
+        (stage) => setState((s) => (s ? { ...s, stage } : s)),
+      );
+      onUploaded(up);
+    } catch (e) {
+      onError((e as Error).message || "Upload failed");
+    } finally {
+      setState(null);
+      if (ref.current) ref.current.value = "";
+    }
+  };
+  return (
+    <>
+      <input ref={ref} type="file" accept="video/*" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} />
+      {state ? (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-black/60 text-white">
+          <div className="w-3/4 text-center">
+            <Loader2 className="mx-auto size-6 animate-spin" />
+            <p className="mt-2 text-xs font-semibold">{state.stage === "compress" ? "Compressing…" : `Uploading ${state.pct}%`}</p>
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/25">
+              <div className="h-full bg-white transition-[width]" style={{ width: `${state.stage === "compress" ? 15 : state.pct}%` }} />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => ref.current?.click()}
+          className="absolute right-2 top-2 z-10 inline-flex h-8 items-center gap-1.5 rounded-full bg-black/60 px-3 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/80 disabled:opacity-50"
+        >
+          <RefreshCw className="size-3.5" /> Replace video
+        </button>
+      )}
+    </>
   );
 }

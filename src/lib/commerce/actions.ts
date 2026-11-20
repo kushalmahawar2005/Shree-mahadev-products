@@ -11,10 +11,10 @@ import {
   updateCartLine,
   type Cart,
 } from "./index";
-import { persistCart, readCartId, writeCartId } from "@/lib/server/cart-cookies";
+import { dropConvertedCart, persistCart, readCartId, writeCartId } from "@/lib/server/cart-cookies";
 
 async function ensureCartId() {
-  const existing = await readCartId();
+  const existing = (await dropConvertedCart()) ? undefined : await readCartId();
   if (existing) return existing;
   const cart = await createCart();
   await writeCartId(cart.id);
@@ -33,6 +33,7 @@ async function withImages(cart: Cart): Promise<Cart> {
 }
 
 export async function getCartAction(): Promise<Cart | null> {
+  if (await dropConvertedCart()) return null;
   const id = await readCartId();
   if (!id) return null;
   try {
