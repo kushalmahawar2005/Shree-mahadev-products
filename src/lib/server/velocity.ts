@@ -52,7 +52,7 @@ export type VelocityQuote = {
 type RateCourier = {
   carrier_id?: string;
   carrier_name?: string;
-  status?: string;
+  status?: string | boolean;
   expected_delivery?: { pickup?: string; delivery?: string };
   charges?: { forward_freight_charges?: number; cod_charges?: number; total_forward_charges?: number };
   platform_fee?: number;
@@ -79,7 +79,8 @@ export async function getVelocityQuotes(input: {
   });
   const n = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
   return (data.result?.serviceable_couriers ?? [])
-    .filter((c) => c.carrier_id && (!c.status || c.status === "active"))
+    // `status` comes back as a boolean (true) in practice; the docs show "active". Accept both.
+    .filter((c) => c.carrier_id && (c.status === undefined || c.status === true || c.status === "active"))
     .map((c) => {
       const freight = n(c.charges?.forward_freight_charges);
       const codCharge = n(c.charges?.cod_charges);
