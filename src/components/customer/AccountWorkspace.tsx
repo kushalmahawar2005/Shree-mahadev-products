@@ -12,7 +12,7 @@ import { helpLink } from "@/data/site";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/shadcn/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
 import { logoutCustomerAction, reorderAction, requestCustomerOtpAction, saveCustomerAddressAction, setCustomerNameAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
-import { completeEmailSignupAction, linkEmailWithPhoneOtpAction, requestEmailOtpAction, verifyEmailOtpAction } from "@/lib/customer-email-login-actions";
+import { completeEmailSignupAction, requestEmailOtpAction, verifyEmailOtpAction } from "@/lib/customer-email-login-actions";
 import { LoginMethodToggle, type LoginMethod } from "@/components/account/LoginMethodToggle";
 import { INDIAN_STATES } from "@/lib/checkout";
 import { formatMoney } from "@/lib/utils/money";
@@ -55,8 +55,7 @@ export function SignIn({ next }: { next?: string } = {}) {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   // first → otp → (email sign-up) phone → (new account) name
-  // "link" = email sign-up whose number already has an account: confirm it with a WhatsApp OTP.
-  const [step, setStep] = useState<"first" | "otp" | "phone" | "link" | "name">("first");
+  const [step, setStep] = useState<"first" | "otp" | "phone" | "name">("first");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
@@ -78,12 +77,7 @@ export function SignIn({ next }: { next?: string } = {}) {
   const verify = () =>
     start(async () => {
       setError("");
-      const r =
-        step === "link"
-          ? await linkEmailWithPhoneOtpAction({ phone, code })
-          : method === "email"
-            ? await verifyEmailOtpAction({ email, code })
-            : await verifyCustomerOtpAction({ phone, code });
+      const r = method === "email" ? await verifyEmailOtpAction({ email, code }) : await verifyCustomerOtpAction({ phone, code });
       if (!r.ok) return setError(r.error ?? "That code didn't work.");
       if ("needsPhone" in r && r.needsPhone) return (setPhone(""), setStep("phone"));
       if ("needsName" in r && r.needsName) return setStep("name");
@@ -93,11 +87,6 @@ export function SignIn({ next }: { next?: string } = {}) {
     start(async () => {
       setError("");
       const r = await completeEmailSignupAction({ phone });
-      if (!r.ok && "needsPhoneOtp" in r && r.needsPhoneOtp) {
-        setDevCode(r.devCode ?? "");
-        setCode(r.devCode ?? "");
-        return setStep("link");
-      }
       if (!r.ok) return setError(r.error);
       if (r.needsName) return setStep("name");
       done();
@@ -118,9 +107,7 @@ export function SignIn({ next }: { next?: string } = {}) {
       ? "Welcome! What's your name?"
       : step === "phone"
         ? "Add your mobile number"
-        : step === "link"
-          ? "Confirm your number"
-          : step === "otp"
+        : step === "otp"
             ? "Enter the OTP"
             : "Sign in";
   const disabled =
@@ -129,7 +116,7 @@ export function SignIn({ next }: { next?: string } = {}) {
       ? name.trim().length < 2
       : step === "phone"
         ? phone.length !== 10
-        : step === "otp" || step === "link"
+        : step === "otp"
           ? code.length !== 6
           : method === "email"
             ? !emailOk
@@ -146,14 +133,6 @@ export function SignIn({ next }: { next?: string } = {}) {
           "You're verified. We'll use your name on orders and delivery updates."
         ) : step === "phone" ? (
           "Your email is verified. Add the mobile number for delivery and order updates."
-        ) : step === "link" ? (
-          <>
-            This number already has an account. We sent a WhatsApp OTP to <span className="font-semibold text-ink">+91 {phone}</span>; your email
-            will be added to that account.{" "}
-            <button type="button" onClick={() => (setStep("phone"), setCode(""), setError(""))} className="font-semibold text-forest underline-offset-2 hover:underline">
-              Change
-            </button>
-          </>
         ) : step === "otp" ? (
           <>
             We sent a 6-digit code to <span className="font-semibold break-all text-ink">{method === "email" ? email : `+91 ${phone}`}</span>.{" "}
@@ -181,13 +160,13 @@ export function SignIn({ next }: { next?: string } = {}) {
           e.preventDefault();
           if (step === "name") saveName();
           else if (step === "phone") savePhone();
-          else if (step === "otp" || step === "link") verify();
+          else if (step === "otp") verify();
           else send();
         }}
       >
         {step === "name" ? (
           <input value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={80} autoFocus placeholder="Your full name" autoComplete="name" className={field} />
-        ) : step === "otp" || step === "link" ? (
+        ) : step === "otp" ? (
           <>
             <InputOTP maxLength={6} value={code} onChange={setCode} onComplete={() => undefined} containerClassName="justify-center" autoFocus>
               <InputOTPGroup className="gap-2">
@@ -241,7 +220,7 @@ export function SignIn({ next }: { next?: string } = {}) {
           className="btn-shine inline-flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-forest text-sm font-bold text-white hover:bg-forest-mid disabled:opacity-50"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
-          {step === "name" || step === "phone" ? "Continue" : step === "otp" || step === "link" ? "Verify & sign in" : "Send OTP"}
+          {step === "name" || step === "phone" ? "Continue" : step === "otp" ? "Verify & sign in" : "Send OTP"}
         </button>
         {step === "first" && (
           <p className="text-center text-xs text-ink-muted">

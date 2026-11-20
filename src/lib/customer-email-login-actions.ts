@@ -6,7 +6,6 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { db } from "@/lib/server/db";
 import { cleanPhone, createCustomerSession, requireCustomer } from "@/lib/server/customer-auth";
-import { requestCustomerOtpAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
 import { mailConfigured, sendLoginCodeEmail } from "@/lib/server/mail";
 import { clientIp, rateLimit, resetLimit } from "@/lib/server/rate-limit";
 
@@ -17,9 +16,9 @@ import { clientIp, rateLimit, resetLimit } from "@/lib/server/rate-limit";
  *        - an account whose email is verified and matches → signed in;
  *        - otherwise a short-lived signup token goes into an httpOnly cookie and the page asks for the
  *          mobile number (orders, delivery and WhatsApp updates need it).
- *   3. completeEmailSignupAction: creates the account with that number + the verified email.
- *      A number that already has an account is refused (sign in with WhatsApp instead), so nobody can
- *      reach someone else's orders by typing their number.
+ *   3. completeEmailSignupAction: creates the account with that number + the verified email, or, when
+ *      the number already has an account, saves the email on it and signs in (no second OTP, owner's
+ *      call), unless that account already has a different verified email.
  */
 
 const CODE_MINUTES = 10;
@@ -136,24 +135,32 @@ export async function completeEmailSignupAction(raw: unknown) {
 
   const phone = cleanPhone(parsed.data.phone);
   const name = parsed.data.name && parsed.data.name.length >= 2 ? parsed.data.name : "Customer";
-  const [[taken]] = await db().query<RowDataPacket[]>("SELECT id FROM customers WHERE phone = ? LIMIT 1", [phone]);
+  const email = String(pending.email);
+  const [[taken]] = await db().query<RowDataPacket[]>(
+    "SELECT id, name, email, email_verified_at FROM customers WHERE phone = ? LIMIT 1",
+    [phone],
+  );
   if (taken) {
-    // Same person, older account: prove the number with a WhatsApp OTP, then the email joins that
-    // account (one account per shopper). Typing a number alone must never open someone's account.
-    const sent = await requestCustomerOtpAction({ phone });
-    if (!sent.ok) return { ok: false as const, error: sent.error ?? "Could not send the WhatsApp OTP." };
-    return {
-      ok: false as const,
-      needsPhoneOtp: true as const,
-      phone,
-      devCode: "devCode" in sent ? (sent.devCode ?? "") : "",
-      error: "",
-    };
+    // Owner's decision (20 Nov 2026): no second OTP. The verified email joins the account that already
+    // has this number and the shopper is signed in to it. Only refused when that account already has a
+    // different verified email (it belongs to someone who proved another address).
+    const own = String(taken.email ?? "").toLowerCase();
+    if (own && taken.email_verified_at && own !== email)
+      return {
+        ok: false as const,
+        error: "This number is linked to another email. Please log in with that email or with WhatsApp.",
+      };
+    await db().execute("UPDATE customers SET email = ?, email_verified_at = NOW() WHERE id = ?", [email, taken.id]);
+    await db().execute("UPDATE email_otps SET signup_token_hash = NULL, signup_expires_at = NULL WHERE id = ?", [pending.id]);
+    jar.delete(SIGNUP_COOKIE);
+    await createCustomerSession(Number(taken.id));
+    const nm = String(taken.name ?? "").trim();
+    return { ok: true as const, needsName: !nm || /^customer$/i.test(nm) };
   }
 
   const [ins] = await db().execute<ResultSetHeader>(
     "INSERT IGNORE INTO customers (phone, name, email, email_verified_at) VALUES (?, ?, ?, NOW())",
-    [phone, name, String(pending.email)],
+    [phone, name, email],
   );
   if (!ins.affectedRows)
     return { ok: false as const, error: "This number already has an account. Please log in with WhatsApp, or use another number." };
@@ -163,44 +170,6 @@ export async function completeEmailSignupAction(raw: unknown) {
   const [[customer]] = await db().query<RowDataPacket[]>("SELECT id FROM customers WHERE phone = ? LIMIT 1", [phone]);
   await createCustomerSession(Number(customer.id));
   return { ok: true as const, needsName: name === "Customer" };
-}
-
-/**
- * Email sign-up where the number already has an account: the WhatsApp OTP proves the number, the
- * shopper is signed in to that account and the just-verified email is saved on it.
- */
-export async function linkEmailWithPhoneOtpAction(raw: unknown) {
-  const parsed = z.object({ phone: Phone, code: z.string().regex(/^\d{6}$/) }).strict().safeParse(raw);
-  if (!parsed.success) return { ok: false as const, error: "Enter the 6-digit OTP." };
-  const jar = await cookies();
-  const token = jar.get(SIGNUP_COOKIE)?.value;
-  const [[pending]] = token
-    ? await db().query<RowDataPacket[]>(
-        "SELECT id, email FROM email_otps WHERE signup_token_hash = ? AND signup_expires_at > NOW() LIMIT 1",
-        [sha(token)],
-      )
-    : [[]];
-  if (!pending) return { ok: false as const, error: "This step timed out. Please verify your email again." };
-
-  const r = await verifyCustomerOtpAction({ phone: parsed.data.phone, code: parsed.data.code });
-  if (!r.ok) return { ok: false as const, error: r.error ?? "That OTP is incorrect." };
-
-  // Signed in to the number's account now. Save the email unless it already has another verified one.
-  const phone = cleanPhone(parsed.data.phone);
-  const email = String(pending.email);
-  const [[usedElsewhere]] = await db().query<RowDataPacket[]>(
-    "SELECT id FROM customers WHERE email = ? AND email_verified_at IS NOT NULL AND phone <> ? LIMIT 1",
-    [email, phone],
-  );
-  if (!usedElsewhere)
-    await db().execute(
-      `UPDATE customers SET email = ?, email_verified_at = NOW()
-       WHERE phone = ? AND (email IS NULL OR email = '' OR email_verified_at IS NULL OR email = ?)`,
-      [email, phone, email],
-    );
-  await db().execute("UPDATE email_otps SET signup_token_hash = NULL, signup_expires_at = NULL WHERE id = ?", [pending.id]);
-  jar.delete(SIGNUP_COOKIE);
-  return { ok: true as const, needsName: "needsName" in r && Boolean(r.needsName) };
 }
 
 /** Signed-in shopper without an email: verify one with an emailed code and save it on the account. */

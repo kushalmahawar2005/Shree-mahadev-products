@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/shadcn/input-otp";
 import { requestCustomerOtpAction, setCustomerNameAction, verifyCustomerOtpAction } from "@/lib/customer-account-actions";
-import { completeEmailSignupAction, linkEmailWithPhoneOtpAction, requestEmailOtpAction, verifyEmailOtpAction } from "@/lib/customer-email-login-actions";
+import { completeEmailSignupAction, requestEmailOtpAction, verifyEmailOtpAction } from "@/lib/customer-email-login-actions";
 import { LoginMethodToggle, type LoginMethod } from "@/components/account/LoginMethodToggle";
 import { cn } from "@/lib/utils/cn";
 
@@ -16,7 +16,7 @@ const EXPO = [0.16, 1, 0.3, 1] as const;
 /** Lifted into AccountMenu so typing survives the panel closing and re-opening. */
 export type LoginState = {
   /** "phone" = the first screen (number or email, by method); "newphone" = email sign-up asks the mobile number. */
-  step: "phone" | "otp" | "newphone" | "linkotp" | "name" | "done";
+  step: "phone" | "otp" | "newphone" | "name" | "done";
   method: LoginMethod;
   phone: string;
   email: string;
@@ -79,12 +79,7 @@ export function AccountMenuLogin({
     if (code.length !== 6) return setError("Enter the 6-digit OTP.");
     setError("");
     start(async () => {
-      const r =
-        state.step === "linkotp"
-          ? await linkEmailWithPhoneOtpAction({ phone: state.phone, code })
-          : state.method === "email"
-            ? await verifyEmailOtpAction({ email: state.email, code })
-            : await verifyCustomerOtpAction({ phone: state.phone, code });
+      const r = state.method === "email" ? await verifyEmailOtpAction({ email: state.email, code }) : await verifyCustomerOtpAction({ phone: state.phone, code });
       if (!r.ok) return setError(("error" in r && r.error) || "That OTP is incorrect.");
       if ("needsPhone" in r && r.needsPhone) set({ step: "newphone", phone: "" });
       else if ("needsName" in r && r.needsName) set({ step: "name" });
@@ -98,14 +93,6 @@ export function AccountMenuLogin({
     setError("");
     start(async () => {
       const r = await completeEmailSignupAction({ phone: state.phone });
-      // Number already has an account: confirm it with the WhatsApp OTP, then the email joins it.
-      if (!r.ok && "needsPhoneOtp" in r && r.needsPhoneOtp) {
-        set({ step: "linkotp", code: r.devCode ?? "", devCode: r.devCode ?? "" });
-        const t = Date.now();
-        setNow(t);
-        setResendAt(t + RESEND_AFTER * 1000);
-        return;
-      }
       if (!r.ok) return setError(r.error);
       if (r.needsName) set({ step: "name" });
       else finish();
@@ -181,25 +168,21 @@ export function AccountMenuLogin({
           </motion.form>
         )}
 
-        {(state.step === "otp" || state.step === "linkotp") && (
-          <motion.form key={state.step} {...step} onSubmit={(e) => (e.preventDefault(), verify())} noValidate>
+        {state.step === "otp" && (
+          <motion.form key="otp" {...step} onSubmit={(e) => (e.preventDefault(), verify())} noValidate>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label={state.step === "linkotp" ? "Change number" : state.method === "email" ? "Change email" : "Change number"}
-                onClick={() => (setError(""), set({ step: state.step === "linkotp" ? "newphone" : "phone", code: "" }))}
+                aria-label={state.method === "email" ? "Change email" : "Change number"}
+                onClick={() => (setError(""), set({ step: "phone", code: "" }))}
                 className="-ml-1 grid size-8 place-items-center rounded-full text-ink-muted transition-colors hover:bg-ivory hover:text-ink"
               >
                 <ArrowLeft className="size-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-[15px] leading-tight font-semibold text-ink">{state.step === "linkotp" ? "Confirm your number" : "Enter OTP"}</p>
+                <p className="text-[15px] leading-tight font-semibold text-ink">Enter OTP</p>
                 <p className="truncate text-[12.5px] text-ink-muted tabular-nums">
-                  {state.step === "linkotp"
-                    ? `Account found. WhatsApp OTP sent to +91 ${state.phone.slice(0, 5)} ${state.phone.slice(5)}`
-                    : state.method === "email"
-                      ? `Sent to ${state.email}`
-                      : `+91 ${state.phone.slice(0, 5)} ${state.phone.slice(5)} par bheja`}
+                  {state.method === "email" ? `Sent to ${state.email}` : `+91 ${state.phone.slice(0, 5)} ${state.phone.slice(5)} par bheja`}
                 </p>
               </div>
             </div>
@@ -230,7 +213,7 @@ export function AccountMenuLogin({
               {wait > 0 ? (
                 <span className="tabular-nums">Resend in {wait}s</span>
               ) : (
-                <button type="button" onClick={state.step === "linkotp" ? savePhone : sendOtp} disabled={pending} className="font-semibold text-forest-text underline-offset-4 hover:underline">
+                <button type="button" onClick={sendOtp} disabled={pending} className="font-semibold text-forest-text underline-offset-4 hover:underline">
                   Resend OTP
                 </button>
               )}
