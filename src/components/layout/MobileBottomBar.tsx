@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSignedIn } from "@/hooks/use-signed-in";
-import { LoginNudge } from "./LoginNudge";
 import { openLoginModal } from "@/components/account/LoginModal";
 import { useCart } from "@/components/cart/CartProvider";
 import { BagIcon, SearchIcon, ShopIcon, UserIcon } from "./icons";
@@ -47,7 +46,7 @@ export function MobileBottomBar() {
         Cart
       </button>
       {/* No prefetch: signed-out visitors get a proxy redirect to /login, which 404s as a prefetch. */}
-      {/* Signed out: "Login" with a small gold dot; the nudge bubble explains the perks. */}
+      {/* Signed out: "Login" with a small gold dot (the auto "Login in 10 seconds" bubble was removed, owner 20 Nov). */}
       <Link
         href="/account"
         prefetch={false}
@@ -65,7 +64,6 @@ export function MobileBottomBar() {
         </span>
         {guest ? "Login" : "Account"}
       </Link>
-      {guest && <LoginNudge />}
     </nav>
   );
 }

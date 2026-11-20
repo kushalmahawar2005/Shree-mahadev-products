@@ -24,7 +24,7 @@ Status: [ ] todo · [~] in progress · [x] done
 ## C. Product pages (PDP)
 
 11. [x] **Coconut Oil** — hide the "How it's made" section.
-12. [~] **White Sesame Oil** — "How it's made" removed (all products, owner 20 Nov). `?` The "About" screenshot (1:30 PM) has no instruction; ask if the About text needs a change.
+12. [x] **White Sesame Oil** (About rewritten with all oils, 044) — "How it's made" removed (all products, owner 20 Nov). `?` The "About" screenshot (1:30 PM) has no instruction; ask if the About text needs a change.
 13. [x] **Brown Sesame Oil** — About: add "Marwadi seed" (Marwari seeds). Remove "How it's made".
 14. [x] **Black Sesame Oil** — About: say it is sourced from Gujarat. Remove "How it's made".
 15. [ ] **Black Mustard Oil** — "Black mustard me shi krna h". `?` What is wrong (About text / highlights / photo)?
@@ -33,7 +33,7 @@ Status: [ ] todo · [~] in progress · [x] done
 
 ## D. Login / account
 
-18. [ ] **OTP on both email and WhatsApp** — "Otp option me mail and whatsapp dono dena". On login, let the customer choose email OTP or WhatsApp OTP.
+18. [x] **OTP on both email and WhatsApp** (live 20 Nov: WhatsApp | Email toggle, login popup) — "Otp option me mail and whatsapp dono dena". On login, let the customer choose email OTP or WhatsApp OTP.
 
 ## E. Not readable from screenshots
 

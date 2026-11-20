@@ -88,14 +88,18 @@ export function WhyChooseOil() {
                 animate={reduce ? undefined : { y: [0, -4, 0] }}
                 transition={reduce ? undefined : { duration: 6, repeat: Infinity, ease: [0.37, 0, 0.63, 1] }}
               >
-                <Image
-                  src="/illustrations/dadi-bottle.webp"
-                  alt="Dadi ji in a pink bandhani saree holding a bottle of Mahadev wood-pressed groundnut oil"
-                  width={556}
-                  height={1285}
-                  unoptimized
-                  className="relative mx-auto h-auto max-h-[280px] w-auto drop-shadow-[0_16px_20px_rgba(60,40,10,0.12)] md:max-h-[400px] lg:max-h-[520px]"
-                />
+                {/* Phones: only the upper body (face, bottle, gesture), larger, fading out at the waist.
+                    From md up the full figure as before. */}
+                <div className="relative max-md:h-[300px] max-md:overflow-hidden max-md:[mask-image:linear-gradient(to_bottom,#000_72%,transparent)]">
+                  <Image
+                    src="/illustrations/dadi-bottle.webp"
+                    alt="Dadi ji in a pink bandhani saree holding a bottle of Mahadev wood-pressed groundnut oil"
+                    width={556}
+                    height={1285}
+                    unoptimized
+                    className="relative mx-auto h-auto w-auto drop-shadow-[0_16px_20px_rgba(60,40,10,0.12)] max-md:h-[640px] max-md:max-w-none md:max-h-[400px] lg:max-h-[520px]"
+                  />
+                </div>
               </motion.div>
               {/* Speech bubble, tail pointing down-left to Dadi */}
               <motion.p
